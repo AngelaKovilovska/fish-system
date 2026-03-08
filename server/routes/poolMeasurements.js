@@ -57,4 +57,21 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// DELETE /api/pool-measurements/:id - delete a measurement (admin only)
+router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM pool_measurements WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Мерењето не е пронајдено' });
+    }
+
+    res.json({ message: 'Мерењето е избришано' });
+  } catch (err) {
+    console.error('Delete pool measurement error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 module.exports = router;

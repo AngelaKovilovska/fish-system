@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
-import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar } from 'lucide-react';
+import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp } from 'lucide-react';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -14,6 +14,10 @@ export default function ManagePoolMeasurements() {
   const [measuredDate, setMeasuredDate] = useState(todayStr());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
   const load = async () => {
     try {
@@ -24,6 +28,31 @@ export default function ManagePoolMeasurements() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadHistory = async (poolNum) => {
+    setLoadingHistory(true);
+    try {
+      const data = await api.getPoolMeasurementHistory(poolNum);
+      setHistory(data.measurements);
+    } catch (err) { console.error(err); }
+    finally { setLoadingHistory(false); }
+  };
+
+  const toggleHistory = () => {
+    if (!showHistory) loadHistory(activePool);
+    setShowHistory(!showHistory);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Дали сте сигурни дека сакате да го избришете ова мерење?')) return;
+    setDeleting(id);
+    try {
+      await api.deletePoolMeasurement(id);
+      setHistory(h => h.filter(m => m.id !== id));
+      await load();
+    } catch (err) { setMessage(err.message); }
+    finally { setDeleting(null); }
+  };
 
   const getMeasurement = (poolNum) => measurements.find(m => m.pool_number === poolNum);
 
@@ -69,7 +98,7 @@ export default function ManagePoolMeasurements() {
           const m = getMeasurement(num);
           return (
             <button key={num} type="button"
-              onClick={() => { setActivePool(num); setMessage(''); }}
+              onClick={() => { setActivePool(num); setMessage(''); setShowHistory(false); setHistory([]); }}
               className={activePool === num ? 'chip-active' : m ? 'chip-inactive !border-[rgba(34,197,94,0.2)] !text-[var(--success)]' : 'chip-inactive'}>
               Б{num}
             </button>
@@ -154,6 +183,51 @@ export default function ManagePoolMeasurements() {
             <><Save size={15} /> Зачувај мерење</>
           )}
         </button>
+      </div>
+
+      {/* Measurement history */}
+      <div className="card mb-3 animate-in-delay-1">
+        <button type="button" onClick={toggleHistory}
+          className="flex items-center justify-between w-full text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="icon-box w-8 h-8"
+              style={{ background: 'linear-gradient(135deg, var(--text-muted), var(--text-secondary))' }}>
+              <History size={15} />
+            </div>
+            <h3 className="section-title text-sm">Историја на мерења — Б{activePool}</h3>
+          </div>
+          {showHistory ? <ChevronUp size={16} className="text-[var(--text-muted)]" /> : <ChevronDown size={16} className="text-[var(--text-muted)]" />}
+        </button>
+
+        {showHistory && (
+          <div className="mt-3">
+            {loadingHistory ? (
+              <div className="text-center py-4"><Loader2 size={18} className="animate-spin mx-auto text-[var(--text-muted)]" /></div>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)] text-center py-3">Нема мерења за овој базен</p>
+            ) : (
+              <div className="space-y-1.5">
+                {history.map(m => (
+                  <div key={m.id} className="flex items-center justify-between p-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)]">
+                    <div className="text-xs">
+                      <p className="font-medium text-[var(--text-primary)]">
+                        <span className="font-bold">{m.fish_count}</span> риби / <span className="font-bold">{m.avg_weight_gr}</span> gr
+                      </p>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                        {new Date(m.measured_at).toLocaleDateString('mk-MK', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => handleDelete(m.id)} disabled={deleting === m.id}
+                      className="p-1.5 rounded-[var(--r-sm)] text-[var(--danger)] hover:bg-red-50 transition-colors disabled:opacity-50"
+                      title="Избриши мерење">
+                      {deleting === m.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Summary of all pools */}
