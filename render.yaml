@@ -9,8 +9,8 @@ services:
     name: fish-system
     plan: free
     runtime: node
-    buildCommand: npm run install:all && npm run build
-    startCommand: npm start
+    buildCommand: cd client && npm install --include=dev && npm run build && cd ../server && npm install
+    startCommand: cd server && node index.js
     envVars:
       - key: NODE_ENV
         value: production
