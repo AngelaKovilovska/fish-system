@@ -21,7 +21,7 @@ INSERT INTO food_inventory (food_type, quantity_kg)
 VALUES
   ('Advance (1.5mm)', 0),
   ('Pregrower-15 (2mm)', 0),
-  ('Grower (3mm)', 0),
+  ('Grower-13EF (3mm)', 0),
   ('Grower-13EF (4.5mm)', 0),
   ('Grower-13EF (6mm)', 0),
   ('SpecialPro EF (3mm)', 0)
