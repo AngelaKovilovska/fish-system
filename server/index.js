@@ -100,6 +100,26 @@ async function runMigrations() {
   }
 }
 
+// Auto-seed admin if no users exist
+async function seedAdmin() {
+  try {
+    const existing = await pool.query('SELECT COUNT(*) FROM users');
+    if (parseInt(existing.rows[0].count) > 0) return;
+
+    const bcrypt = require('bcryptjs');
+    const email = 'kovilovski@t.mk';
+    const hashedPassword = await bcrypt.hash(']5s1X1_3(a', 12);
+
+    await pool.query(
+      'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',
+      [email, hashedPassword, 'Горан Ковиловски', 'admin']
+    );
+    console.log('Admin user created: ' + email);
+  } catch (err) {
+    console.error('Seed admin error:', err.message);
+  }
+}
+
 // ── Global error handler (не ликува чувствителни детали) ──
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -108,6 +128,7 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await runMigrations();
+  await seedAdmin();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} [${IS_PROD ? 'production' : 'development'}]`);
   });
