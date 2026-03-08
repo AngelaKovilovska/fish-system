@@ -1,0 +1,186 @@
+import { useState, useEffect } from 'react';
+import { api } from '../../lib/api';
+import { FOOD_TYPES } from '../../lib/constants';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar } from 'lucide-react';
+
+export default function ManageFoodInventory() {
+  const [inventory, setInventory] = useState([]);
+  const [log, setLog] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [foodType, setFoodType] = useState(FOOD_TYPES[0]);
+  const [quantity, setQuantity] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const load = async () => {
+    try {
+      const [invData, logData] = await Promise.all([
+        api.getFoodInventory(),
+        api.getFoodInventoryLog(20),
+      ]);
+      setInventory(invData.inventory);
+      setLog(logData.log);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handlePurchase = async () => {
+    if (!quantity || parseFloat(quantity) <= 0) {
+      setMessage('Внесете количина поголема од 0');
+      return;
+    }
+    setSaving(true); setMessage('');
+    try {
+      await api.addFoodPurchase({ food_type: foodType, quantity_kg: parseFloat(quantity), purchase_date: purchaseDate });
+      setMessage('Набавката е додадена!');
+      setQuantity('');
+      await load();
+    } catch (err) { setMessage(err.message); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return (
+    <div className="max-w-[700px] mx-auto space-y-3">
+      <div className="skeleton h-10 w-full" />
+      <div className="skeleton h-52 w-full" />
+    </div>
+  );
+
+  return (
+    <div className="max-w-[700px] mx-auto">
+      <div className="mb-5 animate-in">
+        <h1 className="page-title mb-1">Залихи на храна</h1>
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          Следете ги залихите. При секоја чек-листа потрошената храна автоматски се одзема.
+        </p>
+      </div>
+
+      {/* Current stock table */}
+      <div className="card mb-4 animate-in">
+        <h3 className="section-title text-sm mb-3 flex items-center gap-2">
+          <Package size={15} className="text-[var(--primary)]" />
+          Тековни залихи
+        </h3>
+        <div className="hidden lg:block">
+          <table className="table-modern">
+            <thead>
+              <tr>
+                <th>Тип храна</th>
+                <th className="text-right">Залиха (kg)</th>
+                <th className="text-right">Последно ажурирано</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventory.map(item => (
+                <tr key={item.id}>
+                  <td className="font-medium">{item.food_type}</td>
+                  <td className="text-right">
+                    <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                      {parseFloat(item.quantity_kg).toFixed(1)}
+                    </span>
+                  </td>
+                  <td className="text-right text-[var(--text-muted)]">
+                    {new Date(item.updated_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Mobile list */}
+        <div className="lg:hidden space-y-2">
+          {inventory.map(item => (
+            <div key={item.id} className="flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
+              <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
+              <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                {parseFloat(item.quantity_kg).toFixed(1)} kg
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Add purchase form */}
+      <div className="card mb-4 animate-in-delay-1">
+        <h3 className="section-title text-sm mb-3 flex items-center gap-2">
+          <Plus size={15} className="text-[var(--success)]" />
+          Додај набавка
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Тип храна</label>
+            <select value={foodType} onChange={(e) => setFoodType(e.target.value)}
+              className="input-base">
+              {FOOD_TYPES.map(ft => (
+                <option key={ft} value={ft}>{ft}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Количина (kg)</label>
+            <input type="number" step="any" value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="input-base" placeholder="нпр. 25" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на набавка</label>
+            <input type="date" value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              className="input-base" />
+          </div>
+          <div className="flex items-end">
+            <button onClick={handlePurchase} disabled={saving} className="btn-primary w-full py-2.5">
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="wave-loader"><span /><span /><span /><span /></div>
+                </span>
+              ) : (
+                <><Plus size={15} /> Додај</>
+              )}
+            </button>
+          </div>
+        </div>
+        {message && (
+          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+            {message}
+          </p>
+        )}
+      </div>
+
+      {/* Recent log */}
+      {log.length > 0 && (
+        <div className="card animate-in-delay-2">
+          <h3 className="section-title text-sm mb-3 flex items-center gap-2">
+            <Clock size={15} className="text-[var(--text-muted)]" />
+            Последни промени
+          </h3>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {log.map(entry => (
+              <div key={entry.id} className="flex items-center justify-between text-xs p-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150">
+                <div className="flex items-center gap-2 min-w-0">
+                  {entry.reason === 'purchase' ? (
+                    <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
+                  ) : (
+                    <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+                  )}
+                  <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className={`font-bold ${entry.reason === 'purchase' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                    {entry.reason === 'purchase' ? '+' : ''}{parseFloat(entry.change_kg).toFixed(2)} kg
+                  </span>
+                  <span className="text-[var(--text-muted)] text-[10px] w-16 text-right">
+                    {new Date(entry.purchased_at || entry.created_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,78 @@
+const API_BASE = '/api';
+
+async function request(url, options = {}) {
+  const res = await fetch(`${API_BASE}${url}`, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    ...options,
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Серверска грешка');
+  }
+
+  return data;
+}
+
+export const api = {
+  // Auth
+  login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  me: () => request('/auth/me'),
+
+  // Users
+  getUsers: () => request('/users'),
+  createUser: (data) => request('/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id, data) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+
+  // Norms
+  getNorms: () => request('/norms'),
+  updateNorm: (id, data) => request(`/norms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Records
+  getRecords: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/records?${query}`);
+  },
+  getRecord: (id) => request(`/records/${id}`),
+  createRecord: (data) => request('/records', { method: 'POST', body: JSON.stringify(data) }),
+  updateRecord: (id, data) => request(`/records/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteRecord: (id) => request(`/records/${id}`, { method: 'DELETE' }),
+
+  // Alerts
+  getAlerts: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/alerts?${query}`);
+  },
+  acknowledgeAlert: (id) => request(`/alerts/${id}/acknowledge`, { method: 'PUT' }),
+
+  // Reports
+  sendDailyReport: (recordId) => request(`/reports/daily/${recordId}`, { method: 'POST' }),
+
+  // Preview (data only)
+  previewFoodReport: (from, to, pool_number) => request('/reports/food-consumption', { method: 'POST', body: JSON.stringify({ from, to, pool_number: pool_number || undefined }) }),
+  getMeasurementDates: (pool_number) => request(`/reports/measurement-dates${pool_number ? `?pool_number=${pool_number}` : ''}`),
+  previewAvgWeightReport: (pool_number, measurement_date) => request('/reports/avg-weight', { method: 'POST', body: JSON.stringify({ pool_number: pool_number || undefined, measurement_date: measurement_date || undefined }) }),
+  previewAlertsReport: (from, to) => request('/reports/alerts', { method: 'POST', body: JSON.stringify({ from, to }) }),
+  previewSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to }) }),
+  previewPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to }) }),
+
+  // Send email
+  sendFoodReport: (from, to, pool_number) => request('/reports/food-consumption', { method: 'POST', body: JSON.stringify({ from, to, pool_number: pool_number || undefined, sendEmail: true }) }),
+  sendAvgWeightReport: (pool_number, measurement_date) => request('/reports/avg-weight', { method: 'POST', body: JSON.stringify({ pool_number: pool_number || undefined, measurement_date: measurement_date || undefined, sendEmail: true }) }),
+  sendAlertsReport: (from, to) => request('/reports/alerts', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+  sendSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+  sendPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+
+  // Pool measurements
+  getPoolMeasurements: () => request('/pool-measurements'),
+  createPoolMeasurement: (data) => request('/pool-measurements', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Food inventory
+  getFoodInventory: () => request('/food-inventory'),
+  addFoodPurchase: (data) => request('/food-inventory/purchase', { method: 'POST', body: JSON.stringify(data) }),
+  getFoodInventoryLog: (limit) => request(`/food-inventory/log?limit=${limit || 30}`),
+};

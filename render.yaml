@@ -1,0 +1,22 @@
+databases:
+  - name: fish-system-db
+    plan: free
+    databaseName: fish_system
+    user: fishapp
+
+services:
+  - type: web
+    name: fish-system
+    plan: free
+    runtime: node
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fish-system-db
+          property: connectionString
