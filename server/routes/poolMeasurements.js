@@ -39,15 +39,15 @@ router.get('/history/:poolNumber', authMiddleware, async (req, res) => {
 // POST /api/pool-measurements - add new measurement (admin only)
 router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { pool_number, fish_count, avg_weight_gr } = req.body;
+    const { pool_number, fish_count, avg_weight_gr, measured_at } = req.body;
 
     if (!pool_number || pool_number < 1 || pool_number > 6) {
       return res.status(400).json({ error: 'Невалиден број на базен' });
     }
 
     const result = await pool.query(
-      'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by) VALUES ($1, $2, $3, $4) RETURNING *',
-      [pool_number, fish_count || 0, avg_weight_gr || 0, req.user.id]
+      'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [pool_number, fish_count || 0, avg_weight_gr || 0, req.user.id, measured_at || new Date()]
     );
 
     res.status(201).json({ measurement: result.rows[0] });

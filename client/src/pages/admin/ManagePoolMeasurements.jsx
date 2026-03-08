@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
-import { Save, Loader2, Info, Gauge, Fish, Weight } from 'lucide-react';
+import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar } from 'lucide-react';
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function ManagePoolMeasurements() {
   const [measurements, setMeasurements] = useState([]);
@@ -9,6 +11,7 @@ export default function ManagePoolMeasurements() {
   const [activePool, setActivePool] = useState(1);
   const [fishCount, setFishCount] = useState('');
   const [avgWeight, setAvgWeight] = useState('');
+  const [measuredDate, setMeasuredDate] = useState(todayStr());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -32,9 +35,10 @@ export default function ManagePoolMeasurements() {
         pool_number: activePool,
         fish_count: fishCount || 0,
         avg_weight_gr: avgWeight || 0,
+        measured_at: measuredDate,
       });
       setMessage('Мерењето е зачувано!');
-      setFishCount(''); setAvgWeight('');
+      setFishCount(''); setAvgWeight(''); setMeasuredDate(todayStr());
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
@@ -113,6 +117,12 @@ export default function ManagePoolMeasurements() {
         )}
 
         <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>Ново мерење:</p>
+        <div className="mb-3">
+          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
+          <input type="date" value={measuredDate}
+            onChange={(e) => setMeasuredDate(e.target.value)}
+            className="input-base" />
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на риби</label>
