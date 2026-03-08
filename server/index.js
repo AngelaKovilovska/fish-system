@@ -71,20 +71,22 @@ app.get('/api/health', (req, res) => {
 if (IS_PROD) {
   const clientBuildPath = path.join(__dirname, '..', 'client', 'dist');
 
-  // PWA files: no cache (so icons/manifest update immediately)
-  app.use(/^\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js)/, express.static(clientBuildPath, {
+  // PWA + index.html: no cache (so updates apply immediately)
+  app.use(/^\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js|index\.html)/, express.static(clientBuildPath, {
     maxAge: 0,
     etag: true,
   }));
 
-  // Everything else: cache aggressively (hashed by Vite)
+  // Hashed assets (JS/CSS/images): cache aggressively
   app.use(express.static(clientBuildPath, {
     maxAge: '1y',
     immutable: true,
+    index: false, // don't serve index.html from here
   }));
 
-  // SPA fallback — any non-API route returns index.html
+  // SPA fallback — no cache on index.html
   app.get('{*path}', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
