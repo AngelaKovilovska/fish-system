@@ -35,11 +35,29 @@ export default function Login() {
         }}>
 
         {/* ── Logo ── */}
-        <div className="flex justify-center" style={{ marginBottom: 30 }}>
+        <div className="flex justify-center" style={{ marginBottom: 10 }}>
           <img
             src="/pwa-512x512.png"
             alt="CLARIO"
             style={{ width: 200, height: 200, objectFit: 'contain' }}
+          />
+        </div>
+
+        {/* ── Koi fish illustration ── */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          margin: '0 0 30px',
+        }}>
+          <img
+            src="/images/koi-fish.png"
+            alt="Koi fish"
+            style={{
+              width: 200,
+              height: 200,
+              objectFit: 'contain',
+              opacity: 0.85,
+            }}
           />
         </div>
 
