@@ -71,6 +71,13 @@ app.get('/api/health', (req, res) => {
 if (IS_PROD) {
   const clientBuildPath = path.join(__dirname, '..', 'client', 'dist');
 
+  // PWA files: no cache (so icons/manifest update immediately)
+  app.use(/^\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js)/, express.static(clientBuildPath, {
+    maxAge: 0,
+    etag: true,
+  }));
+
+  // Everything else: cache aggressively (hashed by Vite)
   app.use(express.static(clientBuildPath, {
     maxAge: '1y',
     immutable: true,
