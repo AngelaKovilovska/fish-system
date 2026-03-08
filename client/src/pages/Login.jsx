@@ -34,46 +34,12 @@ export default function Login() {
           padding: '50px 40px',
         }}>
 
-        {/* ── Logo + Title ── */}
-        <div className="text-center" style={{ marginBottom: 10 }}>
-          <div className="flex justify-center mb-3">
-            <img
-              src="/images/clario-logo.png"
-              alt="CLARIO"
-              className="rounded-full"
-              style={{ width: 60, height: 60, objectFit: 'cover' }}
-            />
-          </div>
-          <h1 style={{
-            fontSize: 34,
-            fontWeight: 600,
-            color: '#1a548c',
-            marginBottom: 8,
-            letterSpacing: -0.5,
-            fontFamily: 'Sora, -apple-system, sans-serif',
-          }}>
-            Clario
-          </h1>
-          <p style={{ fontSize: 14, color: '#64748b', fontWeight: 400 }}>
-            Fish Farm Monitor
-          </p>
-        </div>
-
-        {/* ── Koi fish illustration ── */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          margin: '20px 0 30px',
-        }}>
+        {/* ── Logo ── */}
+        <div className="flex justify-center" style={{ marginBottom: 30 }}>
           <img
-            src="/images/koi-fish.png"
-            alt="Koi fish"
-            style={{
-              width: 200,
-              height: 200,
-              objectFit: 'contain',
-              opacity: 0.85,
-            }}
+            src="/pwa-512x512.png"
+            alt="CLARIO"
+            style={{ width: 200, height: 200, objectFit: 'contain' }}
           />
         </div>
 
