@@ -101,7 +101,12 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
             </label>
             <input type="number" value={poolData.fish_count ?? ''}
               onChange={(e) => updatePool(activePool, 'fish_count', e.target.value)}
-              className="input-base" placeholder="нпр. 500" />
+              className="input-base" placeholder={measurement ? `${measurement.fish_count}` : 'нпр. 500'} />
+            {measurement && (
+              <p className="text-[10px] text-[var(--primary)] mt-1 font-medium">
+                Последно мерење: {measurement.fish_count}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
@@ -114,6 +119,11 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
               onChange={(e) => updatePool(activePool, 'avg_weight_gr', e.target.value)}
               className="input-base"
               placeholder={measurement ? `${measurement.avg_weight_gr}` : 'нпр. 150'} />
+            {measurement && (
+              <p className="text-[10px] text-[var(--primary)] mt-1 font-medium">
+                Последно мерење: {measurement.avg_weight_gr} gr
+              </p>
+            )}
           </div>
         </div>
 
