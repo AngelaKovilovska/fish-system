@@ -40,15 +40,15 @@ export default function ChecklistHistory() {
 
       {/* Inline filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4 animate-in-delay-1
-        bg-white rounded-[var(--r-md)] px-4 py-3" style={{ boxShadow: 'var(--sh-card)' }}>
+        bg-white rounded-[var(--r-md)] px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
         <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>Од:</span>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-          className="input-base !py-2 !text-sm flex-1" />
+          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" />
         <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>До:</span>
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-          className="input-base !py-2 !text-sm flex-1" />
+          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" />
         <div className="flex gap-2">
           <button onClick={handleSearch} className="btn-primary py-2 px-4 text-sm">
             <Search size={15} /> Пребарај

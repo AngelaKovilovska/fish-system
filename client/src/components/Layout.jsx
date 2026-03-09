@@ -114,6 +114,7 @@ export default function Layout() {
       {/* ═══════ MOBILE HEADER ═══════ */}
       <header className="lg:hidden sticky top-0 z-40 px-4 py-3 flex items-center justify-between"
         style={{
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
           background: 'rgba(255,255,255,0.85)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
@@ -223,7 +224,7 @@ export default function Layout() {
           </>
         )}
 
-        <div className="max-w-[1200px] mx-auto px-4 py-5 lg:px-8 lg:py-6 animate-in relative z-1">
+        <div className="max-w-[1200px] mx-auto px-4 py-5 lg:px-8 lg:py-6 animate-in relative z-1 overflow-x-hidden">
           <Outlet />
         </div>
       </main>
