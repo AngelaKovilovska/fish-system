@@ -204,6 +204,7 @@ body {
 
 .input-base {
   width: 100%;
+  max-width: 100%;
   padding: 0.625rem 0.875rem;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -213,6 +214,13 @@ body {
   font-family: 'Inter', sans-serif;
   transition: all 150ms var(--ease-smooth);
   outline: none;
+  box-sizing: border-box;
+}
+input[type="date"].input-base,
+input[type="time"].input-base {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
 }
 .input-base::placeholder { color: var(--text-muted); }
 .input-base:hover { border-color: #CBD5E1; }

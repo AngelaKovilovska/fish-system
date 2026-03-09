@@ -35,7 +35,7 @@ export default function ChecklistHistory() {
   const totalPages = Math.ceil(total / PER_PAGE);
 
   return (
-    <div>
+    <div className="overflow-hidden">
       <h1 className="page-title mb-4 animate-in">Историја на записи</h1>
 
       {/* Inline filter bar */}
@@ -44,11 +44,11 @@ export default function ChecklistHistory() {
         <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>Од:</span>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" />
+          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
         <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>До:</span>
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" />
+          className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
         <div className="flex gap-2">
           <button onClick={handleSearch} className="btn-primary py-2 px-4 text-sm">
             <Search size={15} /> Пребарај
