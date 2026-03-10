@@ -130,63 +130,25 @@ export default function RecordDetail() {
       )}
 
       {/* Pool status (Евиденција на базени) */}
-      {pool_feeding.length > 0 && (() => {
-        const hasMeals = meals.length > 0;
-        // Build per-pool food totals from meals
-        const foodByPool = {};
-        if (hasMeals) {
-          meals.forEach(m => {
-            if (!foodByPool[m.pool_number]) foodByPool[m.pool_number] = { total: 0, details: [] };
-            foodByPool[m.pool_number].total += parseFloat(m.food_quantity_gr) || 0;
-            foodByPool[m.pool_number].details.push(m);
-          });
-        }
-        // Meal authors
-        const mealAuthors = {};
-        meals.forEach(m => { if (m.fed_by_name && !mealAuthors[m.meal_type]) mealAuthors[m.meal_type] = m.fed_by_name; });
-        const totalFood = hasMeals
-          ? Object.values(foodByPool).reduce((s, p) => s + p.total, 0)
-          : pool_feeding.reduce((s, p) => s + (parseFloat(p.food_quantity_gr) || 0), 0);
-
-        return (
-          <CollapsibleSection title="4. Евиденција на базени" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
-            {pool_feeding.map(pf => (
-              <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
-                <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
-                <div className="grid grid-cols-2 gap-x-4">
-                  <Row label="Број риби" value={pf.fish_count ?? '–'} />
-                  <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
-                  <Row label="Продадени" value={pf.sold_count ?? '–'} />
-                  <Row label="Угинати" value={pf.dead_count ?? '–'} />
-                  {hasMeals ? (
-                    <Row label="Вкупно храна" value={foodByPool[pf.pool_number] ? `${foodByPool[pf.pool_number].total} gr` : '0 gr'} />
-                  ) : (
-                    <>
-                      <Row label="Тип храна" value={pf.food_type || '–'} />
-                      <Row label="Количина храна" value={pf.food_quantity_gr != null ? `${pf.food_quantity_gr} gr` : '–'} />
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div className="info-box mt-2 text-xs">
-              <strong>Збир:</strong>{' '}
-              Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
-              Храна: {totalFood} gr |{' '}
-              Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
-              Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}
+      {pool_feeding.length > 0 && (
+        <CollapsibleSection title="4. Евиденција на базени" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
+          {pool_feeding.map(pf => (
+            <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
+              <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
+              <Row label="Број риби" value={pf.fish_count ?? '–'} />
+              <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
+              <Row label="Продадени" value={pf.sold_count ?? '–'} />
+              <Row label="Угинати" value={pf.dead_count ?? '–'} />
             </div>
-            {hasMeals && Object.keys(mealAuthors).length > 0 && (
-              <div className="info-box mt-2 text-xs">
-                <strong>Оброци:</strong>{' '}
-                {['breakfast', 'lunch', 'dinner'].filter(t => mealAuthors[t]).map(t => (
-                  <span key={t}>{MEAL_LABELS[t]}: {mealAuthors[t]}  </span>
-                ))}
-              </div>
-            )}
-          </CollapsibleSection>
-        );
-      })()}
+          ))}
+          <div className="info-box mt-2 text-xs">
+            <strong>Збир:</strong>{' '}
+            Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
+            Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
+            Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Activities */}
       {activities && (
@@ -197,6 +159,70 @@ export default function RecordDetail() {
           {activities.misc_2 && <Row label="Разно (2)" value={activities.misc_2} />}
         </CollapsibleSection>
       )}
+
+      {/* Храна (per-pool, per-meal breakdown) */}
+      {meals.length > 0 && (() => {
+        const mealTypes = ['breakfast', 'lunch', 'dinner'];
+        const poolNumbers = [...new Set(meals.map(m => m.pool_number))].sort((a, b) => a - b);
+
+        // Build per-pool data (only pools that have at least one meal with food)
+        const poolMealData = poolNumbers.map(poolNum => {
+          const poolMeals = meals.filter(m => m.pool_number === poolNum);
+          const mealRows = mealTypes.map(type => {
+            const meal = poolMeals.find(m => m.meal_type === type);
+            return {
+              type,
+              label: MEAL_LABELS[type],
+              food_type: meal?.food_type || null,
+              food_quantity_gr: parseFloat(meal?.food_quantity_gr) || 0,
+              has_data: meal && parseFloat(meal.food_quantity_gr) > 0,
+            };
+          });
+          const total = mealRows.reduce((s, m) => s + m.food_quantity_gr, 0);
+          return { poolNum, mealRows, total };
+        }).filter(p => p.total > 0);
+
+        const grandTotal = poolMealData.reduce((s, p) => s + p.total, 0);
+
+        // Meal authors
+        const mealAuthors = {};
+        meals.forEach(m => { if (m.fed_by_name && !mealAuthors[m.meal_type]) mealAuthors[m.meal_type] = m.fed_by_name; });
+
+        return (
+          <CollapsibleSection title="6. Храна" delay={7} collapsed={collapsed.food} onToggle={() => toggleSection('food')}>
+            {poolMealData.map(({ poolNum, mealRows, total }) => (
+              <div key={poolNum} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
+                <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {poolNum}</p>
+                {mealRows.map(meal => (
+                  <div key={meal.type} className="flex justify-between text-xs py-1.5 border-b border-[#F1F5F9] last:border-0">
+                    <span className="text-[var(--text-secondary)]">{meal.label}</span>
+                    <span className="font-semibold text-[var(--text-primary)] text-right">
+                      {meal.has_data ? `${meal.food_type} — ${meal.food_quantity_gr} gr` : '–'}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-xs py-1.5 bg-[var(--bg-secondary)] rounded px-2 mt-1">
+                  <span className="font-semibold text-[var(--text-secondary)]">Вкупно</span>
+                  <span className="font-bold text-[var(--primary)]">{total > 0 ? `${total} gr` : '–'}</span>
+                </div>
+              </div>
+            ))}
+
+            <div className="info-box mt-2 text-xs">
+              <strong>Вкупно храна (сите оброци):</strong> {grandTotal} gr
+            </div>
+
+            {Object.keys(mealAuthors).length > 0 && (
+              <div className="info-box mt-2 text-xs">
+                <strong>Проверил:</strong>{' '}
+                {mealTypes.filter(t => mealAuthors[t]).map(t => (
+                  <span key={t} className="inline-block mr-3">{MEAL_LABELS[t]}: {mealAuthors[t]}</span>
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
     </div>
   );
 }
