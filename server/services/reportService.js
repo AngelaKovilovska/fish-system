@@ -3,9 +3,9 @@ const path = require('path');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
 
-// Cyrillic-compatible fonts (DejaVu Sans supports full Cyrillic)
-const FONT_REGULAR = path.join(__dirname, '..', 'fonts', 'DejaVuSans.ttf');
-const FONT_BOLD = path.join(__dirname, '..', 'fonts', 'DejaVuSans-Bold.ttf');
+// Modern Roboto font (supports Cyrillic)
+const FONT_REGULAR = path.join(__dirname, '..', 'fonts', 'Roboto-Regular.ttf');
+const FONT_BOLD = path.join(__dirname, '..', 'fonts', 'Roboto-Bold.ttf');
 
 // Memorandum assets
 const LOGO_MAIN = path.join(__dirname, '..', 'assets', 'logo-famakom.jpg');
@@ -251,18 +251,21 @@ function generateExcel(sheetName, headers, rows) {
 
 // ── Color palette (matching Фамаком brand) ──
 const COLORS = {
-  primary: '#1a1a8a',      // Фамаком dark blue
-  primaryLight: '#2563eb',
-  accentGold: '#d4a017',   // Фамаком gold line
+  primary: '#1a1a8a',
+  accentGold: '#d4a017',
   sectionTitle: '#1a1a8a',
   tableHeader: '#1a1a8a',
   tableHeaderText: '#ffffff',
-  tableRowAlt: '#f0f4fa',
+  tableRowAlt: '#f5f7fa',
   tableRowNormal: '#ffffff',
-  tableBorder: '#d1d5db',
+  tableBorder: '#e2e5ea',
   text: '#1f2937',
   textLight: '#6b7280',
+  textMuted: '#9ca3af',
+  success: '#16a34a',
   danger: '#dc2626',
+  kvAltBg: '#f8f9fb',
+  kvBorder: '#e5e7eb',
 };
 
 // ── Memorandum header/footer constants ──
@@ -274,16 +277,13 @@ const CONTENT_BOTTOM = 750; // max Y before page break
 
 // Draw memorandum header on a page
 function drawMemoHeader(doc) {
-  // Logo top-left (scaled to ~150px wide)
   try {
     doc.image(LOGO_MAIN, MARGIN, 25, { width: 150 });
   } catch (e) {
-    // Fallback text if logo missing
-    doc.font('DejaVu-Bold').fontSize(18).fillColor(COLORS.primary)
+    doc.font('Roboto-Bold').fontSize(18).fillColor(COLORS.primary)
       .text('Фамаком Аквакултура', MARGIN, 30);
   }
 
-  // Horizontal line from after logo to right margin
   doc.save();
   doc.moveTo(220, 55).lineTo(595 - MARGIN, 55)
     .lineWidth(1).strokeColor('#333333').stroke();
@@ -292,34 +292,33 @@ function drawMemoHeader(doc) {
 
 // Draw memorandum footer on a page
 function drawMemoFooter(doc, pageNum, totalPages) {
+  const origBottom = doc.page.margins.bottom;
+  doc.page.margins.bottom = 0; // prevent auto-page during footer rendering
   doc.save();
 
-  // Horizontal line
   doc.moveTo(MARGIN, FOOTER_Y).lineTo(595 - MARGIN, FOOTER_Y)
     .lineWidth(0.8).strokeColor('#333333').stroke();
 
-  // Company info text
-  doc.font('DejaVu').fontSize(7).fillColor(COLORS.textLight);
+  doc.font('Roboto').fontSize(7).fillColor(COLORS.textLight);
   doc.text(
     'друштво за производство и трговија на риба  ФАМАКОМ АКВАКУЛТУРА  доо увоз-извоз',
-    MARGIN, FOOTER_Y + 6, { width: PAGE_WIDTH - 70, align: 'center' }
+    MARGIN, FOOTER_Y + 4, { width: PAGE_WIDTH - 70, align: 'center', lineBreak: false }
   );
   doc.text(
     'ул.11ти Октомври бр.2, 1400 Велес, Република Македонија, e-mail: famakom@t.mk',
-    MARGIN, FOOTER_Y + 16, { width: PAGE_WIDTH - 70, align: 'center' }
+    MARGIN, FOOTER_Y + 13, { width: PAGE_WIDTH - 70, align: 'center', lineBreak: false }
   );
 
-  // Small logo bottom-right
   try {
-    doc.image(LOGO_SMALL, 595 - MARGIN - 65, FOOTER_Y + 4, { width: 60 });
+    doc.image(LOGO_SMALL, 595 - MARGIN - 65, FOOTER_Y + 2, { width: 60 });
   } catch (e) { /* skip if missing */ }
 
-  // Page number
-  doc.font('DejaVu').fontSize(7).fillColor(COLORS.textLight)
+  doc.font('Roboto').fontSize(7).fillColor(COLORS.textLight)
     .text(`Страна ${pageNum} од ${totalPages}`,
-      MARGIN, FOOTER_Y + 30, { width: PAGE_WIDTH, align: 'center' });
+      MARGIN, FOOTER_Y + 23, { width: PAGE_WIDTH, align: 'center', lineBreak: false });
 
   doc.restore();
+  doc.page.margins.bottom = origBottom;
 }
 
 // Generate PDF with Фамаком memorandum
@@ -328,116 +327,171 @@ function generatePDF(title, sections) {
     const doc = new PDFDocument({ margin: MARGIN, size: 'A4', bufferPages: true });
     const chunks = [];
 
-    // Register Cyrillic-compatible fonts
-    doc.registerFont('DejaVu', FONT_REGULAR);
-    doc.registerFont('DejaVu-Bold', FONT_BOLD);
+    doc.registerFont('Roboto', FONT_REGULAR);
+    doc.registerFont('Roboto-Bold', FONT_BOLD);
 
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-    // ── Page 1 header ──
+    // ── Page 1 ──
     drawMemoHeader(doc);
 
-    // ── Title ──
     doc.y = HEADER_HEIGHT + 10;
-    doc.font('DejaVu-Bold').fontSize(14).fillColor(COLORS.sectionTitle)
+    doc.font('Roboto-Bold').fontSize(13).fillColor(COLORS.sectionTitle)
       .text(title, MARGIN, doc.y, { align: 'center', width: PAGE_WIDTH });
-    doc.moveDown(0.3);
-    doc.font('DejaVu').fontSize(8).fillColor(COLORS.textLight)
+    doc.moveDown(0.15);
+    doc.font('Roboto').fontSize(7.5).fillColor(COLORS.textMuted)
       .text(`Генерирано: ${new Date().toLocaleString('mk-MK')}`, { align: 'center' });
-    doc.moveDown(1.2);
+    doc.moveDown(0.8);
 
-    // Helper: add new page with memo header
-    function newPage() {
-      doc.addPage();
-      drawMemoHeader(doc);
-      doc.y = HEADER_HEIGHT + 10;
+    // Only create new page when content actually needs space
+    function ensureSpace(needed) {
+      if (doc.y > CONTENT_BOTTOM - needed) {
+        doc.addPage();
+        drawMemoHeader(doc);
+        doc.y = HEADER_HEIGHT + 10;
+      }
     }
 
-    // ── Sections ──
+    // ── Render sections ──
     for (const section of sections) {
-      if (doc.y > CONTENT_BOTTOM - 60) newPage();
-
+      // Section heading
       if (section.heading) {
-        doc.font('DejaVu-Bold').fontSize(11).fillColor(COLORS.sectionTitle)
-          .text(section.heading, MARGIN);
-        // Gold accent line under heading (Фамаком style)
-        const headingY = doc.y + 2;
+        ensureSpace(45);
+        doc.font('Roboto-Bold').fontSize(10).fillColor(COLORS.sectionTitle)
+          .text(section.heading, MARGIN, doc.y);
+        const hy = doc.y + 2;
         doc.save();
-        doc.moveTo(MARGIN, headingY).lineTo(MARGIN + 80, headingY)
+        doc.moveTo(MARGIN, hy).lineTo(MARGIN + 60, hy)
           .lineWidth(2).strokeColor(COLORS.accentGold).stroke();
         doc.restore();
-        doc.moveDown(0.5);
+        doc.moveDown(0.35);
       }
 
+      // Plain text lines
       if (section.lines) {
-        doc.font('DejaVu').fontSize(9.5).fillColor(COLORS.text);
+        doc.font('Roboto').fontSize(9).fillColor(COLORS.text);
         for (const line of section.lines) {
-          if (doc.y > CONTENT_BOTTOM - 15) newPage();
+          ensureSpace(14);
           const isDanger = /АЛАРМ|ОПАСНОСТ|НЕ\s*$/i.test(line);
           doc.fillColor(isDanger ? COLORS.danger : COLORS.text).text(line, MARGIN);
         }
-        doc.moveDown(0.7);
+        doc.moveDown(0.5);
       }
 
+      // Key-value pairs (clean two-column checklist layout)
+      if (section.keyvalue) {
+        const items = section.keyvalue;
+        const labelW = Math.floor(PAGE_WIDTH * 0.62);
+        const rowH = 17;
+
+        for (let i = 0; i < items.length; i++) {
+          ensureSpace(rowH);
+          const item = items[i];
+          const y = doc.y;
+          const bg = i % 2 === 0 ? COLORS.tableRowNormal : COLORS.kvAltBg;
+
+          doc.save();
+          doc.rect(MARGIN, y, PAGE_WIDTH, rowH).fill(bg);
+
+          // Subtle row separator
+          if (i < items.length - 1) {
+            doc.moveTo(MARGIN + 6, y + rowH).lineTo(MARGIN + PAGE_WIDTH - 6, y + rowH)
+              .lineWidth(0.3).strokeColor(COLORS.kvBorder).stroke();
+          }
+
+          // Label
+          doc.font('Roboto').fontSize(8.5).fillColor(COLORS.text);
+          doc.text(String(item.label || ''), MARGIN + 10, y + 4,
+            { width: labelW - 20, lineBreak: false });
+
+          // Status indicator dot
+          if (item.status === 'ok') {
+            doc.circle(MARGIN + labelW - 4, y + rowH / 2, 2.5).fill(COLORS.success);
+          } else if (item.status === 'danger') {
+            doc.circle(MARGIN + labelW - 4, y + rowH / 2, 2.5).fill(COLORS.danger);
+          }
+
+          // Value (colored by status)
+          const valColor = item.status === 'danger' ? COLORS.danger
+            : item.status === 'ok' ? COLORS.success : COLORS.text;
+          doc.font('Roboto-Bold').fontSize(8.5).fillColor(valColor);
+          doc.text(String(item.value ?? '–'), MARGIN + labelW + 4, y + 4,
+            { width: PAGE_WIDTH - labelW - 14, lineBreak: false });
+
+          doc.restore();
+          doc.y = y + rowH;
+        }
+        doc.moveDown(0.5);
+      }
+
+      // Data table
       if (section.table) {
         const { headers, rows } = section.table;
         const colCount = headers.length;
         const colWidth = PAGE_WIDTH / colCount;
-        const rowHeight = 20;
-        const headerHeight = 24;
-        const fontSize = colCount > 4 ? 7 : 8;
+        const rowH = 18;
+        const headerH = 22;
+        const fontSize = colCount > 5 ? 6.5 : colCount > 4 ? 7 : 8;
 
-        function drawTableHeader(startY) {
+        function drawTblHeader(startY) {
           doc.save();
-          doc.rect(MARGIN, startY, PAGE_WIDTH, headerHeight).fill(COLORS.tableHeader);
-          doc.font('DejaVu-Bold').fontSize(fontSize).fillColor(COLORS.tableHeaderText);
-          for (let i = 0; i < colCount; i++) {
-            doc.text(String(headers[i] ?? ''), MARGIN + i * colWidth + 5, startY + 6,
-              { width: colWidth - 10, lineBreak: false });
+          doc.rect(MARGIN, startY, PAGE_WIDTH, headerH).fill(COLORS.tableHeader);
+          doc.font('Roboto-Bold').fontSize(fontSize).fillColor(COLORS.tableHeaderText);
+          for (let c = 0; c < colCount; c++) {
+            doc.text(String(headers[c] ?? ''), MARGIN + c * colWidth + 4, startY + 5,
+              { width: colWidth - 8, lineBreak: false });
           }
           doc.restore();
-          return startY + headerHeight;
+          return startY + headerH;
         }
 
-        if (doc.y > CONTENT_BOTTOM - 80) newPage();
-        let y = drawTableHeader(doc.y);
+        ensureSpace(headerH + rowH + 5);
+        let y = drawTblHeader(doc.y);
 
         for (let r = 0; r < rows.length; r++) {
-          if (y > CONTENT_BOTTOM - 15) {
-            newPage();
-            y = drawTableHeader(doc.y);
+          if (y > CONTENT_BOTTOM - rowH) {
+            doc.addPage();
+            drawMemoHeader(doc);
+            doc.y = HEADER_HEIGHT + 10;
+            y = drawTblHeader(doc.y);
           }
 
-          const bgColor = r % 2 === 0 ? COLORS.tableRowNormal : COLORS.tableRowAlt;
+          const bg = r % 2 === 0 ? COLORS.tableRowNormal : COLORS.tableRowAlt;
           doc.save();
-          doc.rect(MARGIN, y, PAGE_WIDTH, rowHeight).fill(bgColor);
-          doc.moveTo(MARGIN, y + rowHeight).lineTo(MARGIN + PAGE_WIDTH, y + rowHeight)
-            .lineWidth(0.5).strokeColor(COLORS.tableBorder).stroke();
+          doc.rect(MARGIN, y, PAGE_WIDTH, rowH).fill(bg);
+          doc.moveTo(MARGIN, y + rowH).lineTo(MARGIN + PAGE_WIDTH, y + rowH)
+            .lineWidth(0.3).strokeColor(COLORS.tableBorder).stroke();
 
-          doc.font('DejaVu').fontSize(fontSize).fillColor(COLORS.text);
+          doc.font('Roboto').fontSize(fontSize).fillColor(COLORS.text);
           const row = rows[r];
-          for (let i = 0; i < colCount; i++) {
-            doc.text(String(row[i] ?? ''), MARGIN + i * colWidth + 5, y + 5,
-              { width: colWidth - 10, lineBreak: false });
+          for (let c = 0; c < colCount; c++) {
+            const cellVal = String(row[c] ?? '');
+            // Bold separator rows (meal headers like -- Појадок --)
+            if (c === 0 && cellVal.startsWith('--')) {
+              doc.font('Roboto-Bold').fillColor(COLORS.sectionTitle);
+            }
+            doc.text(cellVal, MARGIN + c * colWidth + 4, y + 4,
+              { width: colWidth - 8, lineBreak: false });
+            doc.font('Roboto').fillColor(COLORS.text);
           }
           doc.restore();
-          y += rowHeight;
+          y += rowH;
         }
 
-        // Table outer border
-        const tableTop = y - rows.length * rowHeight - headerHeight;
+        // Outer border
+        const tableTop = y - rows.length * rowH - headerH;
         doc.save();
-        doc.rect(MARGIN, tableTop, PAGE_WIDTH, headerHeight + rows.length * rowHeight)
-          .lineWidth(0.8).strokeColor(COLORS.tableBorder).stroke();
+        doc.rect(MARGIN, tableTop, PAGE_WIDTH, headerH + rows.length * rowH)
+          .lineWidth(0.5).strokeColor(COLORS.tableBorder).stroke();
         doc.restore();
 
-        doc.y = y + 8;
-        doc.moveDown(0.4);
+        doc.y = y + 5;
+        doc.moveDown(0.3);
       }
     }
 
-    // ── Draw footer on all pages ──
+    // ── Footer on all pages ──
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);

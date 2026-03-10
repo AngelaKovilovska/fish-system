@@ -182,13 +182,13 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
         totalKgAll += poolKg;
         rows.push([`Базен ${pf.pool_number} - Број риби`, pf.fish_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Просечна тежина`, pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–']);
-        rows.push([`Базен ${pf.pool_number} - Вкупно кг`, poolKg > 0 ? `${poolKg.toFixed(1)} кг` : '–']);
+        rows.push([`Базен ${pf.pool_number} - Вкупна тежина`, poolKg > 0 ? `${poolKg.toFixed(1)} кг` : '–']);
         rows.push([`Базен ${pf.pool_number} - Продадени`, pf.sold_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Угинати`, pf.dead_count ?? '–']);
       }
       rows.push(['', '']);
       rows.push(['Збир - Вкупно риби', data.totals.total_fish]);
-      rows.push(['Збир - Вкупно кг', `${totalKgAll.toFixed(1)} кг`]);
+      rows.push(['Збир - Вкупна тежина', `${totalKgAll.toFixed(1)} кг`]);
       rows.push(['Збир - Вкупно продадени', data.totals.total_sold]);
       rows.push(['Збир - Вкупно угинати', data.totals.total_dead]);
     }
@@ -257,9 +257,11 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     if (data.alerts.length > 0) {
       pdfSections.push({
         heading: 'АЛАРМИ',
-        lines: data.alerts.map(a =>
-          `${PARAMETER_LABELS[a.parameter_name] || a.parameter_name}: ${a.value} (норма: ${a.min_norm ?? '-'} – ${a.max_norm ?? '-'})`
-        ),
+        keyvalue: data.alerts.map(a => ({
+          label: PARAMETER_LABELS[a.parameter_name] || a.parameter_name,
+          value: `${a.value} (норма: ${a.min_norm ?? '-'} – ${a.max_norm ?? '-'})`,
+          status: 'danger',
+        })),
       });
     }
 
@@ -267,31 +269,55 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     if (data.water_control) {
       pdfSections.push({
         heading: '1. КОНТРОЛА НА ВОДА',
-        lines: WATER_PARAMS.map(([key, label, unit]) =>
-          `${label}${unit ? ' (' + unit + ')' : ''}: ${data.water_control[key] ?? '–'}`
-        ),
+        keyvalue: WATER_PARAMS.map(([key, label, unit]) => ({
+          label: `${label}${unit ? ' (' + unit + ')' : ''}`,
+          value: `${data.water_control[key] ?? '–'}`,
+        })),
       });
     }
 
     // 2. Filtration
     if (data.filtration_checks) {
-      const filtLines = FILTRATION_FIELDS.map(([key, label]) =>
-        `${label}: ${key === 'bio_filter_foam' ? fmtFoam(data.filtration_checks[key]) : fmtCheck(data.filtration_checks[key])}`
-      );
-      if (data.filtration_checks.notes) filtLines.push(`Забелешка: ${data.filtration_checks.notes}`);
-      pdfSections.push({ heading: '2. ФИЛТРАЦИЈА', lines: filtLines });
+      const filtItems = FILTRATION_FIELDS.map(([key, label]) => {
+        const raw = data.filtration_checks[key];
+        if (key === 'bio_filter_foam') {
+          return {
+            label,
+            value: raw === 'yes' ? 'Има пена' : raw === 'no' ? 'Нема пена' : '–',
+            status: raw === 'yes' ? 'danger' : raw === 'no' ? 'ok' : null,
+          };
+        }
+        return {
+          label,
+          value: raw === true ? 'ОК' : raw === false ? 'НЕ' : '–',
+          status: raw === true ? 'ok' : raw === false ? 'danger' : null,
+        };
+      });
+      if (data.filtration_checks.notes) {
+        filtItems.push({ label: 'Забелешка', value: data.filtration_checks.notes });
+      }
+      pdfSections.push({ heading: '2. ФИЛТРАЦИЈА', keyvalue: filtItems });
     }
 
     // 3. Fish visual
     if (data.fish_visual) {
-      const fishLines = FISH_FIELDS.map(([key, label]) => `${label}: ${fmtCheck(data.fish_visual[key])}`);
-      if (data.fish_visual.notes) fishLines.push(`Забелешка: ${data.fish_visual.notes}`);
-      pdfSections.push({ heading: '3. ВИЗУЕЛНА КОНТРОЛА', lines: fishLines });
+      const fishItems = FISH_FIELDS.map(([key, label]) => {
+        const raw = data.fish_visual[key];
+        return {
+          label,
+          value: raw === true ? 'ОК' : raw === false ? 'НЕ' : '–',
+          status: raw === true ? 'ok' : raw === false ? 'danger' : null,
+        };
+      });
+      if (data.fish_visual.notes) {
+        fishItems.push({ label: 'Забелешка', value: data.fish_visual.notes });
+      }
+      pdfSections.push({ heading: '3. ВИЗУЕЛНА КОНТРОЛА', keyvalue: fishItems });
     }
 
     // 4. Pool status + Feeding - table
     if (data.pool_feeding.length > 0) {
-      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупно кг', 'Продадени', 'Угинати'];
+      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупна тежина', 'Продадени', 'Угинати'];
       let pdfTotalKg = 0;
       const feedRows = data.pool_feeding.map(pf => {
         const count = parseInt(pf.fish_count) || 0;
@@ -306,20 +332,24 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       });
       pdfSections.push({ heading: '4. ЕВИДЕНЦИЈА НА БАЗЕНИ', table: { headers: feedHeaders, rows: feedRows } });
       pdfSections.push({
-        lines: [`Збир → Риби: ${data.totals.total_fish} | Вкупно: ${pdfTotalKg.toFixed(1)} кг | Продадени: ${data.totals.total_sold} | Угинати: ${data.totals.total_dead}`],
+        keyvalue: [
+          { label: 'Вкупно риби', value: `${data.totals.total_fish}` },
+          { label: 'Вкупна тежина', value: `${pdfTotalKg.toFixed(1)} кг` },
+          { label: 'Вкупно продадени', value: `${data.totals.total_sold}` },
+          { label: 'Вкупно угинати', value: `${data.totals.total_dead}`, status: data.totals.total_dead > 0 ? 'danger' : null },
+        ],
       });
-
     }
 
     // 5. Activities
     if (data.activities) {
-      const actLines = [
-        `Сортирање: ${data.activities.sorting_date ? fmtDate(data.activities.sorting_date) : '–'}`,
-        `Контрола тежина: ${data.activities.weight_control_date ? fmtDate(data.activities.weight_control_date) : '–'}`,
+      const actItems = [
+        { label: 'Сортирање', value: data.activities.sorting_date ? fmtDate(data.activities.sorting_date) : '–' },
+        { label: 'Контрола тежина', value: data.activities.weight_control_date ? fmtDate(data.activities.weight_control_date) : '–' },
       ];
-      if (data.activities.misc_1) actLines.push(`Разно (1): ${data.activities.misc_1}`);
-      if (data.activities.misc_2) actLines.push(`Разно (2): ${data.activities.misc_2}`);
-      pdfSections.push({ heading: '5. АКТИВНОСТИ', lines: actLines });
+      if (data.activities.misc_1) actItems.push({ label: 'Разно (1)', value: data.activities.misc_1 });
+      if (data.activities.misc_2) actItems.push({ label: 'Разно (2)', value: data.activities.misc_2 });
+      pdfSections.push({ heading: '5. АКТИВНОСТИ', keyvalue: actItems });
     }
 
     // 6. Храна (per-meal breakdown) - PDF
@@ -339,7 +369,7 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
           const mealTotal = mealRows.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
 
           // Add meal type header row
-          allFoodRows.push([`── ${MEAL_LABELS_PDF[type]} ──`, '', '']);
+          allFoodRows.push([`-- ${MEAL_LABELS_PDF[type]} --`, '', '']);
           for (const m of mealRows) {
             allFoodRows.push([m.pool_number, m.food_type || '–', m.food_quantity_gr]);
           }
@@ -413,7 +443,7 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       }, 0);
       const feedingItems = [
         { label: 'Вкупно риби', value: data.totals.total_fish },
-        { label: 'Вкупно кг', value: `${emailTotalKg.toFixed(1)} кг` },
+        { label: 'Вкупна тежина', value: `${emailTotalKg.toFixed(1)} кг` },
         { label: 'Вкупно продадени', value: data.totals.total_sold },
         { label: 'Вкупно угинати', value: data.totals.total_dead, danger: data.totals.total_dead > 0 },
       ];

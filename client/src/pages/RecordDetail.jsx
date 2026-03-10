@@ -174,7 +174,7 @@ export default function RecordDetail() {
                 <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
                 <Row label="Број риби" value={pf.fish_count ?? '–'} />
                 <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
-                <Row label="Вкупно кг" value={totalKg != null ? `${totalKg.toFixed(1)} кг` : '–'} />
+                <Row label="Вкупна тежина" value={totalKg != null ? `${totalKg.toFixed(1)} кг` : '–'} />
                 <Row label="Продадени" value={pf.sold_count ?? '–'} />
                 <Row label="Угинати" value={pf.dead_count ?? '–'} />
               </div>
