@@ -32,9 +32,10 @@ router.get('/', authMiddleware, async (req, res) => {
     );
     const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated results
+    // Get paginated results (with alert count)
     let query = `
-      SELECT dr.*, u.full_name as checked_by_name
+      SELECT dr.*, u.full_name as checked_by_name,
+        COALESCE((SELECT COUNT(*) FROM alerts a WHERE a.daily_record_id = dr.id), 0)::int as alert_count
       FROM daily_records dr
       JOIN users u ON dr.checked_by = u.id
       ${whereClause}

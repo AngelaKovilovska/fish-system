@@ -160,7 +160,7 @@ export default function RecordDetail() {
         </CollapsibleSection>
       )}
 
-      {/* Храна (per-pool, per-meal breakdown) */}
+      {/* Храна — new meal system (per-pool, per-meal breakdown) */}
       {meals.length > 0 && (() => {
         const mealTypes = ['breakfast', 'lunch', 'dinner'];
         const poolNumbers = [...new Set(meals.map(m => m.pool_number))].sort((a, b) => a - b);
@@ -223,6 +223,23 @@ export default function RecordDetail() {
           </CollapsibleSection>
         );
       })()}
+
+      {/* Храна — fallback for old records (food stored in pool_feeding) */}
+      {meals.length === 0 && pool_feeding.some(pf => pf.food_type || parseFloat(pf.food_quantity_gr) > 0) && (
+        <CollapsibleSection title="6. Храна" delay={7} collapsed={collapsed.food} onToggle={() => toggleSection('food')}>
+          {pool_feeding.filter(pf => pf.food_type || parseFloat(pf.food_quantity_gr) > 0).map(pf => (
+            <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
+              <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
+              <Row label="Тип храна" value={pf.food_type || '–'} />
+              <Row label="Количина" value={pf.food_quantity_gr != null ? `${pf.food_quantity_gr} gr` : '–'} />
+            </div>
+          ))}
+          <div className="info-box mt-2 text-xs">
+            <strong>Вкупно храна:</strong>{' '}
+            {pool_feeding.reduce((s, p) => s + (parseFloat(p.food_quantity_gr) || 0), 0)} gr
+          </div>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }
