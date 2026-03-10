@@ -67,8 +67,45 @@ export default function MealForm() {
     ));
   };
 
+  // Validation: check which pools have incomplete data
+  const getIncomplePools = () => {
+    const incomplete = [];
+    for (const p of poolsData) {
+      const hasType = p.food_type && p.food_type.trim() !== '';
+      const hasQty = p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0;
+      // If one is filled but not the other → incomplete
+      if ((hasType && !hasQty) || (!hasType && hasQty)) {
+        incomplete.push(p.pool_number);
+      }
+    }
+    return incomplete;
+  };
+
+  const hasAnyData = () => {
+    return poolsData.some(p =>
+      (p.food_type && p.food_type.trim() !== '') ||
+      (p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0)
+    );
+  };
+
   const handleSubmit = async () => {
     setError('');
+
+    // Must have at least one pool with food data
+    if (!hasAnyData()) {
+      setError('Внесете храна барем за еден базен.');
+      return;
+    }
+
+    // Check incomplete pools (one field filled, other missing)
+    const incomplete = getIncomplePools();
+    if (incomplete.length > 0) {
+      const poolNames = incomplete.map(n => `Базен ${n}`).join(', ');
+      setError(`${poolNames} — внесете и тип на храна и количина.`);
+      setActivePool(incomplete[0]); // Navigate to first incomplete pool
+      return;
+    }
+
     setSaving(true);
     try {
       await api.saveMeal({
@@ -97,6 +134,27 @@ export default function MealForm() {
 
   const poolData = poolsData.find(p => p.pool_number === activePool) || {};
 
+  // Check if current pool has incomplete data (for red border highlight)
+  const isPoolIncomplete = (num) => {
+    const p = poolsData.find(pd => pd.pool_number === num);
+    if (!p) return false;
+    const hasType = p.food_type && p.food_type.trim() !== '';
+    const hasQty = p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0;
+    return (hasType && !hasQty) || (!hasType && hasQty);
+  };
+
+  // Check if a pool has been filled (both fields)
+  const isPoolFilled = (num) => {
+    const p = poolsData.find(pd => pd.pool_number === num);
+    if (!p) return false;
+    return (p.food_type && p.food_type.trim() !== '') && (p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0);
+  };
+
+  // Current pool missing fields
+  const currentHasType = poolData.food_type && poolData.food_type.trim() !== '';
+  const currentHasQty = poolData.food_quantity_gr !== '' && parseFloat(poolData.food_quantity_gr) > 0;
+  const currentIncomplete = (currentHasType && !currentHasQty) || (!currentHasType && currentHasQty);
+
   return (
     <div className="max-w-lg mx-auto">
       {/* Title */}
@@ -120,7 +178,9 @@ export default function MealForm() {
             key={num}
             type="button"
             onClick={() => setActivePool(num)}
-            className={activePool === num ? 'chip-active' : 'chip-inactive'}
+            className={`${activePool === num ? 'chip-active' : 'chip-inactive'} ${
+              isPoolIncomplete(num) ? '!border-[var(--danger)] !text-[var(--danger)]' : ''
+            } ${isPoolFilled(num) && activePool !== num ? '!border-[var(--success)] !text-[var(--success)]' : ''}`}
           >
             Б{num}
           </button>
@@ -128,7 +188,7 @@ export default function MealForm() {
       </div>
 
       {/* Pool form */}
-      <div className="card mb-4 animate-in-delay-2">
+      <div className={`card mb-4 animate-in-delay-2 ${currentIncomplete ? 'border-[var(--danger)]' : ''}`}>
         <div className="space-y-3.5">
           <div className="flex items-center gap-2">
             <Fish size={16} className="text-[var(--primary)]" />
@@ -142,12 +202,12 @@ export default function MealForm() {
             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               <UtensilsCrossed size={12} className="text-[var(--primary)]" />
-              Тип на храна
+              Тип на храна <span className="text-[var(--danger)]">*</span>
             </label>
             <select
               value={poolData.food_type ?? ''}
               onChange={(e) => updatePool(activePool, 'food_type', e.target.value)}
-              className="input-base"
+              className={`input-base ${!currentHasType && currentHasQty ? 'border-[var(--danger)]' : ''}`}
             >
               <option value="">-- Избери тип на храна --</option>
               {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
@@ -159,14 +219,14 @@ export default function MealForm() {
             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               <Weight size={12} className="text-[var(--primary)]" />
-              Количина на храна (gr)
+              Количина на храна (gr) <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               type="number"
               step="any"
               value={poolData.food_quantity_gr ?? ''}
               onChange={(e) => updatePool(activePool, 'food_quantity_gr', e.target.value)}
-              className="input-base"
+              className={`input-base ${currentHasType && !currentHasQty ? 'border-[var(--danger)]' : ''}`}
               placeholder="нпр. 200"
             />
           </div>
