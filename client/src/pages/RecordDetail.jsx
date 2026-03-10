@@ -6,6 +6,26 @@ import { AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X, ChevronDown, Ch
 
 const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
 
+// Build a complete alert label map from all constants
+const ALERT_LABELS = {
+  // Water parameters
+  ...Object.fromEntries(Object.entries(PARAMETER_LABELS).map(([k, v]) => [k, v.label])),
+  // Filtration
+  bio_filter_foam: 'Пена во био филтер',
+  bio_filter_level: 'Ниво вода во БИО филтер',
+  mechanical_filter: 'Механички филтер',
+  circulation_pump: 'Циркулациона пумпа',
+  thermo_pump: 'Термо пумпа',
+  aeration: 'Аерација',
+  sieve_filter: 'Сито филтер',
+  // Fish visual
+  normal_swimming: 'Нормално пливање',
+  no_injuries: 'Повреди на риби',
+  no_infection: 'Инфекција / црвенило',
+  normal_appetite: 'Апетит на риби',
+  no_dead: 'Угинати риби',
+};
+
 export default function RecordDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -86,13 +106,26 @@ export default function RecordDetail() {
           <h3 className="flex items-center gap-1.5 font-bold text-sm mb-2">
             <AlertTriangle size={15} /> Аларми ({alerts.length})
           </h3>
-          {alerts.map(a => (
-            <div key={a.id} className="text-xs mt-1.5">
-              <span className="font-semibold">{PARAMETER_LABELS[a.parameter_name]?.label || a.parameter_name}:</span>{' '}
-              <span className="font-bold">{a.value}</span>
-              {' '}(норма: {a.min_norm ?? '-'} – {a.max_norm ?? '-'})
-            </div>
-          ))}
+          {alerts.map(a => {
+            const label = ALERT_LABELS[a.parameter_name] || a.parameter_name;
+            const hasNorms = a.min_norm != null || a.max_norm != null;
+            const unit = PARAMETER_LABELS[a.parameter_name]?.unit || '';
+            return (
+              <div key={a.id} className="text-xs mt-1.5">
+                <span className="font-semibold">{label}:</span>{' '}
+                {hasNorms ? (
+                  <>
+                    <span className="font-bold">{a.value}{unit ? ` ${unit}` : ''}</span>
+                    {' '}(норма: {a.min_norm ?? '-'} – {a.max_norm ?? '-'}{unit ? ` ${unit}` : ''})
+                  </>
+                ) : (
+                  <span className="font-bold">
+                    {a.parameter_name === 'bio_filter_foam' ? 'Детектирана' : 'Не е ОК'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
