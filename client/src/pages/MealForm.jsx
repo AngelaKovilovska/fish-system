@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, AlertCircle, Sunrise, Sun, Moon } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, AlertCircle, Sunrise, Sun, Moon, Info } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -24,6 +24,8 @@ export default function MealForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEdit, setIsEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [poolMeasurements, setPoolMeasurements] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -41,9 +43,12 @@ export default function MealForm() {
       return;
     }
 
-    api.getMeals(today)
-      .then(data => {
-        const existing = data.meals.filter(m => m.meal_type === mealType);
+    Promise.all([
+      api.getMeals(today),
+      api.getPoolMeasurements(),
+    ])
+      .then(([mealsData, measurementsData]) => {
+        const existing = mealsData.meals.filter(m => m.meal_type === mealType);
         if (existing.length > 0) {
           setIsEdit(true);
           setPoolsData(POOL_NUMBERS.map(n => {
@@ -56,6 +61,7 @@ export default function MealForm() {
             };
           }));
         }
+        setPoolMeasurements(measurementsData.measurements || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -122,6 +128,21 @@ export default function MealForm() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Дали сте сигурни дека сакате да го избришете оброкот "${mealLabel}"?`)) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await api.deleteMeal(today, mealType);
+      setSuccess('Оброкот е избришан!');
+      setTimeout(() => navigate('/'), 1200);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-lg mx-auto space-y-4">
@@ -133,6 +154,7 @@ export default function MealForm() {
   }
 
   const poolData = poolsData.find(p => p.pool_number === activePool) || {};
+  const measurement = poolMeasurements.find(m => m.pool_number === activePool);
 
   // Check if current pool has incomplete data (for red border highlight)
   const isPoolIncomplete = (num) => {
@@ -197,6 +219,14 @@ export default function MealForm() {
             </h3>
           </div>
 
+          {/* Pool measurement info */}
+          {measurement && (
+            <div className="info-box flex items-start gap-2 text-xs">
+              <Info size={14} className="flex-shrink-0 mt-0.5" />
+              <span>Последно мерење: <strong>{measurement.fish_count}</strong> риби, <strong>{measurement.avg_weight_gr} gr</strong></span>
+            </div>
+          )}
+
           {/* Food type */}
           <div>
             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
@@ -239,9 +269,14 @@ export default function MealForm() {
 
       {/* Buttons */}
       <div className="flex gap-3 animate-in-delay-3">
-        <button type="button" onClick={() => navigate('/')} className="btn-secondary flex-1 py-2.5">
-          <ChevronLeft size={16} /> Назад
+        <button type="button" onClick={() => navigate('/')} className="btn-secondary py-2.5 px-4">
+          <ChevronLeft size={16} />
         </button>
+        {isEdit && (
+          <button type="button" onClick={handleDelete} disabled={deleting} className="btn-danger py-2.5 px-4">
+            <Trash2 size={16} />
+          </button>
+        )}
         <button type="button" onClick={handleSubmit} disabled={saving} className="btn-primary flex-1 py-2.5">
           {saving ? (
             <span className="flex items-center gap-2">

@@ -165,18 +165,29 @@ export default function RecordDetail() {
       {/* Pool status (Евиденција на базени) */}
       {pool_feeding.length > 0 && (
         <CollapsibleSection title="4. Евиденција на базени" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
-          {pool_feeding.map(pf => (
-            <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
-              <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
-              <Row label="Број риби" value={pf.fish_count ?? '–'} />
-              <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
-              <Row label="Продадени" value={pf.sold_count ?? '–'} />
-              <Row label="Угинати" value={pf.dead_count ?? '–'} />
-            </div>
-          ))}
+          {pool_feeding.map(pf => {
+            const count = parseInt(pf.fish_count) || 0;
+            const avgW = parseFloat(pf.avg_weight_gr) || 0;
+            const totalKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : null;
+            return (
+              <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
+                <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
+                <Row label="Број риби" value={pf.fish_count ?? '–'} />
+                <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
+                <Row label="Вкупно кг" value={totalKg != null ? `${totalKg.toFixed(1)} кг` : '–'} />
+                <Row label="Продадени" value={pf.sold_count ?? '–'} />
+                <Row label="Угинати" value={pf.dead_count ?? '–'} />
+              </div>
+            );
+          })}
           <div className="info-box mt-2 text-xs">
             <strong>Збир:</strong>{' '}
             Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
+            Вкупно: {(pool_feeding.reduce((s, p) => {
+              const c = parseInt(p.fish_count) || 0;
+              const w = parseFloat(p.avg_weight_gr) || 0;
+              return s + (c * w / 1000);
+            }, 0)).toFixed(1)} кг |{' '}
             Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
             Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}
           </div>

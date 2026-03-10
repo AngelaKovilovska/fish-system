@@ -174,19 +174,21 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     // 4. Pool status + Feeding
     if (data.pool_feeding.length > 0) {
       rows.push(['--- 4. ЕВИДЕНЦИЈА НА БАЗЕНИ ---', '']);
+      let totalKgAll = 0;
       for (const pf of data.pool_feeding) {
+        const count = parseInt(pf.fish_count) || 0;
+        const avgW = parseFloat(pf.avg_weight_gr) || 0;
+        const poolKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : 0;
+        totalKgAll += poolKg;
         rows.push([`Базен ${pf.pool_number} - Број риби`, pf.fish_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Просечна тежина`, pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–']);
+        rows.push([`Базен ${pf.pool_number} - Вкупно кг`, poolKg > 0 ? `${poolKg.toFixed(1)} кг` : '–']);
         rows.push([`Базен ${pf.pool_number} - Продадени`, pf.sold_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Угинати`, pf.dead_count ?? '–']);
-        // Food per pool from meals (aggregated)
-        const poolFood = data.food_per_pool?.find(fp => fp.pool_number === pf.pool_number);
-        rows.push([`Базен ${pf.pool_number} - Вкупно храна`, poolFood ? `${poolFood.total_food_gr} gr` : '–']);
       }
       rows.push(['', '']);
       rows.push(['Збир - Вкупно риби', data.totals.total_fish]);
-      rows.push(['Збир - Вкупно храна', `${data.totals.total_food_gr} gr`]);
-      rows.push(['Збир - Тип храна', data.totals.food_types]);
+      rows.push(['Збир - Вкупно кг', `${totalKgAll.toFixed(1)} кг`]);
       rows.push(['Збир - Вкупно продадени', data.totals.total_sold]);
       rows.push(['Збир - Вкупно угинати', data.totals.total_dead]);
     }
@@ -289,18 +291,22 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
 
     // 4. Pool status + Feeding - table
     if (data.pool_feeding.length > 0) {
-      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Продадени', 'Угинати', 'Храна (gr)'];
+      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупно кг', 'Продадени', 'Угинати'];
+      let pdfTotalKg = 0;
       const feedRows = data.pool_feeding.map(pf => {
-        const poolFood = data.food_per_pool?.find(fp => fp.pool_number === pf.pool_number);
+        const count = parseInt(pf.fish_count) || 0;
+        const avgW = parseFloat(pf.avg_weight_gr) || 0;
+        const poolKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : 0;
+        pdfTotalKg += poolKg;
         return [
           pf.pool_number, pf.fish_count ?? '–', pf.avg_weight_gr ?? '–',
+          poolKg > 0 ? `${poolKg.toFixed(1)}` : '–',
           pf.sold_count ?? '–', pf.dead_count ?? '–',
-          poolFood ? poolFood.total_food_gr : '–',
         ];
       });
       pdfSections.push({ heading: '4. ЕВИДЕНЦИЈА НА БАЗЕНИ', table: { headers: feedHeaders, rows: feedRows } });
       pdfSections.push({
-        lines: [`Збир → Риби: ${data.totals.total_fish} | Храна: ${data.totals.total_food_gr} gr | Продадени: ${data.totals.total_sold} | Угинати: ${data.totals.total_dead}`],
+        lines: [`Збир → Риби: ${data.totals.total_fish} | Вкупно: ${pdfTotalKg.toFixed(1)} кг | Продадени: ${data.totals.total_sold} | Угинати: ${data.totals.total_dead}`],
       });
 
     }
@@ -399,12 +405,20 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     }
 
     // 4. Евиденција на базени - Збир
-    const feedingItems = [
-      { label: 'Вкупно риби', value: data.totals.total_fish },
-      { label: 'Вкупно продадени', value: data.totals.total_sold },
-      { label: 'Вкупно угинати', value: data.totals.total_dead, danger: data.totals.total_dead > 0 },
-    ];
-    emailSections.push({ type: 'keyvalue', heading: '4. Евиденција на базени - Збир', items: feedingItems });
+    {
+      const emailTotalKg = data.pool_feeding.reduce((s, pf) => {
+        const c = parseInt(pf.fish_count) || 0;
+        const w = parseFloat(pf.avg_weight_gr) || 0;
+        return s + (c * w / 1000);
+      }, 0);
+      const feedingItems = [
+        { label: 'Вкупно риби', value: data.totals.total_fish },
+        { label: 'Вкупно кг', value: `${emailTotalKg.toFixed(1)} кг` },
+        { label: 'Вкупно продадени', value: data.totals.total_sold },
+        { label: 'Вкупно угинати', value: data.totals.total_dead, danger: data.totals.total_dead > 0 },
+      ];
+      emailSections.push({ type: 'keyvalue', heading: '4. Евиденција на базени - Збир', items: feedingItems });
+    }
 
     // 5. Activities
     if (data.activities) {

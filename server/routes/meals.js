@@ -149,6 +149,69 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/meals - delete a meal (rollback inventory)
+router.delete('/', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { date, meal_type } = req.body;
+
+    if (!date || !meal_type) {
+      return res.status(400).json({ error: 'Потребни се датум и тип на оброк' });
+    }
+    if (!VALID_MEAL_TYPES.includes(meal_type)) {
+      return res.status(400).json({ error: 'Невалиден тип на оброк' });
+    }
+
+    await client.query('BEGIN');
+
+    // Rollback food from inventory
+    const oldMeals = await client.query(
+      'SELECT id, food_type, food_quantity_gr FROM pool_meals WHERE date = $1 AND meal_type = $2',
+      [date, meal_type]
+    );
+
+    if (oldMeals.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Оброкот не е пронајден' });
+    }
+
+    for (const old of oldMeals.rows) {
+      if (old.food_type && parseFloat(old.food_quantity_gr) > 0) {
+        const rollbackKg = parseFloat(old.food_quantity_gr) / 1000;
+        await client.query(
+          'UPDATE food_inventory SET quantity_kg = quantity_kg + $1, updated_at = NOW() WHERE food_type = $2',
+          [rollbackKg, old.food_type]
+        );
+      }
+    }
+
+    // Delete consumption logs
+    await client.query(
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id IN (
+        SELECT id FROM pool_meals WHERE date = $1 AND meal_type = $2
+      )`,
+      [date, meal_type]
+    );
+
+    // Delete meal entries
+    await client.query(
+      'DELETE FROM pool_meals WHERE date = $1 AND meal_type = $2',
+      [date, meal_type]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ message: 'Оброкот е избришан' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Delete meal error:', err);
+    res.status(500).json({ error: 'Серверска грешка при бришење' });
+  } finally {
+    client.release();
+  }
+});
+
 // Helper: check if checklist + all 3 meals are done, then auto-send daily report
 async function checkAndAutoSendReport(date, req) {
   // Check if daily record exists for this date
