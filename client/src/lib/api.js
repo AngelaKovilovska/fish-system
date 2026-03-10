@@ -73,6 +73,11 @@ export const api = {
   createPoolMeasurement: (data) => request('/pool-measurements', { method: 'POST', body: JSON.stringify(data) }),
   deletePoolMeasurement: (id) => request(`/pool-measurements/${id}`, { method: 'DELETE' }),
 
+  // Meals (per-meal feeding)
+  getMealsStatus: (date) => request(`/meals/status?date=${date}`),
+  getMeals: (date) => request(`/meals?date=${date}`),
+  saveMeal: (data) => request('/meals', { method: 'POST', body: JSON.stringify(data) }),
+
   // Food inventory
   getFoodInventory: () => request('/food-inventory'),
   addFoodPurchase: (data) => request('/food-inventory/purchase', { method: 'POST', body: JSON.stringify(data) }),

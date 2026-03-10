@@ -171,16 +171,17 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       if (data.fish_visual.notes) rows.push(['Забелешка', data.fish_visual.notes]);
     }
 
-    // 4. Feeding
+    // 4. Pool status + Feeding
     if (data.pool_feeding.length > 0) {
-      rows.push(['--- 4. ХРАНЕЊЕ ПО БАЗЕНИ ---', '']);
+      rows.push(['--- 4. ЕВИДЕНЦИЈА НА БАЗЕНИ ---', '']);
       for (const pf of data.pool_feeding) {
         rows.push([`Базен ${pf.pool_number} - Број риби`, pf.fish_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Просечна тежина`, pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–']);
         rows.push([`Базен ${pf.pool_number} - Продадени`, pf.sold_count ?? '–']);
         rows.push([`Базен ${pf.pool_number} - Угинати`, pf.dead_count ?? '–']);
-        rows.push([`Базен ${pf.pool_number} - Тип храна`, pf.food_type || '–']);
-        rows.push([`Базен ${pf.pool_number} - Количина храна`, pf.food_quantity_gr != null ? `${pf.food_quantity_gr} gr` : '–']);
+        // Food per pool from meals (aggregated)
+        const poolFood = data.food_per_pool?.find(fp => fp.pool_number === pf.pool_number);
+        rows.push([`Базен ${pf.pool_number} - Вкупно храна`, poolFood ? `${poolFood.total_food_gr} gr` : '–']);
       }
       rows.push(['', '']);
       rows.push(['Збир - Вкупно риби', data.totals.total_fish]);
@@ -197,6 +198,41 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       rows.push(['Контрола тежина', data.activities.weight_control_date ? fmtDate(data.activities.weight_control_date) : '–']);
       if (data.activities.misc_1) rows.push(['Разно (1)', data.activities.misc_1]);
       if (data.activities.misc_2) rows.push(['Разно (2)', data.activities.misc_2]);
+    }
+
+    // 6. Храна (per-meal breakdown)
+    {
+      const MEAL_LABELS_XL = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+      const mealTypes = ['breakfast', 'lunch', 'dinner'];
+      const hasMealData = data.pool_meals && data.pool_meals.length > 0;
+
+      rows.push(['--- 6. ХРАНА ---', '']);
+
+      if (hasMealData) {
+        for (const type of mealTypes) {
+          const mealRows = data.pool_meals.filter(m => m.meal_type === type);
+          if (mealRows.length === 0) continue;
+          const fedBy = mealRows[0]?.fed_by_name || '–';
+          const mealTotal = mealRows.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
+
+          rows.push([`${MEAL_LABELS_XL[type]}`, '']);
+          for (const m of mealRows) {
+            if (parseFloat(m.food_quantity_gr || 0) > 0) {
+              rows.push([`  Базен ${m.pool_number}`, `${m.food_type || '–'} — ${m.food_quantity_gr} gr`]);
+            }
+          }
+          rows.push([`  Вкупно ${MEAL_LABELS_XL[type]}`, `${mealTotal} gr`]);
+          rows.push([`  Проверил`, fedBy]);
+        }
+        rows.push(['', '']);
+        rows.push(['ВКУПНО ХРАНА (сите оброци)', `${data.totals.total_food_gr} gr`]);
+      } else {
+        // Fallback: old records without pool_meals
+        rows.push(['Нема внесени оброци', '–']);
+        if (data.totals.total_food_gr > 0) {
+          rows.push(['Храна (од евиденција)', `${data.totals.total_food_gr} gr (${data.totals.food_types})`]);
+        }
+      }
     }
 
     // Alerts
@@ -251,18 +287,22 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       pdfSections.push({ heading: '3. ВИЗУЕЛНА КОНТРОЛА', lines: fishLines });
     }
 
-    // 4. Feeding - table
+    // 4. Pool status + Feeding - table
     if (data.pool_feeding.length > 0) {
-      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Продадени', 'Угинати', 'Храна', 'Кол. (gr)'];
-      const feedRows = data.pool_feeding.map(pf => [
-        pf.pool_number, pf.fish_count ?? '–', pf.avg_weight_gr ?? '–',
-        pf.sold_count ?? '–', pf.dead_count ?? '–',
-        pf.food_type || '–', pf.food_quantity_gr ?? '–',
-      ]);
-      pdfSections.push({ heading: '4. ХРАНЕЊЕ', table: { headers: feedHeaders, rows: feedRows } });
+      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Продадени', 'Угинати', 'Храна (gr)'];
+      const feedRows = data.pool_feeding.map(pf => {
+        const poolFood = data.food_per_pool?.find(fp => fp.pool_number === pf.pool_number);
+        return [
+          pf.pool_number, pf.fish_count ?? '–', pf.avg_weight_gr ?? '–',
+          pf.sold_count ?? '–', pf.dead_count ?? '–',
+          poolFood ? poolFood.total_food_gr : '–',
+        ];
+      });
+      pdfSections.push({ heading: '4. ЕВИДЕНЦИЈА НА БАЗЕНИ', table: { headers: feedHeaders, rows: feedRows } });
       pdfSections.push({
         lines: [`Збир → Риби: ${data.totals.total_fish} | Храна: ${data.totals.total_food_gr} gr | Продадени: ${data.totals.total_sold} | Угинати: ${data.totals.total_dead}`],
       });
+
     }
 
     // 5. Activities
@@ -274,6 +314,40 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       if (data.activities.misc_1) actLines.push(`Разно (1): ${data.activities.misc_1}`);
       if (data.activities.misc_2) actLines.push(`Разно (2): ${data.activities.misc_2}`);
       pdfSections.push({ heading: '5. АКТИВНОСТИ', lines: actLines });
+    }
+
+    // 6. Храна (per-meal breakdown) - PDF
+    {
+      const MEAL_LABELS_PDF = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+      const mealTypes = ['breakfast', 'lunch', 'dinner'];
+      const hasMealData = data.pool_meals && data.pool_meals.length > 0;
+
+      if (hasMealData) {
+        const foodHeaders = ['Базен', 'Тип храна', 'Количина (gr)'];
+        const allFoodRows = [];
+
+        for (const type of mealTypes) {
+          const mealRows = data.pool_meals.filter(m => m.meal_type === type && parseFloat(m.food_quantity_gr || 0) > 0);
+          if (mealRows.length === 0) continue;
+          const fedBy = mealRows[0]?.fed_by_name || '–';
+          const mealTotal = mealRows.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
+
+          // Add meal type header row
+          allFoodRows.push([`── ${MEAL_LABELS_PDF[type]} ──`, '', '']);
+          for (const m of mealRows) {
+            allFoodRows.push([m.pool_number, m.food_type || '–', m.food_quantity_gr]);
+          }
+          allFoodRows.push(['', `Вкупно: ${mealTotal} gr`, `Проверил: ${fedBy}`]);
+        }
+
+        pdfSections.push({
+          heading: '6. ХРАНА',
+          table: { headers: foodHeaders, rows: allFoodRows },
+        });
+        pdfSections.push({
+          lines: [`ВКУПНО ХРАНА (сите оброци): ${data.totals.total_food_gr} gr`],
+        });
+      }
     }
 
     const pdfBuffer = await generatePDF(`Дневен извештај - ${dateStr}`, pdfSections);
@@ -324,13 +398,13 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       }))});
     }
 
-    // 4. Feeding summary
-    emailSections.push({ type: 'keyvalue', heading: '4. Хранење - Збир', items: [
+    // 4. Евиденција на базени - Збир
+    const feedingItems = [
       { label: 'Вкупно риби', value: data.totals.total_fish },
-      { label: 'Вкупно храна', value: `${data.totals.total_food_gr} gr (${data.totals.food_types})` },
       { label: 'Вкупно продадени', value: data.totals.total_sold },
       { label: 'Вкупно угинати', value: data.totals.total_dead, danger: data.totals.total_dead > 0 },
-    ]});
+    ];
+    emailSections.push({ type: 'keyvalue', heading: '4. Евиденција на базени - Збир', items: feedingItems });
 
     // 5. Activities
     if (data.activities) {
@@ -341,6 +415,39 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       if (data.activities.misc_1) actItems.push({ label: 'Разно (1)', value: data.activities.misc_1 });
       if (data.activities.misc_2) actItems.push({ label: 'Разно (2)', value: data.activities.misc_2 });
       emailSections.push({ type: 'keyvalue', heading: '5. Активности', items: actItems });
+    }
+
+    // 6. Храна (per-meal breakdown) - Email
+    {
+      const MEAL_LABELS_EM = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+      const mealTypes = ['breakfast', 'lunch', 'dinner'];
+      const hasMealData = data.pool_meals && data.pool_meals.length > 0;
+
+      if (hasMealData) {
+        const foodItems = [];
+        for (const type of mealTypes) {
+          const mealRows = data.pool_meals.filter(m => m.meal_type === type && parseFloat(m.food_quantity_gr || 0) > 0);
+          if (mealRows.length === 0) continue;
+          const fedBy = mealRows[0]?.fed_by_name || '–';
+          const mealTotal = mealRows.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
+
+          for (const m of mealRows) {
+            foodItems.push({
+              label: `${MEAL_LABELS_EM[type]} — Базен ${m.pool_number}`,
+              value: `${m.food_type || '–'} — ${m.food_quantity_gr} gr`,
+            });
+          }
+          foodItems.push({
+            label: `${MEAL_LABELS_EM[type]} — Вкупно`,
+            value: `${mealTotal} gr (Проверил: ${fedBy})`,
+          });
+        }
+        foodItems.push({
+          label: 'ВКУПНО ХРАНА (сите оброци)',
+          value: `${data.totals.total_food_gr} gr`,
+        });
+        emailSections.push({ type: 'keyvalue', heading: '6. Храна', items: foodItems });
+      }
     }
 
     const emailResult = await sendReportEmail({

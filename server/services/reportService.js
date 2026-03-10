@@ -36,6 +36,8 @@ const PARAMETER_LABELS = {
   no_dead: 'Нема угинати',
 };
 
+const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+
 // Generate daily report data
 async function getDailyReportData(recordId) {
   const [record, water, filtration, fishVisual, feeding, activities, alerts] = await Promise.all([
@@ -49,12 +51,77 @@ async function getDailyReportData(recordId) {
   ]);
 
   const feedingRows = feeding.rows;
+  const recordDate = record.rows[0]?.date;
+
+  // Fetch pool_meals for this date (new per-meal feeding system)
+  let mealsRows = [];
+  let mealsInfo = {};
+  if (recordDate) {
+    const d = new Date(recordDate);
+    const dateStr = typeof recordDate === 'string' && recordDate.length === 10
+      ? recordDate
+      : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const mealsResult = await pool.query(
+      `SELECT pm.*, u.full_name as fed_by_name
+       FROM pool_meals pm
+       LEFT JOIN users u ON pm.fed_by = u.id
+       WHERE pm.date = $1
+       ORDER BY pm.meal_type, pm.pool_number`,
+      [dateStr]
+    );
+    mealsRows = mealsResult.rows;
+
+    // Build meals_info: who entered each meal
+    for (const type of ['breakfast', 'lunch', 'dinner']) {
+      const meal = mealsRows.find(m => m.meal_type === type);
+      if (meal) {
+        mealsInfo[type] = { fed_by_name: meal.fed_by_name, created_at: meal.created_at };
+      }
+    }
+  }
+
+  const hasMeals = mealsRows.length > 0;
+
+  // Calculate food totals - use pool_meals if available, fallback to pool_feeding
+  let total_food_gr, food_types;
+  if (hasMeals) {
+    total_food_gr = mealsRows.reduce((sum, m) => sum + parseFloat(m.food_quantity_gr || 0), 0);
+    food_types = [...new Set(mealsRows.map(m => m.food_type).filter(Boolean))].join(', ');
+  } else {
+    total_food_gr = feedingRows.reduce((sum, f) => sum + parseFloat(f.food_quantity_gr || 0), 0);
+    food_types = [...new Set(feedingRows.map(f => f.food_type).filter(Boolean))].join(', ');
+  }
+
+  // Food per pool (sum of all meals per pool)
+  const food_per_pool = [];
+  for (let p = 1; p <= 6; p++) {
+    if (hasMeals) {
+      const poolMeals = mealsRows.filter(m => m.pool_number === p);
+      food_per_pool.push({
+        pool_number: p,
+        total_food_gr: poolMeals.reduce((sum, m) => sum + parseFloat(m.food_quantity_gr || 0), 0),
+        meals: poolMeals.map(m => ({
+          meal_type: m.meal_type,
+          food_type: m.food_type,
+          food_quantity_gr: parseFloat(m.food_quantity_gr || 0),
+        })),
+      });
+    } else {
+      const pf = feedingRows.find(f => f.pool_number === p);
+      food_per_pool.push({
+        pool_number: p,
+        total_food_gr: parseFloat(pf?.food_quantity_gr || 0),
+        meals: pf?.food_type ? [{ meal_type: null, food_type: pf.food_type, food_quantity_gr: parseFloat(pf.food_quantity_gr || 0) }] : [],
+      });
+    }
+  }
+
   const totals = {
-    total_food_gr: feedingRows.reduce((sum, f) => sum + parseFloat(f.food_quantity_gr || 0), 0),
+    total_food_gr,
     total_fish: feedingRows.reduce((sum, f) => sum + parseInt(f.fish_count || 0), 0),
     total_sold: feedingRows.reduce((sum, f) => sum + parseInt(f.sold_count || 0), 0),
     total_dead: feedingRows.reduce((sum, f) => sum + parseInt(f.dead_count || 0), 0),
-    food_types: [...new Set(feedingRows.map(f => f.food_type).filter(Boolean))].join(', '),
+    food_types,
   };
 
   return {
@@ -63,6 +130,9 @@ async function getDailyReportData(recordId) {
     filtration_checks: filtration.rows[0],
     fish_visual: fishVisual.rows[0],
     pool_feeding: feedingRows,
+    pool_meals: mealsRows,
+    meals_info: mealsInfo,
+    food_per_pool,
     activities: activities.rows[0],
     alerts: alerts.rows,
     totals,
@@ -255,7 +325,7 @@ function drawMemoFooter(doc, pageNum, totalPages) {
 // Generate PDF with Фамаком memorandum
 function generatePDF(title, sections) {
   return new Promise((resolve) => {
-    const doc = new PDFDocument({ margin: MARGIN, size: 'A4' });
+    const doc = new PDFDocument({ margin: MARGIN, size: 'A4', bufferPages: true });
     const chunks = [];
 
     // Register Cyrillic-compatible fonts

@@ -4,10 +4,13 @@ import { api } from '../lib/api';
 import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS } from '../lib/constants';
 import { AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 
+const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+
 export default function RecordDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [collapsed, setCollapsed] = useState({});
@@ -15,7 +18,15 @@ export default function RecordDetail() {
   const toggleSection = (key) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => {
-    api.getRecord(id).then(setData).catch(console.error).finally(() => setLoading(false));
+    api.getRecord(id).then(result => {
+      setData(result);
+      // Fetch meals for this record's date
+      const d = new Date(result.record.date);
+      const recordDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return api.getMeals(recordDate);
+    }).then(mealsData => {
+      setMeals(mealsData.meals || []);
+    }).catch(console.error).finally(() => setLoading(false));
   }, [id]);
 
   const handleDelete = async () => {
@@ -118,31 +129,64 @@ export default function RecordDetail() {
         </CollapsibleSection>
       )}
 
-      {/* Feeding */}
-      {pool_feeding.length > 0 && (
-        <CollapsibleSection title="4. Хранење" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
-          {pool_feeding.map(pf => (
-            <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
-              <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
-              <div className="grid grid-cols-2 gap-x-4">
-                <Row label="Број риби" value={pf.fish_count ?? '–'} />
-                <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
-                <Row label="Продадени" value={pf.sold_count ?? '–'} />
-                <Row label="Угинати" value={pf.dead_count ?? '–'} />
-                <Row label="Тип храна" value={pf.food_type || '–'} />
-                <Row label="Количина храна" value={pf.food_quantity_gr != null ? `${pf.food_quantity_gr} gr` : '–'} />
+      {/* Pool status (Евиденција на базени) */}
+      {pool_feeding.length > 0 && (() => {
+        const hasMeals = meals.length > 0;
+        // Build per-pool food totals from meals
+        const foodByPool = {};
+        if (hasMeals) {
+          meals.forEach(m => {
+            if (!foodByPool[m.pool_number]) foodByPool[m.pool_number] = { total: 0, details: [] };
+            foodByPool[m.pool_number].total += parseFloat(m.food_quantity_gr) || 0;
+            foodByPool[m.pool_number].details.push(m);
+          });
+        }
+        // Meal authors
+        const mealAuthors = {};
+        meals.forEach(m => { if (m.fed_by_name && !mealAuthors[m.meal_type]) mealAuthors[m.meal_type] = m.fed_by_name; });
+        const totalFood = hasMeals
+          ? Object.values(foodByPool).reduce((s, p) => s + p.total, 0)
+          : pool_feeding.reduce((s, p) => s + (parseFloat(p.food_quantity_gr) || 0), 0);
+
+        return (
+          <CollapsibleSection title="4. Евиденција на базени" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
+            {pool_feeding.map(pf => (
+              <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
+                <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
+                <div className="grid grid-cols-2 gap-x-4">
+                  <Row label="Број риби" value={pf.fish_count ?? '–'} />
+                  <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
+                  <Row label="Продадени" value={pf.sold_count ?? '–'} />
+                  <Row label="Угинати" value={pf.dead_count ?? '–'} />
+                  {hasMeals ? (
+                    <Row label="Вкупно храна" value={foodByPool[pf.pool_number] ? `${foodByPool[pf.pool_number].total} gr` : '0 gr'} />
+                  ) : (
+                    <>
+                      <Row label="Тип храна" value={pf.food_type || '–'} />
+                      <Row label="Количина храна" value={pf.food_quantity_gr != null ? `${pf.food_quantity_gr} gr` : '–'} />
+                    </>
+                  )}
+                </div>
               </div>
+            ))}
+            <div className="info-box mt-2 text-xs">
+              <strong>Збир:</strong>{' '}
+              Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
+              Храна: {totalFood} gr |{' '}
+              Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
+              Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}
             </div>
-          ))}
-          <div className="info-box mt-2 text-xs">
-            <strong>Збир:</strong>{' '}
-            Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
-            Храна: {pool_feeding.reduce((s, p) => s + (parseFloat(p.food_quantity_gr) || 0), 0)} gr |{' '}
-            Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
-            Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}
-          </div>
-        </CollapsibleSection>
-      )}
+            {hasMeals && Object.keys(mealAuthors).length > 0 && (
+              <div className="info-box mt-2 text-xs">
+                <strong>Оброци:</strong>{' '}
+                {['breakfast', 'lunch', 'dinner'].filter(t => mealAuthors[t]).map(t => (
+                  <span key={t}>{MEAL_LABELS[t]}: {mealAuthors[t]}  </span>
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
 
       {/* Activities */}
       {activities && (

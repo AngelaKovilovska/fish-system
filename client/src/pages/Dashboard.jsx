@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
 const CHECKLIST_ALARM_MESSAGES = {
@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [todayRecord, setTodayRecord] = useState(null); // null=loading, false=none, object=exists
+  const [mealsStatus, setMealsStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -60,6 +61,7 @@ export default function Dashboard() {
       api.getRecords({ from: today, to: today, limit: 1 })
         .then(d => setTodayRecord(d.records.length > 0 ? d.records[0] : false))
         .catch(() => setTodayRecord(false)),
+      api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
     ])
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -172,6 +174,53 @@ export default function Dashboard() {
           </div>
         ) : null}
       </div>
+
+      {/* ── Meals (Breakfast, Lunch, Dinner) ── */}
+      {mealsStatus && (
+        <div className="animate-in-delay-1">
+          <div className="flex items-center gap-2 mb-2.5">
+            <h2 className="section-title flex items-center gap-2 text-sm">
+              <UtensilsCrossed size={15} className="text-[var(--primary)]" />
+              Оброци
+            </h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: 'breakfast', label: 'Појадок', icon: <Sunrise size={18} className="text-amber-500" /> },
+              { key: 'lunch', label: 'Ручек', icon: <Sun size={18} className="text-yellow-500" /> },
+              { key: 'dinner', label: 'Вечера', icon: <Moon size={18} className="text-indigo-400" /> },
+            ].map(meal => {
+              const status = mealsStatus[meal.key];
+              const filled = status?.filled;
+              return (
+                <Link
+                  key={meal.key}
+                  to={`/meal/${meal.key}`}
+                  className="card !p-0 overflow-hidden transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+                  style={{ borderLeft: `3px solid ${filled ? 'var(--success)' : 'var(--warning)'}` }}
+                >
+                  <div className="px-3 py-3 text-center">
+                    <div className="flex justify-center mb-1">{meal.icon}</div>
+                    <p className="text-[11px] font-semibold text-[var(--text-primary)]"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {meal.label}
+                    </p>
+                    {filled ? (
+                      <p className="text-[10px] text-[var(--success)] mt-0.5 font-medium truncate">
+                        ✓ {status.fed_by_name?.split(' ')[0] || 'Готово'}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-500 mt-0.5 font-medium">
+                        Не е внесен
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Active Alarms ── */}
       {alerts.length > 0 && (

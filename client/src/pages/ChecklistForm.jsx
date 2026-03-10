@@ -9,8 +9,8 @@ import ActivitiesStep from '../components/checklist/ActivitiesStep';
 import { POOL_NUMBERS, FILTRATION_LABELS, FISH_VISUAL_LABELS } from '../lib/constants';
 import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pencil, X } from 'lucide-react';
 
-const STEPS = ['Вода', 'Филтри', 'Риба', 'Хранење', 'Активности'];
-const STEP_ICONS = ['💧', '⚙️', '🐟', '🍽️', '📋'];
+const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности'];
+const STEP_ICONS = ['💧', '⚙️', '🐟', '🐟', '📋'];
 const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites'];
 const MK_MONTHS = ['Јануари','Февруари','Март','Април','Мај','Јуни','Јули','Август','Септември','Октомври','Ноември','Декември'];
 
@@ -72,8 +72,7 @@ export default function ChecklistForm() {
             ? pool_feeding.map(pf => ({
                 pool_number: pf.pool_number, fish_count: pf.fish_count ?? '',
                 avg_weight_gr: pf.avg_weight_gr ?? '', sold_count: pf.sold_count ?? 0,
-                dead_count: pf.dead_count ?? 0, food_type: pf.food_type ?? '',
-                food_quantity_gr: pf.food_quantity_gr ?? '',
+                dead_count: pf.dead_count ?? 0,
               }))
             : POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
           activities: activities || {},
@@ -157,11 +156,8 @@ export default function ChecklistForm() {
       const payload = { ...formData, pool_feeding: feedingWithDefaults };
       let result;
       if (isEdit) { result = await api.updateRecord(editId, payload); }
-      else {
-        result = await api.createRecord(payload);
-        try { await api.sendDailyReport(result.record.id); } catch (e) { console.error(e); }
-      }
-      setSuccess(isEdit ? 'Записот е ажуриран!' : 'Записот е зачуван! Извештајот е испратен.');
+      else { result = await api.createRecord(payload); }
+      setSuccess(isEdit ? 'Записот е ажуриран!' : 'Записот е зачуван!');
       if (result.alerts?.length > 0) setSuccess(prev => prev + ` ${result.alerts.length} аларм(и).`);
       setTimeout(() => navigate('/'), 2000);
     } catch (err) { setError(err.message); }

@@ -61,6 +61,7 @@ app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/pool-measurements', require('./routes/poolMeasurements'));
 app.use('/api/food-inventory', require('./routes/foodInventory'));
+app.use('/api/meals', require('./routes/meals'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,6 +1,6 @@
-import { POOL_NUMBERS, FOOD_TYPES } from '../../lib/constants';
+import { POOL_NUMBERS } from '../../lib/constants';
 import { useState, useImperativeHandle, forwardRef } from 'react';
-import { Info, Fish, ShoppingCart, Skull, UtensilsCrossed, Weight, Hash } from 'lucide-react';
+import { Info, Fish, ShoppingCart, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
 
 const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasurements }, ref) {
   const [activePool, setActivePool] = useState(1);
@@ -31,7 +31,7 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
   const getPoolData = (poolNum) => {
     return data.find(p => p.pool_number === poolNum) || {
       pool_number: poolNum, fish_count: '', avg_weight_gr: '',
-      sold_count: 0, dead_count: 0, food_type: '', food_quantity_gr: '',
+      sold_count: 0, dead_count: 0,
     };
   };
 
@@ -53,10 +53,10 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
       <div className="flex items-center gap-2.5 mb-1">
         <div className="icon-box"
           style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-          <UtensilsCrossed size={18} />
+          <ClipboardList size={18} />
         </div>
         <div>
-          <h2 className="section-title">4. Хранење / Евиденција</h2>
+          <h2 className="section-title">4. Евиденција на базени</h2>
           <p className="section-subtitle">Внесете податоци за секој базен</p>
         </div>
       </div>
@@ -149,33 +149,6 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
               onChange={(e) => updatePool(activePool, 'dead_count', e.target.value)}
               className="input-base" placeholder="0" />
           </div>
-        </div>
-
-        {/* Food type */}
-        <div>
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
-            style={{ fontFamily: 'Sora, sans-serif' }}>
-            <UtensilsCrossed size={12} className="text-[var(--primary)]" />
-            Тип на храна
-          </label>
-          <select value={poolData.food_type ?? ''}
-            onChange={(e) => updatePool(activePool, 'food_type', e.target.value)}
-            className="input-base">
-            <option value="">-- Избери тип на храна --</option>
-            {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
-          </select>
-        </div>
-
-        {/* Food quantity */}
-        <div>
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
-            style={{ fontFamily: 'Sora, sans-serif' }}>
-            <Weight size={12} className="text-[var(--primary)]" />
-            Количина на храна (gr)
-          </label>
-          <input type="number" step="any" value={poolData.food_quantity_gr ?? ''}
-            onChange={(e) => updatePool(activePool, 'food_quantity_gr', e.target.value)}
-            className="input-base" placeholder="нпр. 200" />
         </div>
       </div>
     </div>
