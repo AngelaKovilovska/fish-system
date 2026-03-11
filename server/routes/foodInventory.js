@@ -5,12 +5,42 @@ const adminOnly = require('../middleware/adminOnly');
 
 const router = express.Router();
 
-// GET /api/food-inventory - get current stock levels
+// GET /api/food-inventory - get current stock levels (calculated from purchased - consumed)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM food_inventory ORDER BY food_type'
-    );
+    const result = await pool.query(`
+      SELECT
+        fi.id, fi.food_type, fi.updated_at,
+        GREATEST(0,
+          COALESCE(p.purchased_kg, 0) -
+          COALESCE(c.consumed_kg, 0)
+        )::numeric(10,2) as quantity_kg
+      FROM food_inventory fi
+      LEFT JOIN (
+        SELECT food_type, SUM(change_kg) as purchased_kg
+        FROM food_inventory_log WHERE reason = 'purchase'
+        GROUP BY food_type
+      ) p ON p.food_type = fi.food_type
+      LEFT JOIN (
+        SELECT food_type, SUM(consumed_gr) / 1000.0 as consumed_kg
+        FROM (
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_meals
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT pf.food_type, pf.food_quantity_gr
+          FROM pool_feeding pf
+          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+            AND NOT EXISTS (
+              SELECT 1 FROM pool_meals pm
+              JOIN daily_records dr ON pf.daily_record_id = dr.id
+              WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+            )
+        ) all_fed
+        GROUP BY food_type
+      ) c ON c.food_type = fi.food_type
+      ORDER BY fi.food_type
+    `);
     res.json({ inventory: result.rows });
   } catch (err) {
     console.error('Get food inventory error:', err);

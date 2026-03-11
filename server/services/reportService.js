@@ -141,22 +141,89 @@ async function getDailyReportData(recordId) {
 
 // Generate food consumption report - aggregated by food type + remaining stock
 async function getFoodConsumptionData(from, to, poolNumber) {
-  let query = `SELECT COALESCE(NULLIF(pf.food_type, ''), 'Непознат') as food_type,
-     COALESCE(SUM(pf.food_quantity_gr), 0)::float as total_gr,
-     fi.quantity_kg::float as remaining_kg
-     FROM pool_feeding pf
-     JOIN daily_records dr ON pf.daily_record_id = dr.id
-     LEFT JOIN food_inventory fi ON fi.food_type = pf.food_type
-     WHERE dr.date >= $1 AND dr.date <= $2
-       AND pf.food_quantity_gr IS NOT NULL AND pf.food_quantity_gr > 0`;
   const params = [from, to];
+  let poolFilter = '';
   if (poolNumber) {
     params.push(parseInt(poolNumber));
-    query += ` AND pf.pool_number = $${params.length}`;
+    poolFilter = ` AND combined.pool_number = $${params.length}`;
   }
-  query += ` GROUP BY COALESCE(NULLIF(pf.food_type, ''), 'Непознат'), fi.quantity_kg ORDER BY food_type`;
-  const result = await pool.query(query, params);
-  return result.rows;
+
+  // Period consumption from feeding tables
+  const consumedQuery = `
+    SELECT COALESCE(NULLIF(combined.food_type, ''), 'Непознат') as food_type,
+           COALESCE(SUM(combined.total_gr), 0)::float as total_gr
+    FROM (
+      SELECT food_type, food_quantity_gr as total_gr, date, pool_number
+      FROM pool_meals
+      WHERE date >= $1 AND date <= $2
+        AND food_quantity_gr IS NOT NULL AND food_quantity_gr > 0
+      UNION ALL
+      SELECT pf.food_type, pf.food_quantity_gr as total_gr, dr.date, pf.pool_number
+      FROM pool_feeding pf
+      JOIN daily_records dr ON pf.daily_record_id = dr.id
+      WHERE dr.date >= $1 AND dr.date <= $2
+        AND pf.food_quantity_gr IS NOT NULL AND pf.food_quantity_gr > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM pool_meals pm
+          WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+        )
+    ) combined
+    WHERE combined.food_type IS NOT NULL AND combined.food_type != ''
+    ${poolFilter}
+    GROUP BY COALESCE(NULLIF(combined.food_type, ''), 'Непознат')
+    ORDER BY food_type`;
+
+  const consumedResult = await pool.query(consumedQuery, params);
+
+  // Total purchased and all-time consumed (for accurate remaining calculation)
+  const inventoryQuery = `
+    SELECT
+      fi.food_type,
+      COALESCE(p.purchased_kg, 0)::float as purchased_kg,
+      COALESCE(ac.all_consumed_gr, 0)::float as all_consumed_gr
+    FROM food_inventory fi
+    LEFT JOIN (
+      SELECT food_type, SUM(change_kg) as purchased_kg
+      FROM food_inventory_log WHERE reason = 'purchase'
+      GROUP BY food_type
+    ) p ON p.food_type = fi.food_type
+    LEFT JOIN (
+      SELECT food_type, SUM(consumed_gr) as all_consumed_gr
+      FROM (
+        SELECT food_type, food_quantity_gr as consumed_gr
+        FROM pool_meals WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        UNION ALL
+        SELECT pf.food_type, pf.food_quantity_gr
+        FROM pool_feeding pf
+        WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM pool_meals pm
+          JOIN daily_records dr ON pf.daily_record_id = dr.id
+          WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+        )
+      ) all_fed
+      GROUP BY food_type
+    ) ac ON ac.food_type = fi.food_type`;
+
+  const inventoryResult = await pool.query(inventoryQuery);
+
+  // Build inventory lookup: remaining = purchased - all_consumed
+  const inventoryMap = {};
+  for (const row of inventoryResult.rows) {
+    const remaining = row.purchased_kg - (row.all_consumed_gr / 1000);
+    inventoryMap[row.food_type] = {
+      purchased_kg: row.purchased_kg,
+      remaining_kg: Math.max(0, parseFloat(remaining.toFixed(2))),
+    };
+  }
+
+  // Merge consumed with inventory data
+  return consumedResult.rows.map(row => ({
+    food_type: row.food_type,
+    total_gr: row.total_gr,
+    purchased_kg: inventoryMap[row.food_type]?.purchased_kg ?? null,
+    remaining_kg: inventoryMap[row.food_type]?.remaining_kg ?? null,
+  }));
 }
 
 // Get distinct measurement dates

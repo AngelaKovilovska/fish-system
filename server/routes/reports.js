@@ -528,13 +528,14 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
 
     if (sendEmail) {
       const poolLabel = pool_number ? `Базен ${pool_number}` : 'Сите базени';
-      const headers = ['Тип храна', 'Потрошено (kg)', 'Преостанато (kg)'];
+      const headers = ['Тип храна', 'Набавено (kg)', 'Потрошено (kg)', 'Преостанато (kg)'];
       const rows = data.map(d => [
         d.food_type || 'Непознат',
+        d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(1) : '–',
         (parseFloat(d.total_gr) / 1000).toFixed(2),
         d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(1) : '–',
       ]);
-      rows.push(['ВКУПНО', totalKg, '']);
+      rows.push(['ВКУПНО', '', totalKg, '']);
 
       const excelBuffer = generateExcel('Потрошена храна', headers, rows);
       const pdfBuffer = await generatePDF(`Потрошена храна - ${poolLabel} (${fmtDate(from)} - ${fmtDate(to)})`, [
@@ -554,9 +555,9 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
             { type: 'keyvalue', items: [
               ...data.map(d => ({
                 label: d.food_type || 'Непознат',
-                value: `${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg потрошено • ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(1) + ' kg преостанато' : '–'}`,
+                value: `Набавено: ${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(1) : '–'} kg • Потрошено: ${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg • Преостанато: ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(1) : '–'} kg`,
               })),
-              { label: 'ВКУПНО', value: `${totalKg} kg` },
+              { label: 'ВКУПНО', value: `${totalKg} kg потрошено` },
             ]},
           ],
           footerNote: 'Детален извештај е во прилог (Excel и PDF).',

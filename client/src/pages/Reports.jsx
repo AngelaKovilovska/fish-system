@@ -140,6 +140,7 @@ export default function Reports() {
             <table className="table-modern">
               <thead><tr>
                 <th>Тип храна</th>
+                <th className="text-right">Набавено (kg)</th>
                 <th className="text-right">Потрошено (kg)</th>
                 <th className="text-right">Преостанато (kg)</th>
               </tr></thead>
@@ -147,6 +148,13 @@ export default function Reports() {
                 {(previewData.data || []).map((d, i) => (
                   <tr key={i}>
                     <td>{d.food_type || 'Непознат'}</td>
+                    <td className="text-right">
+                      {d.purchased_kg != null ? (
+                        <span className="font-semibold">{parseFloat(d.purchased_kg).toFixed(1)}</span>
+                      ) : (
+                        <span className="text-[var(--text-muted)]">–</span>
+                      )}
+                    </td>
                     <td className="text-right font-semibold">{(parseFloat(d.total_gr) / 1000).toFixed(2)}</td>
                     <td className="text-right">
                       {d.remaining_kg != null ? (
@@ -160,7 +168,7 @@ export default function Reports() {
                   </tr>
                 ))}
                 {(previewData.data || []).length === 0 && (
-                  <tr><td colSpan={3} className="p-4 text-center text-[var(--text-muted)]">Нема податоци.</td></tr>
+                  <tr><td colSpan={4} className="p-4 text-center text-[var(--text-muted)]">Нема податоци.</td></tr>
                 )}
               </tbody>
             </table>
