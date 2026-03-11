@@ -20,16 +20,18 @@ function getTransporter() {
 async function sendReportEmail({ to, subject, html, attachments }) {
   try {
     const transport = getTransporter();
-    await transport.sendMail({
+    console.log(`Sending email to: ${to}, subject: ${subject}`);
+    const info = await transport.sendMail({
       from: process.env.EMAIL_FROM,
       to: Array.isArray(to) ? to.join(', ') : to,
       subject,
       html,
       attachments,
     });
+    console.log(`Email sent OK: ${info.messageId} -> ${to}`);
     return { success: true };
   } catch (err) {
-    console.error('Email send error:', err);
+    console.error('Email send error:', err.message);
     return { success: false, error: err.message };
   }
 }

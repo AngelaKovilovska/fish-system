@@ -545,7 +545,7 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
 
       const recipientEmail = getRequesterEmail(req);
       if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
-      await sendReportEmail({
+      const emailResult = await sendReportEmail({
         to: recipientEmail,
         subject: `Потрошена храна - ${poolLabel} (${fmtDate(from)} - ${fmtDate(to)})`,
         html: buildEmailHTML({
@@ -567,6 +567,7 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
           { filename: `potrosena-hrana-${from}-${to}.pdf`, content: pdfBuffer },
         ],
       });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
 
       return res.json({ message: 'Извештајот е испратен на вашиот email', data, totalKg });
     }
@@ -613,7 +614,7 @@ router.post('/avg-weight', authMiddleware, async (req, res) => {
 
       const recipientEmail = getRequesterEmail(req);
       if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
-      await sendReportEmail({
+      const emailResult = await sendReportEmail({
         to: recipientEmail,
         subject: `Просечна тежина - ${poolLabel} (${dateLabel})`,
         html: buildEmailHTML({
@@ -632,6 +633,7 @@ router.post('/avg-weight', authMiddleware, async (req, res) => {
           { filename: 'prosecna-tezina.pdf', content: pdfBuffer },
         ],
       });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
 
       return res.json({ message: 'Извештајот е испратен на вашиот email', data });
     }
@@ -667,7 +669,7 @@ router.post('/alerts', authMiddleware, async (req, res) => {
 
       const recipientEmail = getRequesterEmail(req);
       if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
-      await sendReportEmail({
+      const emailResult = await sendReportEmail({
         to: recipientEmail,
         subject: `Извештај за аларми (${fmtDate(from)} - ${fmtDate(to)})`,
         html: buildEmailHTML({
@@ -690,6 +692,7 @@ router.post('/alerts', authMiddleware, async (req, res) => {
           { filename: `alarmi-${from}-${to}.pdf`, content: pdfBuffer },
         ],
       });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
 
       return res.json({ message: 'Извештајот е испратен на вашиот email', data, total: data.length });
     }
@@ -722,7 +725,7 @@ router.post('/sorting', authMiddleware, async (req, res) => {
 
       const recipientEmail = getRequesterEmail(req);
       if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
-      await sendReportEmail({
+      const emailResult = await sendReportEmail({
         to: recipientEmail,
         subject: `Извештај за сортирање (${fmtDate(from)} - ${fmtDate(to)})`,
         html: buildEmailHTML({
@@ -742,6 +745,7 @@ router.post('/sorting', authMiddleware, async (req, res) => {
           { filename: `sortiranje-${from}-${to}.pdf`, content: pdfBuffer },
         ],
       });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
 
       return res.json({ message: 'Извештајот е испратен на вашиот email', dates: sortingDates, total: sortingDates.length });
     }
@@ -779,7 +783,7 @@ router.post('/food-purchases', authMiddleware, async (req, res) => {
 
       const recipientEmail = getRequesterEmail(req);
       if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
-      await sendReportEmail({
+      const emailResult = await sendReportEmail({
         to: recipientEmail,
         subject: `Набавки на храна (${fmtDate(from)} - ${fmtDate(to)})`,
         html: buildEmailHTML({
@@ -802,6 +806,7 @@ router.post('/food-purchases', authMiddleware, async (req, res) => {
           { filename: `nabavki-${from}-${to}.pdf`, content: pdfBuffer },
         ],
       });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
 
       return res.json({ message: 'Извештајот е испратен на вашиот email', data, total: data.length, totalKg });
     }
