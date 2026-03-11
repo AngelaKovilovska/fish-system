@@ -93,19 +93,43 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-// GET /api/food-inventory/log - get inventory change history
+// GET /api/food-inventory/log - get inventory change history (aggregated by day)
 router.get('/log', authMiddleware, async (req, res) => {
   try {
-    const { limit = 30 } = req.query;
-    const result = await pool.query(
-      `SELECT fil.*, u.full_name as created_by_name
+    const { days = 3 } = req.query;
+    const since = new Date();
+    since.setDate(since.getDate() - parseInt(days));
+    const sinceStr = since.toISOString().split('T')[0];
+
+    // Purchases from log (individual entries)
+    const purchases = await pool.query(
+      `SELECT fil.id, fil.food_type, fil.change_kg, fil.reason,
+              fil.purchased_at as date, u.full_name as created_by_name
        FROM food_inventory_log fil
        LEFT JOIN users u ON fil.created_by = u.id
-       ORDER BY fil.created_at DESC
-       LIMIT $1`,
-      [parseInt(limit)]
+       WHERE fil.reason = 'purchase' AND fil.purchased_at >= $1
+       ORDER BY fil.purchased_at DESC, fil.created_at DESC`,
+      [sinceStr]
     );
-    res.json({ log: result.rows });
+    // Consumption aggregated by day + food_type from pool_meals
+    const consumption = await pool.query(
+      `SELECT date, food_type,
+              SUM(food_quantity_gr)::float / 1000.0 as change_kg,
+              'consumption' as reason
+       FROM pool_meals
+       WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+         AND date >= $1
+       GROUP BY date, food_type
+       ORDER BY date DESC`,
+      [sinceStr]
+    );
+    // Merge and sort by date descending
+    const log = [
+      ...purchases.rows.map(r => ({ ...r, change_kg: parseFloat(r.change_kg) })),
+      ...consumption.rows.map(r => ({ ...r, change_kg: -parseFloat(r.change_kg) })),
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({ log });
   } catch (err) {
     console.error('Get food log error:', err);
     res.status(500).json({ error: 'Серверска грешка' });

@@ -82,5 +82,5 @@ export const api = {
   // Food inventory
   getFoodInventory: () => request('/food-inventory'),
   addFoodPurchase: (data) => request('/food-inventory/purchase', { method: 'POST', body: JSON.stringify(data) }),
-  getFoodInventoryLog: (limit) => request(`/food-inventory/log?limit=${limit || 30}`),
+  getFoodInventoryLog: (days) => request(`/food-inventory/log?days=${days || 3}`),
 };

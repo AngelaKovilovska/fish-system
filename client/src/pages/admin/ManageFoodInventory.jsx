@@ -17,7 +17,7 @@ export default function ManageFoodInventory() {
     try {
       const [invData, logData] = await Promise.all([
         api.getFoodInventory(),
-        api.getFoodInventoryLog(20),
+        api.getFoodInventoryLog(3),
       ]);
       setInventory(invData.inventory);
       setLog(logData.log);
@@ -155,29 +155,41 @@ export default function ManageFoodInventory() {
         <div className="card animate-in-delay-2">
           <h3 className="section-title text-sm mb-3 flex items-center gap-2">
             <Clock size={15} className="text-[var(--text-muted)]" />
-            Последни промени
+            Последни 3 дена
           </h3>
-          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-            {log.map(entry => (
-              <div key={entry.id} className="flex items-center justify-between text-xs p-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150">
-                <div className="flex items-center gap-2 min-w-0">
-                  {entry.reason === 'purchase' ? (
-                    <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
-                  ) : (
-                    <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+          <div className="space-y-1.5 max-h-[350px] overflow-y-auto">
+            {log.map((entry, i) => {
+              const dateStr = new Date(entry.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
+              const prevDate = i > 0 ? new Date(log[i-1].date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+              const showDateHeader = dateStr !== prevDate;
+              const isPurchase = entry.reason === 'purchase';
+              return (
+                <div key={`${entry.reason}-${entry.food_type}-${entry.date}-${i}`}>
+                  {showDateHeader && (
+                    <div className={`flex items-center gap-2 ${i > 0 ? 'mt-3 pt-3 border-t border-[var(--border)]' : ''} mb-1.5`}>
+                      <Calendar size={11} className="text-[var(--text-muted)]" />
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">{dateStr}</span>
+                    </div>
                   )}
-                  <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                  <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isPurchase ? (
+                        <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
+                      ) : (
+                        <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+                      )}
+                      <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                      {isPurchase && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium">набавка</span>
+                      )}
+                    </div>
+                    <span className={`font-bold flex-shrink-0 ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`font-bold ${entry.reason === 'purchase' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                    {entry.reason === 'purchase' ? '+' : ''}{parseFloat(entry.change_kg).toFixed(2)} kg
-                  </span>
-                  <span className="text-[var(--text-muted)] text-[10px] w-16 text-right">
-                    {new Date(entry.purchased_at || entry.created_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
