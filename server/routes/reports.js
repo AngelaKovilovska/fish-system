@@ -531,9 +531,9 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
       const headers = ['Тип храна', 'Набавено (kg)', 'Потрошено (kg)', 'Преостанато (kg)'];
       const rows = data.map(d => [
         d.food_type || 'Непознат',
-        d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(1) : '–',
+        d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–',
         (parseFloat(d.total_gr) / 1000).toFixed(2),
-        d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(1) : '–',
+        d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–',
       ]);
       rows.push(['ВКУПНО', '', totalKg, '']);
 
@@ -555,7 +555,7 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
             { type: 'keyvalue', items: [
               ...data.map(d => ({
                 label: d.food_type || 'Непознат',
-                value: `Набавено: ${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(1) : '–'} kg • Потрошено: ${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg • Преостанато: ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(1) : '–'} kg`,
+                value: `Набавено: ${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–'} kg • Потрошено: ${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg • Преостанато: ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–'} kg`,
               })),
               { label: 'ВКУПНО', value: `${totalKg} kg потрошено` },
             ]},

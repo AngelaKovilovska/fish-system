@@ -309,7 +309,7 @@ export default function Dashboard() {
                     <span className={`text-[12px] font-bold ${
                       isLow ? 'text-[var(--danger)]' : isWarn ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
                     }`}>
-                      {qty.toFixed(1)} kg
+                      {qty.toFixed(2)} kg
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: barBg }}>

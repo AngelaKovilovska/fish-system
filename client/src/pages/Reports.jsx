@@ -150,7 +150,7 @@ export default function Reports() {
                     <td>{d.food_type || 'Непознат'}</td>
                     <td className="text-right">
                       {d.purchased_kg != null ? (
-                        <span className="font-semibold">{parseFloat(d.purchased_kg).toFixed(1)}</span>
+                        <span className="font-semibold">{parseFloat(d.purchased_kg).toFixed(2)}</span>
                       ) : (
                         <span className="text-[var(--text-muted)]">–</span>
                       )}
@@ -159,7 +159,7 @@ export default function Reports() {
                     <td className="text-right">
                       {d.remaining_kg != null ? (
                         <span className={`font-bold ${parseFloat(d.remaining_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(d.remaining_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
-                          {parseFloat(d.remaining_kg).toFixed(1)}
+                          {parseFloat(d.remaining_kg).toFixed(2)}
                         </span>
                       ) : (
                         <span className="text-[var(--text-muted)]">–</span>
@@ -331,7 +331,7 @@ export default function Reports() {
                     <td className="font-medium">{item.food_type}</td>
                     <td className="text-right">
                       <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                        {parseFloat(item.quantity_kg).toFixed(1)}
+                        {parseFloat(item.quantity_kg).toFixed(2)}
                       </span>
                     </td>
                     <td className="text-right text-[var(--text-muted)]">
@@ -351,7 +351,7 @@ export default function Reports() {
               <div key={item.id} className="flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
                 <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
                 <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                  {parseFloat(item.quantity_kg).toFixed(1)} kg
+                  {parseFloat(item.quantity_kg).toFixed(2)} kg
                 </span>
               </div>
             ))}
