@@ -16,6 +16,8 @@ function getTransporter() {
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 30000,
+      tls: { rejectUnauthorized: false },
+      dnsOptions: { family: 4 },
     });
   }
   return transporter;
