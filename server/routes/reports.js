@@ -176,15 +176,18 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       rows.push(['--- 4. ЕВИДЕНЦИЈА НА БАЗЕНИ ---', '']);
       let totalKgAll = 0;
       for (const pf of data.pool_feeding) {
-        const count = parseInt(pf.fish_count) || 0;
+        const startCount = parseInt(pf.fish_count) || 0;
+        const dead = parseInt(pf.dead_count) || 0;
+        const sold = parseInt(pf.sold_count) || 0;
+        const actualCount = startCount - dead - sold;
         const avgW = parseFloat(pf.avg_weight_gr) || 0;
-        const poolKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : 0;
+        const poolKg = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : 0;
         totalKgAll += poolKg;
-        rows.push([`Базен ${pf.pool_number} - Број риби`, pf.fish_count ?? '–']);
+        rows.push([`Базен ${pf.pool_number} - Број риби`, actualCount]);
         rows.push([`Базен ${pf.pool_number} - Просечна тежина`, pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–']);
         rows.push([`Базен ${pf.pool_number} - Вкупна тежина`, poolKg > 0 ? `${poolKg.toFixed(1)} кг` : '–']);
-        rows.push([`Базен ${pf.pool_number} - Продадени`, pf.sold_count ?? '–']);
-        rows.push([`Базен ${pf.pool_number} - Угинати`, pf.dead_count ?? '–']);
+        rows.push([`Базен ${pf.pool_number} - Продадени`, sold || '–']);
+        rows.push([`Базен ${pf.pool_number} - Угинати`, dead || '–']);
       }
       rows.push(['', '']);
       rows.push(['Збир - Вкупно риби', data.totals.total_fish]);
@@ -320,14 +323,17 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупна тежина', 'Продадени', 'Угинати'];
       let pdfTotalKg = 0;
       const feedRows = data.pool_feeding.map(pf => {
-        const count = parseInt(pf.fish_count) || 0;
+        const startCount = parseInt(pf.fish_count) || 0;
+        const dead = parseInt(pf.dead_count) || 0;
+        const sold = parseInt(pf.sold_count) || 0;
+        const actualCount = startCount - dead - sold;
         const avgW = parseFloat(pf.avg_weight_gr) || 0;
-        const poolKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : 0;
+        const poolKg = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : 0;
         pdfTotalKg += poolKg;
         return [
-          pf.pool_number, pf.fish_count ?? '–', pf.avg_weight_gr ?? '–',
+          pf.pool_number, actualCount, pf.avg_weight_gr ?? '–',
           poolKg > 0 ? `${poolKg.toFixed(1)}` : '–',
-          pf.sold_count ?? '–', pf.dead_count ?? '–',
+          sold || '–', dead || '–',
         ];
       });
       pdfSections.push({ heading: '4. ЕВИДЕНЦИЈА НА БАЗЕНИ', table: { headers: feedHeaders, rows: feedRows } });
@@ -437,9 +443,9 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     // 4. Евиденција на базени - Збир
     {
       const emailTotalKg = data.pool_feeding.reduce((s, pf) => {
-        const c = parseInt(pf.fish_count) || 0;
+        const actual = (parseInt(pf.fish_count) || 0) - (parseInt(pf.dead_count) || 0) - (parseInt(pf.sold_count) || 0);
         const w = parseFloat(pf.avg_weight_gr) || 0;
-        return s + (c * w / 1000);
+        return s + (actual * w / 1000);
       }, 0);
       const feedingItems = [
         { label: 'Вкупно риби', value: data.totals.total_fish },

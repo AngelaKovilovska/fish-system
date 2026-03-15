@@ -166,27 +166,30 @@ export default function RecordDetail() {
       {pool_feeding.length > 0 && (
         <CollapsibleSection title="4. Евиденција на базени" delay={5} collapsed={collapsed.feeding} onToggle={() => toggleSection('feeding')}>
           {pool_feeding.map(pf => {
-            const count = parseInt(pf.fish_count) || 0;
+            const startCount = parseInt(pf.fish_count) || 0;
+            const dead = parseInt(pf.dead_count) || 0;
+            const sold = parseInt(pf.sold_count) || 0;
+            const actualCount = startCount - dead - sold;
             const avgW = parseFloat(pf.avg_weight_gr) || 0;
-            const totalKg = count > 0 && avgW > 0 ? (count * avgW / 1000) : null;
+            const totalKg = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : null;
             return (
               <div key={pf.pool_number} className="border-b border-[var(--border)] last:border-b-0 pb-3 mb-3 last:pb-0 last:mb-0">
                 <p className="font-semibold text-[var(--primary)] text-xs mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {pf.pool_number}</p>
-                <Row label="Број риби" value={pf.fish_count ?? '–'} />
+                <Row label="Број риби" value={actualCount} />
                 <Row label="Просечна тежина" value={pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–'} />
                 <Row label="Вкупна тежина" value={totalKg != null ? `${totalKg.toFixed(1)} кг` : '–'} />
-                <Row label="Продадени" value={pf.sold_count ?? '–'} />
-                <Row label="Угинати" value={pf.dead_count ?? '–'} />
+                <Row label="Продадени" value={sold || '–'} />
+                <Row label="Угинати" value={dead || '–'} />
               </div>
             );
           })}
           <div className="info-box mt-2 text-xs">
             <strong>Збир:</strong>{' '}
-            Риби: {pool_feeding.reduce((s, p) => s + (parseInt(p.fish_count) || 0), 0)} |{' '}
+            Риби: {pool_feeding.reduce((s, p) => s + ((parseInt(p.fish_count) || 0) - (parseInt(p.dead_count) || 0) - (parseInt(p.sold_count) || 0)), 0)} |{' '}
             Вкупно: {(pool_feeding.reduce((s, p) => {
-              const c = parseInt(p.fish_count) || 0;
+              const actual = (parseInt(p.fish_count) || 0) - (parseInt(p.dead_count) || 0) - (parseInt(p.sold_count) || 0);
               const w = parseFloat(p.avg_weight_gr) || 0;
-              return s + (c * w / 1000);
+              return s + (actual * w / 1000);
             }, 0)).toFixed(1)} кг |{' '}
             Продадени: {pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count) || 0), 0)} |{' '}
             Угинати: {pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count) || 0), 0)}

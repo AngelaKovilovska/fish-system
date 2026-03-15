@@ -386,7 +386,7 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
 });
 
 // DELETE /api/records/:id - delete daily record (cascades to all sections)
-router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

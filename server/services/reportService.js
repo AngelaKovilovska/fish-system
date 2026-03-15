@@ -118,7 +118,12 @@ async function getDailyReportData(recordId) {
 
   const totals = {
     total_food_gr,
-    total_fish: feedingRows.reduce((sum, f) => sum + parseInt(f.fish_count || 0), 0),
+    total_fish: feedingRows.reduce((sum, f) => {
+      const start = parseInt(f.fish_count || 0);
+      const dead = parseInt(f.dead_count || 0);
+      const sold = parseInt(f.sold_count || 0);
+      return sum + (start - dead - sold);
+    }, 0),
     total_sold: feedingRows.reduce((sum, f) => sum + parseInt(f.sold_count || 0), 0),
     total_dead: feedingRows.reduce((sum, f) => sum + parseInt(f.dead_count || 0), 0),
     food_types,
