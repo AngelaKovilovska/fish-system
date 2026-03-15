@@ -29,8 +29,9 @@ FROM (
 ) latest
 WHERE pfi.pool_number = latest.pool_number;
 
--- Now subtract all dead + sold from daily records that happened AFTER the latest measurement
--- for each pool
+-- Now subtract all dead + sold from daily records on or after the latest measurement date
+-- for each pool. Note: admins should enter the ACTUAL count at time of measurement.
+-- If measurement was done AFTER deaths on the same day, the measured count already reflects them.
 UPDATE pool_fish_inventory pfi
 SET current_count = pfi.current_count - COALESCE(totals.total_removed, 0),
     updated_at = NOW()
@@ -39,7 +40,7 @@ FROM (
          SUM(COALESCE(pf.dead_count, 0) + COALESCE(pf.sold_count, 0)) as total_removed
   FROM pool_feeding pf
   JOIN daily_records dr ON pf.daily_record_id = dr.id
-  WHERE dr.date > (
+  WHERE dr.date >= (
     SELECT COALESCE(MAX(pm.measured_at)::date, '1970-01-01')
     FROM pool_measurements pm
     WHERE pm.pool_number = pf.pool_number
