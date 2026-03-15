@@ -1,40 +1,49 @@
-const nodemailer = require('nodemailer');
-
-let transporter = null;
-
-function getTransporter() {
-  if (!transporter) {
-    const port = parseInt(process.env.SMTP_PORT) || 587;
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-      secure: port === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 30000,
-      tls: { rejectUnauthorized: false },
-      dnsOptions: { family: 4 },
-    });
-  }
-  return transporter;
-}
+const RESEND_API_URL = 'https://api.resend.com/emails';
 
 async function sendReportEmail({ to, subject, html, attachments }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error('Email send error: RESEND_API_KEY not set');
+    return { success: false, error: 'Email не е конфигуриран' };
+  }
+
   try {
-    const transport = getTransporter();
-    console.log(`Sending email to: ${to}, subject: ${subject}`);
-    const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: Array.isArray(to) ? to.join(', ') : to,
+    const recipient = Array.isArray(to) ? to : [to];
+    const fromAddress = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    console.log(`Sending email to: ${recipient.join(', ')}, subject: ${subject}`);
+
+    const body = {
+      from: fromAddress,
+      to: recipient,
       subject,
       html,
-      attachments,
+    };
+
+    // Convert nodemailer-style attachments to Resend format (base64)
+    if (attachments && attachments.length > 0) {
+      body.attachments = attachments.map(a => ({
+        filename: a.filename,
+        content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : a.content,
+      }));
+    }
+
+    const res = await fetch(RESEND_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
-    console.log(`Email sent OK: ${info.messageId} -> ${to}`);
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error('Email send error:', data.message || JSON.stringify(data));
+      return { success: false, error: data.message || 'Email испраќањето не успеа' };
+    }
+
+    console.log(`Email sent OK: ${data.id} -> ${recipient.join(', ')}`);
     return { success: true };
   } catch (err) {
     console.error('Email send error:', err.message);

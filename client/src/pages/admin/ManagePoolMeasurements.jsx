@@ -18,11 +18,16 @@ export default function ManagePoolMeasurements() {
   const [showHistory, setShowHistory] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [fishInventory, setFishInventory] = useState([]);
 
   const load = async () => {
     try {
-      const data = await api.getPoolMeasurements();
-      setMeasurements(data.measurements);
+      const [measData, invData] = await Promise.all([
+        api.getPoolMeasurements(),
+        api.getPoolFishInventory(),
+      ]);
+      setMeasurements(measData.measurements);
+      setFishInventory(invData.inventory);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -82,6 +87,8 @@ export default function ManagePoolMeasurements() {
   );
 
   const currentMeasurement = getMeasurement(activePool);
+  const getInventory = (poolNum) => fishInventory.find(inv => inv.pool_number === poolNum);
+  const currentInventory = getInventory(activePool);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -142,6 +149,30 @@ export default function ManagePoolMeasurements() {
         ) : (
           <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-[var(--r-md)] mb-4 text-xs text-[var(--text-muted)] text-center">
             Нема внесено мерење за овој базен
+          </div>
+        )}
+
+        {/* Current live fish count */}
+        {currentInventory && (
+          <div className="mb-4 rounded-xl p-3"
+            style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03))', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Fish size={14} className="text-[var(--success)]" />
+                <span className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  Актуелен број на риби
+                </span>
+              </div>
+              <span className="text-lg font-bold text-[var(--success)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {currentInventory.current_count}
+              </span>
+            </div>
+            {currentMeasurement && currentInventory.current_count !== currentMeasurement.fish_count && (
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                Разлика од мерење: <span className="text-[var(--danger)] font-semibold">{currentInventory.current_count - currentMeasurement.fish_count}</span>
+                {' '}(угинати + продадени)
+              </p>
+            )}
           </div>
         )}
 
@@ -236,19 +267,27 @@ export default function ManagePoolMeasurements() {
         <div className="space-y-1.5">
           {POOL_NUMBERS.map(num => {
             const m = getMeasurement(num);
+            const inv = getInventory(num);
             return (
               <div key={num} className={`flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] transition-all ${
                 activePool === num ? 'bg-[var(--primary-muted)] border border-[rgba(37,99,235,0.12)]' : 'border border-transparent hover:bg-[var(--bg)]'
               }`}>
                 <span className={`font-semibold ${activePool === num ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}
                   style={{ fontFamily: 'Sora, sans-serif' }}>Базен {num}</span>
-                {m ? (
-                  <span className="text-[var(--text-muted)] font-medium">
-                    <span className="text-[var(--text-primary)] font-bold">{m.fish_count}</span> риби / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr
-                  </span>
-                ) : (
-                  <span className="text-[var(--text-muted)] italic text-[10px]">Нема мерење</span>
-                )}
+                <span className="text-[var(--text-muted)] font-medium">
+                  {inv && inv.current_count > 0 ? (
+                    <>
+                      <span className="text-[var(--success)] font-bold">{inv.current_count}</span> риби
+                      {m ? <> / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr</> : ''}
+                    </>
+                  ) : m ? (
+                    <>
+                      <span className="text-[var(--text-primary)] font-bold">{m.fish_count}</span> риби / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr
+                    </>
+                  ) : (
+                    <span className="italic text-[10px]">Нема мерење</span>
+                  )}
+                </span>
               </div>
             );
           })}

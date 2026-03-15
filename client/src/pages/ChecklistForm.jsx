@@ -25,6 +25,7 @@ export default function ChecklistForm() {
   const [success, setSuccess] = useState('');
   const [norms, setNorms] = useState([]);
   const [poolMeasurements, setPoolMeasurements] = useState([]);
+  const [fishInventory, setFishInventory] = useState([]);
   const [stepErrors, setStepErrors] = useState({});
   const [duplicateRecord, setDuplicateRecord] = useState(null); // existing today's record
   const feedingRef = useRef(null);
@@ -43,6 +44,7 @@ export default function ChecklistForm() {
   useEffect(() => {
     api.getNorms().then(d => setNorms(d.norms)).catch(console.error);
     api.getPoolMeasurements().then(d => setPoolMeasurements(d.measurements)).catch(console.error);
+    api.getPoolFishInventory().then(d => setFishInventory(d.inventory)).catch(console.error);
   }, []);
 
   // Check if today's record already exists (only for new records, not edits)
@@ -312,7 +314,7 @@ export default function ChecklistForm() {
         {step === 0 && <WaterControlStep data={formData.water_control} onChange={(d) => setFormData({ ...formData, water_control: d })} norms={norms} requiredFields={REQUIRED_WATER_FIELDS} />}
         {step === 1 && <FiltrationStep data={formData.filtration_checks} onChange={(d) => setFormData({ ...formData, filtration_checks: d })} />}
         {step === 2 && <FishControlStep data={formData.fish_visual} onChange={(d) => setFormData({ ...formData, fish_visual: d })} />}
-        {step === 3 && <FeedingStep ref={feedingRef} data={formData.pool_feeding} onChange={(d) => setFormData({ ...formData, pool_feeding: d })} poolMeasurements={poolMeasurements} />}
+        {step === 3 && <FeedingStep ref={feedingRef} data={formData.pool_feeding} onChange={(d) => setFormData({ ...formData, pool_feeding: d })} poolMeasurements={poolMeasurements} fishInventory={fishInventory} />}
         {step === 4 && <ActivitiesStep data={formData.activities} onChange={(d) => setFormData({ ...formData, activities: d })} />}
       </div>
 

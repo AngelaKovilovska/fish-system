@@ -45,12 +45,31 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ error: 'Невалиден број на базен' });
     }
 
-    const result = await pool.query(
-      'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [pool_number, fish_count || 0, avg_weight_gr || 0, req.user.id, measured_at || new Date()]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    res.status(201).json({ measurement: result.rows[0] });
+      const result = await client.query(
+        'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [pool_number, fish_count || 0, avg_weight_gr || 0, req.user.id, measured_at || new Date()]
+      );
+
+      // Update fish inventory to the new measured count
+      await client.query(
+        `INSERT INTO pool_fish_inventory (pool_number, current_count, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (pool_number) DO UPDATE SET current_count = $2, updated_at = NOW()`,
+        [pool_number, fish_count || 0]
+      );
+
+      await client.query('COMMIT');
+      res.status(201).json({ measurement: result.rows[0] });
+    } catch (innerErr) {
+      await client.query('ROLLBACK');
+      throw innerErr;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error('Create pool measurement error:', err);
     res.status(500).json({ error: 'Серверска грешка' });

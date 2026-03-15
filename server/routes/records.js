@@ -143,12 +143,30 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
     // 5. Pool feeding (6 pools)
     if (pool_feeding && Array.isArray(pool_feeding)) {
       for (const pf of pool_feeding) {
+        // Get current fish count from inventory for this pool
+        const invResult = await client.query(
+          'SELECT current_count FROM pool_fish_inventory WHERE pool_number = $1',
+          [pf.pool_number]
+        );
+        const currentCount = invResult.rows.length > 0 ? invResult.rows[0].current_count : 0;
+
         await client.query(
           `INSERT INTO pool_feeding (daily_record_id, pool_number, fish_count, avg_weight_gr, sold_count, dead_count, food_type, food_quantity_gr)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [recordId, pf.pool_number, pf.fish_count, pf.avg_weight_gr,
+          [recordId, pf.pool_number, currentCount, pf.avg_weight_gr,
            pf.sold_count, pf.dead_count, pf.food_type, pf.food_quantity_gr]
         );
+
+        // Deduct dead + sold from fish inventory
+        const dead = parseInt(pf.dead_count) || 0;
+        const sold = parseInt(pf.sold_count) || 0;
+        const totalRemoved = dead + sold;
+        if (totalRemoved > 0) {
+          await client.query(
+            `UPDATE pool_fish_inventory SET current_count = current_count - $1, updated_at = NOW() WHERE pool_number = $2`,
+            [totalRemoved, pf.pool_number]
+          );
+        }
 
         // Deduct from food inventory
         if (pf.food_type && pf.food_quantity_gr > 0) {
@@ -219,11 +237,20 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
     // Update daily record
     await client.query('UPDATE daily_records SET date = $1, updated_at = NOW() WHERE id = $2', [date, id]);
 
-    // Rollback old food consumption from inventory before deleting
-    const oldFeeding = await client.query(
-      'SELECT food_type, food_quantity_gr FROM pool_feeding WHERE daily_record_id = $1', [id]
+    // Save original fish counts and compute inventory delta
+    const oldFeedingFull = await client.query(
+      'SELECT pool_number, fish_count, dead_count, sold_count, food_type, food_quantity_gr FROM pool_feeding WHERE daily_record_id = $1', [id]
     );
-    for (const of_ of oldFeeding.rows) {
+    // Build map of original fish_count and old dead+sold per pool
+    const oldFeedingMap = {};
+    for (const of_ of oldFeedingFull.rows) {
+      const oldDead = parseInt(of_.dead_count) || 0;
+      const oldSold = parseInt(of_.sold_count) || 0;
+      oldFeedingMap[of_.pool_number] = {
+        fish_count: of_.fish_count,
+        oldRemoved: oldDead + oldSold,
+      };
+      // Rollback food consumption
       if (of_.food_type && parseFloat(of_.food_quantity_gr) > 0) {
         const rollbackKg = parseFloat(of_.food_quantity_gr) / 1000;
         await client.query(
@@ -283,12 +310,31 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
       for (const pf of pool_feeding) {
         const toNum = (v) => (v === '' || v == null) ? null : v;
         const qty = toNum(pf.food_quantity_gr);
+
+        // Preserve the original fish_count from when record was first created
+        const oldData = oldFeedingMap[pf.pool_number];
+        const preservedFishCount = oldData ? oldData.fish_count : 0;
+
+        const newDead = parseInt(pf.dead_count) || 0;
+        const newSold = parseInt(pf.sold_count) || 0;
+        const newRemoved = newDead + newSold;
+        const oldRemoved = oldData ? oldData.oldRemoved : 0;
+
         await client.query(
           `INSERT INTO pool_feeding (daily_record_id, pool_number, fish_count, avg_weight_gr, sold_count, dead_count, food_type, food_quantity_gr)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [id, pf.pool_number, toNum(pf.fish_count), toNum(pf.avg_weight_gr),
-           toNum(pf.sold_count) || 0, toNum(pf.dead_count) || 0, pf.food_type || null, qty]
+          [id, pf.pool_number, preservedFishCount, toNum(pf.avg_weight_gr),
+           newSold, newDead, pf.food_type || null, qty]
         );
+
+        // Apply inventory delta: only the difference between old and new dead+sold
+        const delta = newRemoved - oldRemoved;
+        if (delta !== 0) {
+          await client.query(
+            `UPDATE pool_fish_inventory SET current_count = current_count - $1, updated_at = NOW() WHERE pool_number = $2`,
+            [delta, pf.pool_number]
+          );
+        }
 
         // Deduct from food inventory
         if (pf.food_type && qty > 0) {
@@ -341,16 +387,39 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
 
 // DELETE /api/records/:id - delete daily record (cascades to all sections)
 router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM daily_records WHERE id = $1 RETURNING *', [id]);
+
+    // Rollback fish inventory before deleting (add back dead + sold)
+    const feeding = await client.query(
+      'SELECT pool_number, dead_count, sold_count FROM pool_feeding WHERE daily_record_id = $1', [id]
+    );
+    for (const pf of feeding.rows) {
+      const totalRemoved = (parseInt(pf.dead_count) || 0) + (parseInt(pf.sold_count) || 0);
+      if (totalRemoved > 0) {
+        await client.query(
+          `UPDATE pool_fish_inventory SET current_count = current_count + $1, updated_at = NOW() WHERE pool_number = $2`,
+          [totalRemoved, pf.pool_number]
+        );
+      }
+    }
+
+    const result = await client.query('DELETE FROM daily_records WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Записот не е пронајден' });
     }
+
+    await client.query('COMMIT');
     res.json({ message: 'Записот е успешно избришан' });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Delete record error:', err);
     res.status(500).json({ error: 'Серверска грешка при бришење' });
+  } finally {
+    client.release();
   }
 });
 
