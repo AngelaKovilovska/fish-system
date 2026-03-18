@@ -176,7 +176,15 @@ async function getFoodConsumptionData(from, to, poolNumber) {
     WHERE combined.food_type IS NOT NULL AND combined.food_type != ''
     ${poolFilter}
     GROUP BY COALESCE(NULLIF(combined.food_type, ''), 'Непознат')
-    ORDER BY food_type`;
+    ORDER BY CASE COALESCE(NULLIF(combined.food_type, ''), 'Непознат')
+        WHEN 'Advance (1.5mm)' THEN 1
+        WHEN 'Pregrower-15 (2mm)' THEN 2
+        WHEN 'SpecialPro EF (3mm)' THEN 3
+        WHEN 'Grower-13EF (3mm)' THEN 4
+        WHEN 'Grower-13EF (4.5mm)' THEN 5
+        WHEN 'Grower-13EF (6mm)' THEN 6
+        ELSE 7
+      END`;
 
   const consumedResult = await pool.query(consumedQuery, params);
 

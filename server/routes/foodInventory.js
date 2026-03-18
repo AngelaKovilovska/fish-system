@@ -39,7 +39,15 @@ router.get('/', authMiddleware, async (req, res) => {
         ) all_fed
         GROUP BY food_type
       ) c ON c.food_type = fi.food_type
-      ORDER BY fi.food_type
+      ORDER BY CASE fi.food_type
+        WHEN 'Advance (1.5mm)' THEN 1
+        WHEN 'Pregrower-15 (2mm)' THEN 2
+        WHEN 'SpecialPro EF (3mm)' THEN 3
+        WHEN 'Grower-13EF (3mm)' THEN 4
+        WHEN 'Grower-13EF (4.5mm)' THEN 5
+        WHEN 'Grower-13EF (6mm)' THEN 6
+        ELSE 7
+      END
     `);
     res.json({ inventory: result.rows });
   } catch (err) {
