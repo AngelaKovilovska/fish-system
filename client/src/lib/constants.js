@@ -31,8 +31,8 @@ export const POOL_NUMBERS = [1, 2, 3, 4, 5, 6];
 export const FOOD_TYPES = [
   'Advance (1.5mm)',
   'Pregrower-15 (2mm)',
+  'SpecialPro EF (3mm)',
   'Grower-13EF (3mm)',
   'Grower-13EF (4.5mm)',
   'Grower-13EF (6mm)',
-  'SpecialPro EF (3mm)',
 ];
