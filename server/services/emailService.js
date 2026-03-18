@@ -1,4 +1,8 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Force IPv4 globally - fixes ENETUNREACH on Render
+dns.setDefaultResultOrder('ipv4first');
 
 let transporter = null;
 
