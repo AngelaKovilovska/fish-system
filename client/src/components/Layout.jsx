@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Bell, UtensilsCrossed } from 'lucide-react';
+import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Bell } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 const navItems = [
   { path: '/', label: 'Почетна', icon: Home },
   { path: '/checklist', label: 'Запис', icon: ClipboardList },
   { path: '/history', label: 'Историја', icon: Clock },
-  { path: '/meals', label: 'Оброци', icon: UtensilsCrossed },
   { path: '/reports', label: 'Извештаи', icon: FileBarChart },
 ];
 

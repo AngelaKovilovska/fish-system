@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, AlertCircle, Sunrise, Sun, Moon, Info, Calendar } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -18,7 +18,6 @@ const MEAL_ICONS = {
 export default function MealForm() {
   const navigate = useNavigate();
   const { mealType } = useParams();
-  const [searchParams] = useSearchParams();
   const [activePool, setActivePool] = useState(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -29,8 +28,7 @@ export default function MealForm() {
   const [poolMeasurements, setPoolMeasurements] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
-  const targetDate = searchParams.get('date') || today;
-  const isHistorical = targetDate !== today;
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const [poolsData, setPoolsData] = useState(
     POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' }))
@@ -39,36 +37,55 @@ export default function MealForm() {
   const mealLabel = MEAL_LABELS[mealType] || mealType;
   const mealIcon = MEAL_ICONS[mealType] || '🍽️';
 
-  // Load existing meal data if already filled
+  // Load meal data for the selected date
+  const loadMealData = useCallback(async (date) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    setIsEdit(false);
+    setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' })));
+
+    try {
+      const [mealsData, measurementsData] = await Promise.all([
+        api.getMeals(date),
+        api.getPoolMeasurements(),
+      ]);
+
+      const existing = mealsData.meals.filter(m => m.meal_type === mealType);
+      if (existing.length > 0) {
+        setIsEdit(true);
+        setPoolsData(POOL_NUMBERS.map(n => {
+          const meal = existing.find(m => m.pool_number === n);
+          return {
+            pool_number: n,
+            food_type: meal?.food_type || '',
+            food_quantity_gr: meal?.food_quantity_gr != null && meal.food_quantity_gr > 0
+              ? meal.food_quantity_gr : '',
+          };
+        }));
+      }
+      setPoolMeasurements(measurementsData.measurements || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [mealType]);
+
+  // Initial load
   useEffect(() => {
     if (!MEAL_LABELS[mealType]) {
       navigate('/');
       return;
     }
+    loadMealData(selectedDate);
+  }, [mealType, navigate, selectedDate, loadMealData]);
 
-    Promise.all([
-      api.getMeals(targetDate),
-      api.getPoolMeasurements(),
-    ])
-      .then(([mealsData, measurementsData]) => {
-        const existing = mealsData.meals.filter(m => m.meal_type === mealType);
-        if (existing.length > 0) {
-          setIsEdit(true);
-          setPoolsData(POOL_NUMBERS.map(n => {
-            const meal = existing.find(m => m.pool_number === n);
-            return {
-              pool_number: n,
-              food_type: meal?.food_type || '',
-              food_quantity_gr: meal?.food_quantity_gr != null && meal.food_quantity_gr > 0
-                ? meal.food_quantity_gr : '',
-            };
-          }));
-        }
-        setPoolMeasurements(measurementsData.measurements || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [mealType, targetDate, navigate]);
+  // Handle date change
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    setActivePool(1);
+  };
 
   const updatePool = (poolNum, field, value) => {
     setPoolsData(prev => prev.map(p =>
@@ -82,7 +99,6 @@ export default function MealForm() {
     for (const p of poolsData) {
       const hasType = p.food_type && p.food_type.trim() !== '';
       const hasQty = p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0;
-      // If one is filled but not the other → incomplete
       if ((hasType && !hasQty) || (!hasType && hasQty)) {
         incomplete.push(p.pool_number);
       }
@@ -100,30 +116,28 @@ export default function MealForm() {
   const handleSubmit = async () => {
     setError('');
 
-    // Must have at least one pool with food data
     if (!hasAnyData()) {
       setError('Внесете храна барем за еден базен.');
       return;
     }
 
-    // Check incomplete pools (one field filled, other missing)
     const incomplete = getIncomplePools();
     if (incomplete.length > 0) {
       const poolNames = incomplete.map(n => `Базен ${n}`).join(', ');
       setError(`${poolNames} — внесете и тип на храна и количина.`);
-      setActivePool(incomplete[0]); // Navigate to first incomplete pool
+      setActivePool(incomplete[0]);
       return;
     }
 
     setSaving(true);
     try {
       await api.saveMeal({
-        date: targetDate,
+        date: selectedDate,
         meal_type: mealType,
         pools: poolsData,
       });
       setSuccess(isEdit ? 'Оброкот е ажуриран!' : 'Оброкот е зачуван!');
-      setTimeout(() => navigate(isHistorical ? '/meals' : '/'), 1500);
+      setTimeout(() => navigate('/'), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -136,9 +150,9 @@ export default function MealForm() {
     setDeleting(true);
     setError('');
     try {
-      await api.deleteMeal(targetDate, mealType);
+      await api.deleteMeal(selectedDate, mealType);
       setSuccess('Оброкот е избришан!');
-      setTimeout(() => navigate(isHistorical ? '/meals' : '/'), 1200);
+      setTimeout(() => navigate('/'), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,7 +173,6 @@ export default function MealForm() {
   const poolData = poolsData.find(p => p.pool_number === activePool) || {};
   const measurement = poolMeasurements.find(m => m.pool_number === activePool);
 
-  // Check if current pool has incomplete data (for red border highlight)
   const isPoolIncomplete = (num) => {
     const p = poolsData.find(pd => pd.pool_number === num);
     if (!p) return false;
@@ -168,17 +181,16 @@ export default function MealForm() {
     return (hasType && !hasQty) || (!hasType && hasQty);
   };
 
-  // Check if a pool has been filled (both fields)
   const isPoolFilled = (num) => {
     const p = poolsData.find(pd => pd.pool_number === num);
     if (!p) return false;
     return (p.food_type && p.food_type.trim() !== '') && (p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0);
   };
 
-  // Current pool missing fields
   const currentHasType = poolData.food_type && poolData.food_type.trim() !== '';
   const currentHasQty = poolData.food_quantity_gr !== '' && parseFloat(poolData.food_quantity_gr) > 0;
   const currentIncomplete = (currentHasType && !currentHasQty) || (!currentHasType && currentHasQty);
+  const isHistorical = selectedDate !== today;
 
   return (
     <div className="max-w-lg mx-auto">
@@ -190,14 +202,43 @@ export default function MealForm() {
         </div>
         <div>
           <h1 className="page-title flex items-center gap-2">{mealIcon} {mealLabel}</h1>
-          <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1">
-            {isHistorical && <Calendar size={12} />}
-            {isHistorical
-              ? new Date(targetDate).toLocaleDateString('mk-MK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-              : (isEdit ? 'Ажурирање на оброк' : 'Внесете храна по базен')
-            }
+          <p className="text-xs text-[var(--text-secondary)]">
+            {isEdit ? 'Ажурирање на оброк' : 'Внесете храна по базен'}
           </p>
         </div>
+      </div>
+
+      {/* Date picker */}
+      <div className="card mb-4 animate-in-delay-1 !py-3">
+        <div className="flex items-center gap-3">
+          <Calendar size={16} className="text-[var(--primary)] flex-shrink-0" />
+          <label className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
+            style={{ fontFamily: 'Sora, sans-serif' }}>
+            Датум
+          </label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="input-base !py-1.5 !text-sm flex-1"
+            max={today}
+          />
+          {isHistorical && (
+            <button
+              type="button"
+              onClick={() => handleDateChange(today)}
+              className="text-[11px] text-[var(--primary)] font-medium whitespace-nowrap hover:underline"
+            >
+              Денес
+            </button>
+          )}
+        </div>
+        {isHistorical && (
+          <p className="text-[11px] text-amber-600 mt-2 flex items-center gap-1.5 ml-7">
+            <Info size={12} />
+            Уредувате оброк за минат датум
+          </p>
+        )}
       </div>
 
       {/* Pool tabs */}
@@ -276,7 +317,7 @@ export default function MealForm() {
 
       {/* Buttons */}
       <div className="flex gap-3 animate-in-delay-3">
-        <button type="button" onClick={() => navigate(isHistorical ? '/meals' : '/')} className="btn-secondary py-2.5 px-4">
+        <button type="button" onClick={() => navigate('/')} className="btn-secondary py-2.5 px-4">
           <ChevronLeft size={16} />
         </button>
         {isEdit && (
