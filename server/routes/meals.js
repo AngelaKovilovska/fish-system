@@ -6,6 +6,69 @@ const router = express.Router();
 
 const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
 
+// GET /api/meals/history?limit=30&offset=0 - list dates that have meals (for history page)
+router.get('/history', authMiddleware, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 30;
+    const offset = parseInt(req.query.offset) || 0;
+    const from = req.query.from || '';
+    const to = req.query.to || '';
+
+    let dateFilter = '';
+    const params = [];
+    let paramIdx = 1;
+
+    if (from) {
+      dateFilter += ` AND pm.date >= $${paramIdx}`;
+      params.push(from);
+      paramIdx++;
+    }
+    if (to) {
+      dateFilter += ` AND pm.date <= $${paramIdx}`;
+      params.push(to);
+      paramIdx++;
+    }
+
+    // Count total dates
+    const countResult = await pool.query(
+      `SELECT COUNT(DISTINCT pm.date) as total
+       FROM pool_meals pm
+       WHERE 1=1 ${dateFilter}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get dates with meal summary
+    const result = await pool.query(
+      `SELECT
+         pm.date,
+         array_agg(DISTINCT pm.meal_type) as meal_types,
+         (SELECT u.full_name FROM pool_meals pm2 LEFT JOIN users u ON pm2.fed_by = u.id WHERE pm2.date = pm.date LIMIT 1) as fed_by_name,
+         SUM(pm.food_quantity_gr) as total_food_gr
+       FROM pool_meals pm
+       WHERE 1=1 ${dateFilter}
+       GROUP BY pm.date
+       ORDER BY pm.date DESC
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      dates: result.rows.map(r => ({
+        date: r.date,
+        meal_types: r.meal_types,
+        meals_count: r.meal_types.length,
+        fed_by_name: r.fed_by_name,
+        total_food_gr: parseFloat(r.total_food_gr) || 0,
+      })),
+      total,
+    });
+  } catch (err) {
+    console.error('Get meal history error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/meals?date=YYYY-MM-DD - get all meals for a date
 router.get('/', authMiddleware, async (req, res) => {
   try {

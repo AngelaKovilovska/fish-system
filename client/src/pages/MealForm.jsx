@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, AlertCircle, Sunrise, Sun, Moon, Info } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, AlertCircle, Sunrise, Sun, Moon, Info, Calendar } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -18,6 +18,7 @@ const MEAL_ICONS = {
 export default function MealForm() {
   const navigate = useNavigate();
   const { mealType } = useParams();
+  const [searchParams] = useSearchParams();
   const [activePool, setActivePool] = useState(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,8 @@ export default function MealForm() {
   const [poolMeasurements, setPoolMeasurements] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
+  const targetDate = searchParams.get('date') || today;
+  const isHistorical = targetDate !== today;
 
   const [poolsData, setPoolsData] = useState(
     POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' }))
@@ -44,7 +47,7 @@ export default function MealForm() {
     }
 
     Promise.all([
-      api.getMeals(today),
+      api.getMeals(targetDate),
       api.getPoolMeasurements(),
     ])
       .then(([mealsData, measurementsData]) => {
@@ -65,7 +68,7 @@ export default function MealForm() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [mealType, today, navigate]);
+  }, [mealType, targetDate, navigate]);
 
   const updatePool = (poolNum, field, value) => {
     setPoolsData(prev => prev.map(p =>
@@ -115,12 +118,12 @@ export default function MealForm() {
     setSaving(true);
     try {
       await api.saveMeal({
-        date: today,
+        date: targetDate,
         meal_type: mealType,
         pools: poolsData,
       });
       setSuccess(isEdit ? 'Оброкот е ажуриран!' : 'Оброкот е зачуван!');
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate(isHistorical ? '/meals' : '/'), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -133,9 +136,9 @@ export default function MealForm() {
     setDeleting(true);
     setError('');
     try {
-      await api.deleteMeal(today, mealType);
+      await api.deleteMeal(targetDate, mealType);
       setSuccess('Оброкот е избришан!');
-      setTimeout(() => navigate('/'), 1200);
+      setTimeout(() => navigate(isHistorical ? '/meals' : '/'), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -187,8 +190,12 @@ export default function MealForm() {
         </div>
         <div>
           <h1 className="page-title flex items-center gap-2">{mealIcon} {mealLabel}</h1>
-          <p className="text-xs text-[var(--text-secondary)]">
-            {isEdit ? 'Ажурирање на оброк' : 'Внесете храна по базен'}
+          <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1">
+            {isHistorical && <Calendar size={12} />}
+            {isHistorical
+              ? new Date(targetDate).toLocaleDateString('mk-MK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+              : (isEdit ? 'Ажурирање на оброк' : 'Внесете храна по базен')
+            }
           </p>
         </div>
       </div>
@@ -269,7 +276,7 @@ export default function MealForm() {
 
       {/* Buttons */}
       <div className="flex gap-3 animate-in-delay-3">
-        <button type="button" onClick={() => navigate('/')} className="btn-secondary py-2.5 px-4">
+        <button type="button" onClick={() => navigate(isHistorical ? '/meals' : '/')} className="btn-secondary py-2.5 px-4">
           <ChevronLeft size={16} />
         </button>
         {isEdit && (

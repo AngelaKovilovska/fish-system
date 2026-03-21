@@ -77,6 +77,10 @@ export const api = {
   deletePoolMeasurement: (id) => request(`/pool-measurements/${id}`, { method: 'DELETE' }),
 
   // Meals (per-meal feeding)
+  getMealHistory: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/meals/history?${query}`);
+  },
   getMealsStatus: (date) => request(`/meals/status?date=${date}`),
   getMeals: (date) => request(`/meals?date=${date}`),
   saveMeal: (data) => request('/meals', { method: 'POST', body: JSON.stringify(data) }),

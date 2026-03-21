@@ -13,6 +13,7 @@ import ManagePoolMeasurements from './pages/admin/ManagePoolMeasurements';
 import ManageFoodInventory from './pages/admin/ManageFoodInventory';
 import AdminHub from './pages/admin/AdminHub';
 import MealForm from './pages/MealForm';
+import MealHistory from './pages/MealHistory';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="/checklist/:id" element={<ChecklistForm />} />
         <Route path="/history" element={<ChecklistHistory />} />
         <Route path="/history/:id" element={<RecordDetail />} />
+        <Route path="/meals" element={<MealHistory />} />
         <Route path="/meal/:mealType" element={<MealForm />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminHub /></ProtectedRoute>} />
