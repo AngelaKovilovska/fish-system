@@ -52,7 +52,7 @@ export default function MealHistory() {
 
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4 animate-in-delay-1
-        bg-white rounded-[var(--r-md)] px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
+        bg-[var(--surface)] rounded-[var(--r-md)] px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
         <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>Од:</span>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
@@ -93,7 +93,7 @@ export default function MealHistory() {
         <>
           {/* Desktop table */}
           <div className="hidden lg:block">
-            <div className="bg-white rounded-[var(--r-md)] overflow-hidden animate-in-delay-2" style={{ boxShadow: 'var(--sh-card)' }}>
+            <div className="bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-2" style={{ boxShadow: 'var(--sh-card)' }}>
               <table className="table-modern">
                 <thead>
                   <tr>

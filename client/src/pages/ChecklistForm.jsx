@@ -276,7 +276,7 @@ export default function ChecklistForm() {
                   state === 'active' ? 'text-white' :
                   state === 'error' ? 'bg-red-50 text-[var(--danger)] border-[1.5px] border-[var(--danger)]' :
                   state === 'completed' ? 'text-white' :
-                  'bg-white text-[var(--text-muted)] border-[1.5px] border-[var(--border)]'
+                  'bg-[var(--surface)] text-[var(--text-muted)] border-[1.5px] border-[var(--border)]'
                 }`}
                   style={
                     state === 'active' ? { background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))', boxShadow: '0 0 0 4px rgba(37,99,235,0.15), 0 2px 8px rgba(37,99,235,0.25)' } :

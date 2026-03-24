@@ -56,7 +56,7 @@ export default function ManageNorms() {
         </button>
       </div>
 
-      <div className="bg-white rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
+      <div className="bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
         <table className="table-modern">
           <thead>
             <tr>

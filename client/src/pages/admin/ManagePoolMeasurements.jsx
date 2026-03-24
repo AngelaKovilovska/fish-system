@@ -129,12 +129,12 @@ export default function ManagePoolMeasurements() {
               <Info size={13} /> Последно мерење:
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white/60 rounded-[var(--r-sm)] p-2.5 text-center">
+              <div className="bg-[var(--surface)]/60 rounded-[var(--r-sm)] p-2.5 text-center">
                 <Fish size={14} className="mx-auto text-[var(--primary)] mb-1" />
                 <p className="text-[10px] text-[var(--text-muted)] font-medium">Број на риби</p>
                 <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.fish_count}</p>
               </div>
-              <div className="bg-white/60 rounded-[var(--r-sm)] p-2.5 text-center">
+              <div className="bg-[var(--surface)]/60 rounded-[var(--r-sm)] p-2.5 text-center">
                 <Weight size={14} className="mx-auto text-[var(--primary)] mb-1" />
                 <p className="text-[10px] text-[var(--text-muted)] font-medium">Просечна тежина</p>
                 <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.avg_weight_gr} gr</p>

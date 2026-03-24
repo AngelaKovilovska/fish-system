@@ -238,7 +238,7 @@ export default function Dashboard() {
               const info = getAlertInfo(alert);
               return (
                 <div key={alert.id}
-                  className="bg-white rounded-[var(--r-sm)] border border-[var(--border)] px-4 py-3 flex items-center gap-3"
+                  className="bg-[var(--surface)] rounded-[var(--r-sm)] border border-[var(--border)] px-4 py-3 flex items-center gap-3"
                   style={{
                     borderLeft: `3px solid ${info.isDanger ? 'var(--danger)' : 'var(--warning)'}`,
                   }}>

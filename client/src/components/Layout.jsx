@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Bell } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Bell, Moon, Sun } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 const navItems = [
@@ -20,6 +21,7 @@ const adminItems = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef(null);
@@ -103,6 +105,11 @@ export default function Layout() {
               <p className="text-[10px] text-white/40">{isAdmin ? 'Админ' : 'Работник'}</p>
             </div>
           </div>
+          <button onClick={toggleTheme}
+            className="sidebar-link w-full mb-1">
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? 'Светла тема' : 'Темна тема'}
+          </button>
           <button onClick={logout}
             className="sidebar-link w-full hover:!text-red-400 hover:!bg-red-500/10">
             <LogOut size={16} />
@@ -115,7 +122,7 @@ export default function Layout() {
       <header className="lg:hidden sticky top-0 z-40 px-4 py-3 flex items-center justify-between"
         style={{
           paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
-          background: 'rgba(255,255,255,0.85)',
+          background: theme === 'dark' ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.85)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderBottom: '1px solid var(--border)',
@@ -133,6 +140,10 @@ export default function Layout() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <button onClick={toggleTheme}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--primary-muted)]">
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <div className="relative" ref={profileRef}>
             <button onClick={() => setShowProfile(!showProfile)}
               className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-transform active:scale-95"
@@ -141,7 +152,7 @@ export default function Layout() {
             </button>
 
             {showProfile && (
-              <div className="absolute right-0 top-[calc(100%+8px)] w-[calc(100vw-2rem)] min-[400px]:w-56 max-w-[14rem] bg-white rounded-[var(--r-md)] border border-[var(--border)] p-4 animate-slide-down z-50"
+              <div className="absolute right-0 top-[calc(100%+8px)] w-[calc(100vw-2rem)] min-[400px]:w-56 max-w-[14rem] bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] p-4 animate-slide-down z-50"
                 style={{ boxShadow: 'var(--sh-elevated)' }}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold"
@@ -167,7 +178,7 @@ export default function Layout() {
                 </div>
                 <div className="h-px bg-[var(--border)] mb-3" />
                 <button onClick={logout}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--r-sm)] text-[var(--danger)] text-sm font-medium transition-all hover:bg-[#FEF2F2]"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--r-sm)] text-[var(--danger)] text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   <LogOut size={16} />
                   Одјави се
