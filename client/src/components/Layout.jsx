@@ -48,20 +48,27 @@ export default function Layout() {
     <div className="min-h-screen bg-[var(--bg)]">
       {/* ═══════ DESKTOP SIDEBAR ═══════ */}
       <aside className="sidebar hidden lg:flex">
-        <Link to="/" className="flex items-center gap-2.5 px-2 mb-8 group">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
-              <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
-              <line x1="19.5" y1="10" x2="22" y2="8.5" />
-              <line x1="19.5" y1="12" x2="23" y2="12" />
-              <line x1="19.5" y1="14" x2="22" y2="15.5" />
-            </svg>
-          </div>
-          <span className="font-bold text-[15px] text-white tracking-[0.08em]"
-            style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
-        </Link>
+        <div className="flex items-center justify-between px-2 mb-8">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
+                <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
+                <line x1="19.5" y1="10" x2="22" y2="8.5" />
+                <line x1="19.5" y1="12" x2="23" y2="12" />
+                <line x1="19.5" y1="14" x2="22" y2="15.5" />
+              </svg>
+            </div>
+            <span className="font-bold text-[15px] text-white tracking-[0.08em]"
+              style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
+          </Link>
+          <button onClick={toggleTheme}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            title={theme === 'dark' ? 'Светла тема' : 'Темна тема'}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
 
         <nav className="flex-1 flex flex-col gap-0.5">
           {navItems.map(item => {
@@ -105,11 +112,6 @@ export default function Layout() {
               <p className="text-[10px] text-white/40">{isAdmin ? 'Админ' : 'Работник'}</p>
             </div>
           </div>
-          <button onClick={toggleTheme}
-            className="sidebar-link w-full mb-1">
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === 'dark' ? 'Светла тема' : 'Темна тема'}
-          </button>
           <button onClick={logout}
             className="sidebar-link w-full hover:!text-red-400 hover:!bg-red-500/10">
             <LogOut size={16} />
