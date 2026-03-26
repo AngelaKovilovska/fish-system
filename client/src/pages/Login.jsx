@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -7,6 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,9 +86,9 @@ export default function Login() {
             />
           </div>
 
-          <div style={{ marginBottom: 18 }}>
+          <div style={{ marginBottom: 18, position: 'relative' }}>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
@@ -94,7 +96,7 @@ export default function Login() {
               className="login-input"
               style={{
                 width: '100%',
-                padding: '16px 18px',
+                padding: '16px 48px 16px 18px',
                 border: '1.5px solid #e2e8f0',
                 borderRadius: 10,
                 fontSize: 15,
@@ -104,6 +106,25 @@ export default function Login() {
                 transition: 'all 0.3s ease',
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
 
           <button
