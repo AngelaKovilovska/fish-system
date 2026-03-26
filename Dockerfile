@@ -10,13 +10,14 @@ RUN npm run build
 # Stage 2: Production server
 FROM node:20-alpine
 
-WORKDIR /app
-COPY server/package*.json ./server/
-RUN cd server && npm install --production
+WORKDIR /app/server
+COPY server/package*.json ./
+RUN npm install --production
 
-COPY server/ ./server/
-COPY --from=builder /app/client/dist ./client/dist
+COPY server/ ./
+COPY --from=builder /app/client/dist /app/client/dist
 
 EXPOSE 3000
 
-CMD ["node", "server/index.js"]
+WORKDIR /app/server
+CMD ["node", "index.js"]
