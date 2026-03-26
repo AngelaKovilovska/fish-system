@@ -1,53 +1,62 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns');
+const https = require('https');
 
-// Force IPv4 globally - fixes ENETUNREACH on Render
-dns.setDefaultResultOrder('ipv4first');
-
-let transporter = null;
-
-function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 30000,
-    });
-  }
-  return transporter;
-}
-
-async function sendReportEmail({ to, subject, html, attachments }) {
-  const smtpHost = process.env.SMTP_HOST;
-  if (!smtpHost) {
-    console.error('Email send error: SMTP not configured');
+async function sendWithResend({ to, subject, html, attachments }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error('Email send error: RESEND_API_KEY not configured');
     return { success: false, error: 'Email не е конфигуриран' };
   }
 
-  try {
-    const transport = getTransporter();
-    console.log(`Sending email to: ${to}, subject: ${subject}`);
-    const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: Array.isArray(to) ? to.join(', ') : to,
-      subject,
-      html,
-      attachments,
+  const recipients = Array.isArray(to) ? to : [to];
+
+  const payload = JSON.stringify({
+    from: process.env.EMAIL_FROM || 'Фамаком Аквакултура <onboarding@resend.dev>',
+    reply_to: process.env.EMAIL_REPLY_TO || 'famakomaquaculture@gmail.com',
+    to: recipients,
+    subject,
+    html,
+    attachments: attachments ? attachments.map(a => ({
+      filename: a.filename,
+      content: a.content ? a.content.toString('base64') : undefined,
+    })).filter(a => a.content) : undefined,
+  });
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`Email sent OK via Resend -> ${recipients.join(', ')}`);
+          resolve({ success: true });
+        } else {
+          console.error(`Resend error (${res.statusCode}): ${data}`);
+          resolve({ success: false, error: data });
+        }
+      });
     });
-    console.log(`Email sent OK: ${info.messageId} -> ${to}`);
-    return { success: true };
-  } catch (err) {
-    console.error('Email send error:', err.message);
-    return { success: false, error: err.message };
-  }
+
+    req.on('error', (err) => {
+      console.error('Email send error:', err.message);
+      resolve({ success: false, error: err.message });
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
+
+async function sendReportEmail({ to, subject, html, attachments }) {
+  return sendWithResend({ to, subject, html, attachments });
 }
 
 module.exports = { sendReportEmail };
