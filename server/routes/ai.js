@@ -5,6 +5,7 @@
  * POST /api/ai/calculate                — Manual calculator (custom inputs)
  * GET  /api/ai/water-analysis           — Water parameter anomaly detection
  * GET  /api/ai/pool/:poolNumber         — Single pool recommendation
+ * GET  /api/ai/stock-projection         — Dynamic stock duration projection
  */
 
 const express = require('express');
@@ -15,6 +16,7 @@ const {
   calculateAllRecommendations,
   compareWithActual,
   manualCalculate,
+  projectStockDuration,
   GROWOUT_TABLE,
   FEED_PRODUCTS,
 } = require('../services/feedingRecommendation');
@@ -244,6 +246,96 @@ router.get('/feeding-table', authMiddleware, (req, res) => {
     products: FEED_PRODUCTS,
     note: 'Alltech Coppens 2025-2026 — African Catfish. Optimal: 26-28°C.',
   });
+});
+
+/**
+ * GET /api/ai/stock-projection
+ * Dynamic stock duration projection — simulates fish growth day-by-day
+ * and calculates when each food type will run out
+ */
+router.get('/stock-projection', authMiddleware, async (req, res) => {
+  try {
+    // 1. Get current fish data per pool
+    const inventoryRes = await pool.query(
+      'SELECT pool_number, current_count FROM pool_fish_inventory ORDER BY pool_number'
+    );
+
+    const measurementsRes = await pool.query(`
+      SELECT DISTINCT ON (pool_number)
+        pool_number, avg_weight_gr
+      FROM pool_measurements
+      ORDER BY pool_number, measured_at DESC
+    `);
+
+    // 2. Get latest water temperature
+    const waterRes = await pool.query(`
+      SELECT wc.temperature
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      ORDER BY dr.date DESC
+      LIMIT 1
+    `);
+
+    // 3. Get current food stock levels
+    const stockRes = await pool.query(`
+      SELECT
+        fi.food_type,
+        GREATEST(0,
+          COALESCE(p.purchased_kg, 0) -
+          COALESCE(c.consumed_kg, 0)
+        )::numeric(10,2) as quantity_kg
+      FROM food_inventory fi
+      LEFT JOIN (
+        SELECT food_type, SUM(change_kg) as purchased_kg
+        FROM food_inventory_log WHERE reason = 'purchase'
+        GROUP BY food_type
+      ) p ON p.food_type = fi.food_type
+      LEFT JOIN (
+        SELECT food_type, SUM(consumed_gr) / 1000.0 as consumed_kg
+        FROM (
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_meals
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_feeding
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        ) all_consumption
+        GROUP BY food_type
+      ) c ON c.food_type = fi.food_type
+      ORDER BY fi.food_type
+    `);
+
+    // Build pool data
+    const measurementMap = {};
+    measurementsRes.rows.forEach(m => {
+      measurementMap[m.pool_number] = parseFloat(m.avg_weight_gr) || 0;
+    });
+
+    const pools = inventoryRes.rows.map(inv => ({
+      pool_number: inv.pool_number,
+      fish_count: inv.current_count,
+      avg_weight_gr: measurementMap[inv.pool_number] || 0,
+    }));
+
+    const temperature = waterRes.rows[0]?.temperature != null
+      ? parseFloat(waterRes.rows[0].temperature)
+      : null;
+
+    // Build stock map
+    const stockByType = {};
+    stockRes.rows.forEach(s => {
+      stockByType[s.food_type] = parseFloat(s.quantity_kg) || 0;
+    });
+
+    // Run projection
+    const result = projectStockDuration(pools, temperature, stockByType);
+
+    res.json(result);
+  } catch (err) {
+    console.error('Stock projection error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
 });
 
 module.exports = router;

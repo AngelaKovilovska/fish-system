@@ -3,44 +3,14 @@ import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
 import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer } from 'lucide-react';
 
-// Map AI recommendation food type names → inventory food type names
-const AI_TO_STOCK_MAP = {
-  'Advance (1.5mm)': 'Advance (1.5mm)',
-  'Advance (1.0mm)': 'Advance (1.5mm)',
-  'Pre Grower-15 EF (2.0mm)': 'Pregrower-15 (2mm)',
-  'Special Pro (3.0mm)': 'SpecialPro EF (3mm)',
-  'Special Pro (4.5mm)': 'SpecialPro EF (3mm)',
-  'Grower-13 EF (3.0mm)': 'Grower-13EF (3mm)',
-  'Grower-13 EF (4.5mm)': 'Grower-13EF (4.5mm)',
-  'Grower-13 EF (6.0mm)': 'Grower-13EF (6mm)',
-  'Grower-13 EF (4.5/6.0mm)': 'Grower-13EF (4.5mm)',
-};
-
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
   'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
 ];
 
-function mapAiFoodType(aiFoodType) {
-  if (AI_TO_STOCK_MAP[aiFoodType]) return AI_TO_STOCK_MAP[aiFoodType];
-  const lower = aiFoodType.toLowerCase();
-  if (lower.includes('advance')) return 'Advance (1.5mm)';
-  if (lower.includes('pre grower') || lower.includes('pregrower')) return 'Pregrower-15 (2mm)';
-  if (lower.includes('special pro') || lower.includes('specialpro')) return 'SpecialPro EF (3mm)';
-  if (lower.includes('grower') && lower.includes('6')) return 'Grower-13EF (6mm)';
-  if (lower.includes('grower') && lower.includes('4.5')) return 'Grower-13EF (4.5mm)';
-  if (lower.includes('grower') && lower.includes('3')) return 'Grower-13EF (3mm)';
-  return null;
-}
-
-function getStockEndDate(stockKg, dailyKg) {
-  if (!dailyKg || dailyKg <= 0) return null;
-  const daysLeft = Math.floor(stockKg / dailyKg);
-  if (daysLeft <= 0) return { date: null, daysLeft: 0, label: 'Завршена!' };
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + daysLeft);
-  const label = `до ${endDate.getDate()} ${MK_MONTHS[endDate.getMonth()].substring(0, 3)}`;
-  return { date: endDate, daysLeft, label };
+function formatDateShortMK(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${MK_MONTHS[d.getMonth()].substring(0, 3)}`;
 }
 
 export default function ManageFoodInventory() {
@@ -52,36 +22,23 @@ export default function ManageFoodInventory() {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [aiRec, setAiRec] = useState(null);
+  const [stockProjection, setStockProjection] = useState(null);
 
   const load = async () => {
     try {
-      const [invData, logData, aiData] = await Promise.all([
+      const [invData, logData, projData] = await Promise.all([
         api.getFoodInventory(),
         api.getFoodInventoryLog(3),
-        api.getAIRecommendations().catch(() => null),
+        api.getStockProjection().catch(() => null),
       ]);
       setInventory(invData.inventory);
       setLog(logData.log);
-      setAiRec(aiData);
+      setStockProjection(projData);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  // Calculate daily consumption per stock food type from AI recommendations
-  const getDailyNeedMap = () => {
-    if (!aiRec?.summary?.foodTypeNeeds) return {};
-    const map = {};
-    for (const need of aiRec.summary.foodTypeNeeds) {
-      const stockType = mapAiFoodType(need.foodType);
-      if (stockType) {
-        map[stockType] = (map[stockType] || 0) + need.dailyNeedKg;
-      }
-    }
-    return map;
-  };
-
-  const dailyNeedMap = getDailyNeedMap();
+  const proj = stockProjection?.projections || {};
 
   useEffect(() => { load(); }, []);
 
@@ -136,8 +93,10 @@ export default function ManageFoodInventory() {
             <tbody>
               {inventory.map(item => {
                 const stockKg = parseFloat(item.quantity_kg);
-                const dailyKg = dailyNeedMap[item.food_type] || 0;
-                const stockEnd = getStockEndDate(stockKg, dailyKg);
+                const p = proj[item.food_type];
+                const daysLeft = p?.daysLeft;
+                const endDate = p?.endDate;
+                const dailyStart = p?.dailyConsumptionStartKg || 0;
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
@@ -147,16 +106,26 @@ export default function ManageFoodInventory() {
                       </span>
                     </td>
                     <td className="text-right text-[var(--text-muted)]">
-                      {dailyKg > 0
-                        ? <span className="text-[var(--text-secondary)]">{dailyKg.toFixed(2)} kg/ден</span>
+                      {dailyStart > 0
+                        ? <span className="text-[var(--text-secondary)]">
+                            {dailyStart.toFixed(2)}
+                            {p?.dailyConsumptionEndKg > 0 && p.dailyConsumptionEndKg !== dailyStart
+                              ? ` → ${p.dailyConsumptionEndKg.toFixed(2)}`
+                              : ''} kg/ден
+                          </span>
                         : <span className="text-[var(--text-muted)]">—</span>
                       }
                     </td>
                     <td className="text-right">
-                      {stockEnd ? (
-                        <span className={`inline-flex items-center gap-1 font-bold ${stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                      {daysLeft != null && daysLeft >= 0 ? (
+                        <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                           <Timer size={12} />
-                          {stockEnd.label}
+                          {daysLeft <= 0
+                            ? 'Завршена!'
+                            : endDate
+                              ? formatDateShortMK(endDate)
+                              : `${daysLeft}+ дена`
+                          }
                         </span>
                       ) : (
                         <span className="text-[var(--text-muted)]">—</span>
@@ -175,8 +144,10 @@ export default function ManageFoodInventory() {
         <div className="lg:hidden space-y-2">
           {inventory.map(item => {
             const stockKg = parseFloat(item.quantity_kg);
-            const dailyKg = dailyNeedMap[item.food_type] || 0;
-            const stockEnd = getStockEndDate(stockKg, dailyKg);
+            const p = proj[item.food_type];
+            const daysLeft = p?.daysLeft;
+            const endDate = p?.endDate;
+            const dailyStart = p?.dailyConsumptionStartKg || 0;
             return (
               <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
                 <div className="flex justify-between items-center text-xs">
@@ -185,12 +156,19 @@ export default function ManageFoodInventory() {
                     {stockKg.toFixed(2)} kg
                   </span>
                 </div>
-                {stockEnd && (
+                {daysLeft != null && daysLeft >= 0 && (
                   <div className="flex justify-between items-center mt-1.5 text-[10px]">
-                    <span className="text-[var(--text-muted)]">{dailyKg.toFixed(2)} kg/ден</span>
-                    <span className={`inline-flex items-center gap-1 font-bold ${stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                    <span className="text-[var(--text-muted)]">
+                      {dailyStart > 0 ? `${dailyStart.toFixed(2)} kg/ден` : ''}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                       <Timer size={10} />
-                      {stockEnd.label}
+                      {daysLeft <= 0
+                        ? 'Завршена!'
+                        : endDate
+                          ? `до ${formatDateShortMK(endDate)}`
+                          : `${daysLeft}+ дена`
+                      }
                     </span>
                   </div>
                 )}
@@ -201,22 +179,17 @@ export default function ManageFoodInventory() {
       </div>
 
       {/* AI Stock Duration Summary */}
-      {aiRec && Object.keys(dailyNeedMap).length > 0 && (() => {
-        const stockItems = inventory
-          .map(item => {
-            const stockKg = parseFloat(item.quantity_kg);
-            const dailyKg = dailyNeedMap[item.food_type] || 0;
-            const stockEnd = getStockEndDate(stockKg, dailyKg);
-            return { foodType: item.food_type, stockKg, dailyKg, stockEnd };
-          })
-          .filter(s => s.dailyKg > 0 && s.stockEnd)
-          .sort((a, b) => (a.stockEnd.daysLeft || 0) - (b.stockEnd.daysLeft || 0));
+      {stockProjection && Object.keys(proj).length > 0 && (() => {
+        const stockItems = Object.entries(proj)
+          .filter(([, p]) => p.daysLeft != null && p.dailyConsumptionStartKg > 0)
+          .map(([foodType, p]) => ({ foodType, ...p }))
+          .sort((a, b) => (a.daysLeft || 0) - (b.daysLeft || 0));
 
         if (stockItems.length === 0) return null;
 
         const soonest = stockItems[0];
-        const critical = stockItems.filter(s => s.stockEnd.daysLeft <= 7);
-        const warning = stockItems.filter(s => s.stockEnd.daysLeft > 7 && s.stockEnd.daysLeft <= 21);
+        const critical = stockItems.filter(s => s.daysLeft <= 7);
+        const warning = stockItems.filter(s => s.daysLeft > 7 && s.daysLeft <= 21);
 
         return (
           <div className="card mb-4 animate-in-delay-1"
@@ -237,7 +210,7 @@ export default function ManageFoodInventory() {
               <h3 className="section-title text-sm !mb-0">AI проценка на залихи</h3>
             </div>
             <p className="text-xs text-[var(--text-secondary)] mb-3">
-              Базирано на AI препораките за хранење на сите базени
+              Динамичка проекција — ја зема предвид зголемената потрошувачка од раст на рибите
             </p>
 
             {critical.length > 0 && (
@@ -246,7 +219,7 @@ export default function ManageFoodInventory() {
                 <div>
                   <strong className="text-[var(--danger)]">Критично!</strong>
                   <span className="text-[var(--text-secondary)]"> {critical.map(s =>
-                    `${s.foodType} (${s.stockEnd.label})`
+                    `${s.foodType} (${s.daysLeft <= 0 ? 'завршена' : s.endDate ? `до ${formatDateShortMK(s.endDate)}` : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
               </div>
@@ -258,15 +231,20 @@ export default function ManageFoodInventory() {
                 <div>
                   <strong className="text-[var(--warning)]">Набавете наскоро:</strong>
                   <span className="text-[var(--text-secondary)]"> {warning.map(s =>
-                    `${s.foodType} (${s.stockEnd.label})`
+                    `${s.foodType} (до ${s.endDate ? formatDateShortMK(s.endDate) : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
               </div>
             )}
 
             <div className="text-xs text-[var(--text-muted)] mt-1">
-              Следна набавка: <strong className={soonest.stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
-                {soonest.stockEnd.daysLeft <= 0 ? 'ИТНО — залихата е завршена' : soonest.stockEnd.label}
+              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+                {soonest.daysLeft <= 0
+                  ? 'ИТНО — залихата е завршена'
+                  : soonest.endDate
+                    ? `до ${formatDateShortMK(soonest.endDate)}`
+                    : `за ${soonest.daysLeft}+ дена`
+                }
               </strong> ({soonest.foodType})
             </div>
           </div>

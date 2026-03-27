@@ -400,6 +400,214 @@ function manualCalculate({ fishCount, avgWeight, temperature, currentFoodType })
   return calculatePoolRecommendation(fishCount, avgWeight, temperature || null, { currentFoodType });
 }
 
+// ─── FCR values per product (from Coppens ecological figures) ───
+const FCR_BY_PRODUCT = {
+  'Advance': 0.65,            // range 0.50-0.80, use midpoint
+  'Pre Grower-15 EF': 0.65,   // range 0.50-0.80
+  'Special Pro': 0.925,        // range 0.75-1.10
+  'Grower-13 EF': 0.925,      // range 0.75-1.10
+  'Repro': 0.925,              // range 0.75-1.10
+};
+
+// ─── Map AI food type name → stock inventory food type name ───
+const AI_TO_STOCK_MAP = {
+  'Advance':            'Advance (1.5mm)',
+  'Pre Grower-15 EF':  'Pregrower-15 (2mm)',
+  'Special Pro':        'SpecialPro EF (3mm)',
+};
+
+function mapToStockFoodType(aiProductName, feedSizeMm) {
+  if (AI_TO_STOCK_MAP[aiProductName]) return AI_TO_STOCK_MAP[aiProductName];
+  // Grower-13 EF has multiple sizes in stock
+  if (aiProductName === 'Grower-13 EF') {
+    if (feedSizeMm && feedSizeMm.includes('6')) return 'Grower-13EF (6mm)';
+    if (feedSizeMm && feedSizeMm.includes('4.5')) return 'Grower-13EF (4.5mm)';
+    return 'Grower-13EF (3mm)';
+  }
+  return aiProductName;
+}
+
+/**
+ * Find the current "feeding day" position on the Coppens curve for a given weight.
+ * Returns fractional day for precise interpolation.
+ */
+function findCurvePosition(weight) {
+  if (weight <= GROWOUT_TABLE[0].avgWeight) return 0;
+  if (weight >= GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight) {
+    return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].feedingDays;
+  }
+  for (let i = 0; i < GROWOUT_TABLE.length - 1; i++) {
+    if (weight >= GROWOUT_TABLE[i].avgWeight && weight < GROWOUT_TABLE[i + 1].avgWeight) {
+      const ratio = (weight - GROWOUT_TABLE[i].avgWeight) /
+                    (GROWOUT_TABLE[i + 1].avgWeight - GROWOUT_TABLE[i].avgWeight);
+      return GROWOUT_TABLE[i].feedingDays + ratio * (GROWOUT_TABLE[i + 1].feedingDays - GROWOUT_TABLE[i].feedingDays);
+    }
+  }
+  return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].feedingDays;
+}
+
+/**
+ * Get expected weight at a given feeding day from the Coppens curve.
+ * Interpolates between table points.
+ */
+function getWeightAtDay(feedingDay) {
+  if (feedingDay <= 0) return GROWOUT_TABLE[0].avgWeight;
+  if (feedingDay >= GROWOUT_TABLE[GROWOUT_TABLE.length - 1].feedingDays) {
+    return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight;
+  }
+  for (let i = 0; i < GROWOUT_TABLE.length - 1; i++) {
+    if (feedingDay >= GROWOUT_TABLE[i].feedingDays && feedingDay < GROWOUT_TABLE[i + 1].feedingDays) {
+      const ratio = (feedingDay - GROWOUT_TABLE[i].feedingDays) /
+                    (GROWOUT_TABLE[i + 1].feedingDays - GROWOUT_TABLE[i].feedingDays);
+      return GROWOUT_TABLE[i].avgWeight + ratio * (GROWOUT_TABLE[i + 1].avgWeight - GROWOUT_TABLE[i].avgWeight);
+    }
+  }
+  return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight;
+}
+
+/**
+ * Project stock duration dynamically, simulating fish growth day-by-day.
+ *
+ * As fish grow, they eat more AND may transition to different food types.
+ * This function simulates up to maxDays (default 365) into the future.
+ *
+ * @param {Array} pools - [{ pool_number, fish_count, avg_weight_gr }]
+ * @param {number|null} temperature - Water temperature °C
+ * @param {Object} stockByType - { 'Advance (1.5mm)': 25.5, 'Grower-13EF (4.5mm)': 100, ... } in kg
+ * @param {number} maxDays - Maximum days to simulate (default 365)
+ * @returns {Object} Projection results per food type
+ */
+function projectStockDuration(pools, temperature, stockByType, maxDays = 365) {
+  const tempAdj = getTempAdjustment(temperature);
+
+  // Initialize simulation state for each pool
+  const poolStates = pools
+    .filter(p => (p.fish_count || p.current_count) > 0 && p.avg_weight_gr > 0)
+    .map(p => {
+      const count = p.fish_count || p.current_count;
+      const weight = p.avg_weight_gr;
+      const curveDay = findCurvePosition(weight);
+      return {
+        poolNumber: p.pool_number,
+        fishCount: count,
+        currentWeight: weight,
+        curveDay: curveDay,
+      };
+    });
+
+  if (poolStates.length === 0) {
+    return { projections: {}, pools: [], message: 'Нема податоци за базени' };
+  }
+
+  // Clone stock so we don't mutate input
+  const remainingStock = {};
+  for (const [type, kg] of Object.entries(stockByType)) {
+    remainingStock[type] = parseFloat(kg) || 0;
+  }
+
+  // Track when each food type runs out
+  const depletionDay = {};    // stockType -> day number when it hit 0
+  const dailyConsumption = {}; // stockType -> array of { day, kgConsumed } for first/last day info
+
+  // Day-by-day simulation
+  for (let day = 0; day < maxDays; day++) {
+    // Calculate today's total consumption per stock food type
+    const todayConsumption = {}; // stockType -> kg
+
+    for (const ps of poolStates) {
+      // Get current feeding parameters based on projected weight
+      const projectedWeight = getWeightAtDay(ps.curveDay + day);
+      const interpolated = interpolateFeedRate(projectedWeight);
+      const feedProduct = getRecommendedFeedProduct(projectedWeight);
+
+      // Biomass and daily food
+      const biomassKg = (ps.fishCount * projectedWeight) / 1000;
+      const dailyFoodKg = biomassKg * (interpolated.feedRate / 100) * tempAdj.factor;
+
+      // Map to stock food type
+      const stockType = mapToStockFoodType(feedProduct.name, feedProduct.sizeMm);
+
+      if (!todayConsumption[stockType]) todayConsumption[stockType] = 0;
+      todayConsumption[stockType] += dailyFoodKg;
+    }
+
+    // Deduct from stock
+    for (const [stockType, kgNeeded] of Object.entries(todayConsumption)) {
+      if (depletionDay[stockType] !== undefined) continue; // already depleted
+
+      if (!dailyConsumption[stockType]) {
+        dailyConsumption[stockType] = { firstDayKg: kgNeeded, lastDayKg: kgNeeded };
+      }
+      dailyConsumption[stockType].lastDayKg = kgNeeded;
+
+      if (remainingStock[stockType] !== undefined) {
+        remainingStock[stockType] -= kgNeeded;
+        if (remainingStock[stockType] <= 0) {
+          depletionDay[stockType] = day;
+          remainingStock[stockType] = 0;
+        }
+      }
+      // If this stock type doesn't exist in inventory, mark as 0
+      else if (kgNeeded > 0) {
+        depletionDay[stockType] = 0;
+      }
+    }
+  }
+
+  // Build result per stock food type
+  const projections = {};
+  const today = new Date();
+
+  for (const [stockType, stockKg] of Object.entries(stockByType)) {
+    const deplDay = depletionDay[stockType];
+    const consumption = dailyConsumption[stockType];
+
+    if (deplDay !== undefined) {
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + deplDay);
+      projections[stockType] = {
+        stockKg: parseFloat(stockKg),
+        daysLeft: deplDay,
+        endDate: endDate.toISOString().split('T')[0],
+        dailyConsumptionStartKg: consumption ? Math.round(consumption.firstDayKg * 1000) / 1000 : 0,
+        dailyConsumptionEndKg: consumption ? Math.round(consumption.lastDayKg * 1000) / 1000 : 0,
+        isDynamic: true,
+      };
+    } else if (consumption) {
+      // Stock lasts beyond maxDays
+      projections[stockType] = {
+        stockKg: parseFloat(stockKg),
+        daysLeft: maxDays,
+        endDate: null,
+        dailyConsumptionStartKg: Math.round(consumption.firstDayKg * 1000) / 1000,
+        dailyConsumptionEndKg: Math.round(consumption.lastDayKg * 1000) / 1000,
+        isDynamic: true,
+        note: `Залиха трае повеќе од ${maxDays} дена`,
+      };
+    } else {
+      // No consumption for this type (no pools need it currently)
+      projections[stockType] = {
+        stockKg: parseFloat(stockKg),
+        daysLeft: null,
+        endDate: null,
+        dailyConsumptionStartKg: 0,
+        dailyConsumptionEndKg: 0,
+        isDynamic: false,
+        note: 'Моментално не се користи',
+      };
+    }
+  }
+
+  return {
+    projections,
+    temperature: temperature != null ? Math.round(temperature * 10) / 10 : null,
+    tempFactor: tempAdj.factor,
+    simulatedDays: maxDays,
+    poolCount: poolStates.length,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 module.exports = {
   GROWOUT_TABLE,
   FEED_PRODUCTS,
@@ -408,4 +616,5 @@ module.exports = {
   calculateAllRecommendations,
   compareWithActual,
   manualCalculate,
+  projectStockDuration,
 };

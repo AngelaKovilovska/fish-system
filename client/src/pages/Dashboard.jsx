@@ -43,52 +43,9 @@ function formatDateMK(date) {
   return `${date.getDate()} ${MK_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function formatDateShortMK(date) {
-  return `${date.getDate()} ${MK_MONTHS[date.getMonth()].substring(0, 3)}`;
-}
-
-/* ── AI food type → stock food type mapping ── */
-const AI_TO_STOCK_MAP = {
-  'Advance (1.5mm)': 'Advance (1.5mm)',
-  'Advance (1.0mm)': 'Advance (1.5mm)',
-  'Pre Grower-15 EF (2.0mm)': 'Pregrower-15 (2mm)',
-  'Special Pro (3.0mm)': 'SpecialPro EF (3mm)',
-  'Special Pro (4.5mm)': 'SpecialPro EF (3mm)',
-  'Grower-13 EF (3.0mm)': 'Grower-13EF (3mm)',
-  'Grower-13 EF (4.5mm)': 'Grower-13EF (4.5mm)',
-  'Grower-13 EF (6.0mm)': 'Grower-13EF (6mm)',
-  'Grower-13 EF (4.5/6.0mm)': 'Grower-13EF (4.5mm)',
-};
-
-function mapAiFoodType(aiFoodType) {
-  if (AI_TO_STOCK_MAP[aiFoodType]) return AI_TO_STOCK_MAP[aiFoodType];
-  const lower = aiFoodType.toLowerCase();
-  if (lower.includes('advance')) return 'Advance (1.5mm)';
-  if (lower.includes('pre grower') || lower.includes('pregrower')) return 'Pregrower-15 (2mm)';
-  if (lower.includes('special pro') || lower.includes('specialpro')) return 'SpecialPro EF (3mm)';
-  if (lower.includes('grower') && lower.includes('6')) return 'Grower-13EF (6mm)';
-  if (lower.includes('grower') && lower.includes('4.5')) return 'Grower-13EF (4.5mm)';
-  if (lower.includes('grower') && lower.includes('3')) return 'Grower-13EF (3mm)';
-  return null;
-}
-
-function getDailyNeedMap(aiRec) {
-  if (!aiRec?.summary?.foodTypeNeeds) return {};
-  const map = {};
-  for (const need of aiRec.summary.foodTypeNeeds) {
-    const stockType = mapAiFoodType(need.foodType);
-    if (stockType) map[stockType] = (map[stockType] || 0) + need.dailyNeedKg;
-  }
-  return map;
-}
-
-function getStockEndDate(stockKg, dailyKg) {
-  if (!dailyKg || dailyKg <= 0) return null;
-  const daysLeft = Math.floor(stockKg / dailyKg);
-  if (daysLeft <= 0) return { date: null, daysLeft: 0, label: 'Завршена!' };
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + daysLeft);
-  return { date: endDate, daysLeft, label: `до ${formatDateShortMK(endDate)}` };
+function formatDateShortMK(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${MK_MONTHS[d.getMonth()].substring(0, 3)}`;
 }
 
 export default function Dashboard() {
@@ -98,6 +55,7 @@ export default function Dashboard() {
   const [todayRecord, setTodayRecord] = useState(null); // null=loading, false=none, object=exists
   const [mealsStatus, setMealsStatus] = useState(null);
   const [aiRec, setAiRec] = useState(null);
+  const [stockProjection, setStockProjection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -112,6 +70,7 @@ export default function Dashboard() {
         .catch(() => setTodayRecord(false)),
       api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
+      api.getStockProjection().then(d => setStockProjection(d)).catch(() => setStockProjection(null)),
     ])
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -436,9 +395,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Food Inventory — Visual Bars + Stock Duration ── */}
+      {/* ── Food Inventory — Visual Bars + Dynamic Stock Projection ── */}
       {inventory.length > 0 && (() => {
-        const dailyNeedMap = getDailyNeedMap(aiRec);
+        const proj = stockProjection?.projections || {};
 
         return (
           <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
@@ -458,8 +417,10 @@ export default function Dashboard() {
               {inventory.map(item => {
                 const qty = parseFloat(item.quantity_kg);
                 const pct = Math.min((qty / barMax) * 100, 100);
-                const dailyKg = dailyNeedMap[item.food_type] || 0;
-                const stockEnd = getStockEndDate(qty, dailyKg);
+                const p = proj[item.food_type];
+                const daysLeft = p?.daysLeft;
+                const endDate = p?.endDate;
+                const dailyStart = p?.dailyConsumptionStartKg || 0;
                 const isLow = qty <= 5;
                 const isWarn = qty <= 15 && !isLow;
                 const barColor = isLow
@@ -495,17 +456,27 @@ export default function Dashboard() {
                         }}
                       />
                     </div>
-                    {stockEnd && (
+                    {daysLeft != null && daysLeft >= 0 && (
                       <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[10px] text-[var(--text-muted)]">{dailyKg.toFixed(2)} kg/ден</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          {dailyStart > 0 ? `${dailyStart.toFixed(2)} kg/ден` : ''}
+                          {p?.dailyConsumptionEndKg > 0 && dailyStart > 0 && p.dailyConsumptionEndKg !== dailyStart
+                            ? ` → ${p.dailyConsumptionEndKg.toFixed(2)}`
+                            : ''}
+                        </span>
                         <span className={`text-[10px] font-semibold inline-flex items-center gap-0.5 ${
-                          stockEnd.daysLeft <= 0 ? 'text-[var(--danger)]'
-                          : stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]'
-                          : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]'
+                          daysLeft <= 0 ? 'text-[var(--danger)]'
+                          : daysLeft <= 7 ? 'text-[var(--danger)]'
+                          : daysLeft <= 21 ? 'text-[var(--warning)]'
                           : 'text-[var(--success)]'
                         }`}>
                           <Timer size={9} />
-                          {stockEnd.label}
+                          {daysLeft <= 0
+                            ? 'Завршена!'
+                            : endDate
+                              ? `до ${formatDateShortMK(endDate)}`
+                              : `${daysLeft}+ дена`
+                          }
                         </span>
                       </div>
                     )}

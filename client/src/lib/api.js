@@ -97,4 +97,5 @@ export const api = {
   calculateAI: (data) => request('/ai/calculate', { method: 'POST', body: JSON.stringify(data) }),
   getWaterAnalysis: () => request('/ai/water-analysis'),
   getFeedingTable: () => request('/ai/feeding-table'),
+  getStockProjection: () => request('/ai/stock-projection'),
 };
