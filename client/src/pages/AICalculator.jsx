@@ -203,17 +203,21 @@ export default function AICalculator() {
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
+                    <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
+                      style={{ background: 'rgba(139,92,246,0.18)', color: '#6d28d9' }}>
                       {rec.foodType}
                     </span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300">
+                    <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
+                      style={{ background: 'rgba(59,130,246,0.15)', color: '#1d4ed8' }}>
                       {rec.feedSizeMm}mm пелет
                     </span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium dark:bg-green-900/30 dark:text-green-300">
+                    <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
+                      style={{ background: 'rgba(34,197,94,0.15)', color: '#15803d' }}>
                       {rec.feedRatePercent}% BW/ден
                     </span>
                     {!tempAdj.isOptimal && tempAdj.factor < 1 && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium dark:bg-amber-900/30 dark:text-amber-300">
+                      <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
+                        style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
                         Темп. корекција: ×{tempAdj.factor}
                       </span>
                     )}

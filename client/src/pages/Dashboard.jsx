@@ -304,7 +304,8 @@ export default function Dashboard() {
             {aiRec.summary.foodTypeNeeds.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {aiRec.summary.foodTypeNeeds.map((ft, i) => (
-                  <span key={i} className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
+                  <span key={i} className="text-[10px] px-2 py-1 rounded-full font-semibold"
+                    style={{ background: 'rgba(139,92,246,0.18)', color: '#6d28d9' }}>
                     {ft.foodType}: {ft.dailyNeedKg} kg
                   </span>
                 ))}
