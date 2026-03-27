@@ -420,7 +420,6 @@ export default function Dashboard() {
                 const p = proj[item.food_type];
                 const daysLeft = p?.daysLeft;
                 const endDate = p?.endDate;
-                const dailyStart = p?.dailyConsumptionStartKg || 0;
                 const isLow = qty <= 5;
                 const isWarn = qty <= 15 && !isLow;
                 const barColor = isLow
@@ -456,14 +455,8 @@ export default function Dashboard() {
                         }}
                       />
                     </div>
-                    {daysLeft != null && daysLeft >= 0 && (
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {dailyStart > 0 ? `${dailyStart.toFixed(2)} kg/ден` : ''}
-                          {p?.dailyConsumptionEndKg > 0 && dailyStart > 0 && p.dailyConsumptionEndKg !== dailyStart
-                            ? ` → ${p.dailyConsumptionEndKg.toFixed(2)}`
-                            : ''}
-                        </span>
+                    <div className="flex items-center justify-end mt-0.5">
+                      {daysLeft != null && daysLeft >= 0 ? (
                         <span className={`text-[10px] font-semibold inline-flex items-center gap-0.5 ${
                           daysLeft <= 0 ? 'text-[var(--danger)]'
                           : daysLeft <= 7 ? 'text-[var(--danger)]'
@@ -478,8 +471,10 @@ export default function Dashboard() {
                               : `${daysLeft}+ дена`
                           }
                         </span>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

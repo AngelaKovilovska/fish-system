@@ -85,9 +85,8 @@ export default function ManageFoodInventory() {
               <tr>
                 <th>Тип храна</th>
                 <th className="text-right">Залиха (kg)</th>
-                <th className="text-right">Дневна потрошувачка</th>
                 <th className="text-right">Залиха до</th>
-                <th className="text-right">Последно ажурирано</th>
+                <th className="text-right">Ажурирано</th>
               </tr>
             </thead>
             <tbody>
@@ -96,7 +95,6 @@ export default function ManageFoodInventory() {
                 const p = proj[item.food_type];
                 const daysLeft = p?.daysLeft;
                 const endDate = p?.endDate;
-                const dailyStart = p?.dailyConsumptionStartKg || 0;
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
@@ -105,17 +103,6 @@ export default function ManageFoodInventory() {
                         {stockKg.toFixed(2)}
                       </span>
                     </td>
-                    <td className="text-right text-[var(--text-muted)]">
-                      {dailyStart > 0
-                        ? <span className="text-[var(--text-secondary)]">
-                            {dailyStart.toFixed(2)}
-                            {p?.dailyConsumptionEndKg > 0 && p.dailyConsumptionEndKg !== dailyStart
-                              ? ` → ${p.dailyConsumptionEndKg.toFixed(2)}`
-                              : ''} kg/ден
-                          </span>
-                        : <span className="text-[var(--text-muted)]">—</span>
-                      }
-                    </td>
                     <td className="text-right">
                       {daysLeft != null && daysLeft >= 0 ? (
                         <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
@@ -123,12 +110,12 @@ export default function ManageFoodInventory() {
                           {daysLeft <= 0
                             ? 'Завршена!'
                             : endDate
-                              ? formatDateShortMK(endDate)
+                              ? `до ${formatDateShortMK(endDate)}`
                               : `${daysLeft}+ дена`
                           }
                         </span>
                       ) : (
-                        <span className="text-[var(--text-muted)]">—</span>
+                        <span className="text-[10px] text-[var(--text-muted)] italic">Не се троши</span>
                       )}
                     </td>
                     <td className="text-right text-[var(--text-muted)]">
@@ -147,31 +134,29 @@ export default function ManageFoodInventory() {
             const p = proj[item.food_type];
             const daysLeft = p?.daysLeft;
             const endDate = p?.endDate;
-            const dailyStart = p?.dailyConsumptionStartKg || 0;
             return (
               <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-                  <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                    {stockKg.toFixed(2)} kg
-                  </span>
-                </div>
-                {daysLeft != null && daysLeft >= 0 && (
-                  <div className="flex justify-between items-center mt-1.5 text-[10px]">
-                    <span className="text-[var(--text-muted)]">
-                      {dailyStart > 0 ? `${dailyStart.toFixed(2)} kg/ден` : ''}
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                      {stockKg.toFixed(2)} kg
                     </span>
-                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
-                      <Timer size={10} />
-                      {daysLeft <= 0
-                        ? 'Завршена!'
-                        : endDate
-                          ? `до ${formatDateShortMK(endDate)}`
-                          : `${daysLeft}+ дена`
-                      }
-                    </span>
+                    {daysLeft != null && daysLeft >= 0 ? (
+                      <span className={`inline-flex items-center gap-1 font-bold text-[10px] ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                        <Timer size={10} />
+                        {daysLeft <= 0
+                          ? 'Завршена!'
+                          : endDate
+                            ? `до ${formatDateShortMK(endDate)}`
+                            : `${daysLeft}+ дена`
+                        }
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
