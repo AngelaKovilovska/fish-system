@@ -1,62 +1,66 @@
-const https = require('https');
+const nodemailer = require('nodemailer');
 
-async function sendWithResend({ to, subject, html, attachments }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('Email send error: RESEND_API_KEY not configured');
-    return { success: false, error: 'Email не е конфигуриран' };
+let transporter = null;
+
+function getTransporter() {
+  if (transporter) return transporter;
+
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT) || 465;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    console.error('Email config missing: SMTP_HOST, SMTP_USER, or SMTP_PASS not set');
+    return null;
   }
 
-  const recipients = Array.isArray(to) ? to : [to];
-
-  const payload = JSON.stringify({
-    from: process.env.EMAIL_FROM || 'Фамаком Аквакултура <onboarding@resend.dev>',
-    reply_to: process.env.EMAIL_REPLY_TO || 'famakomaquaculture@gmail.com',
-    to: recipients,
-    subject,
-    html,
-    attachments: attachments ? attachments.map(a => ({
-      filename: a.filename,
-      content: a.content ? a.content.toString('base64') : undefined,
-    })).filter(a => a.content) : undefined,
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
   });
 
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`Email sent OK via Resend -> ${recipients.join(', ')}`);
-          resolve({ success: true });
-        } else {
-          console.error(`Resend error (${res.statusCode}): ${data}`);
-          resolve({ success: false, error: data });
-        }
-      });
-    });
-
-    req.on('error', (err) => {
-      console.error('Email send error:', err.message);
-      resolve({ success: false, error: err.message });
-    });
-
-    req.write(payload);
-    req.end();
-  });
+  return transporter;
 }
 
 async function sendReportEmail({ to, subject, html, attachments }) {
-  return sendWithResend({ to, subject, html, attachments });
+  const t = getTransporter();
+  if (!t) {
+    return { success: false, error: 'Email не е конфигуриран (SMTP)' };
+  }
+
+  const recipients = Array.isArray(to) ? to : [to];
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  try {
+    const mailOptions = {
+      from: `Фамаком Аквакултура <${from}>`,
+      to: recipients.join(', '),
+      subject,
+      html,
+    };
+
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments.map(a => ({
+        filename: a.filename,
+        content: a.content,
+      })).filter(a => a.content);
+    }
+
+    const info = await t.sendMail(mailOptions);
+    console.log(`Email sent OK via SMTP -> ${recipients.join(', ')} (messageId: ${info.messageId})`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('Email send error:', err.message);
+    // Reset transporter on auth errors so it retries fresh
+    if (err.code === 'EAUTH' || err.responseCode === 535) {
+      transporter = null;
+    }
+    return { success: false, error: err.message };
+  }
 }
 
 module.exports = { sendReportEmail };
