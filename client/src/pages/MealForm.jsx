@@ -291,22 +291,26 @@ export default function MealForm() {
             return (
               <div className="rounded-[var(--r-sm)] p-3 flex flex-col gap-1.5"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(124,58,237,0.05))',
-                  border: '1px solid rgba(139,92,246,0.15)',
+                  background: 'linear-gradient(135deg, rgba(109,40,217,0.10), rgba(139,92,246,0.07))',
+                  border: '1px solid rgba(109,40,217,0.22)',
                 }}>
                 <div className="flex items-center gap-1.5">
-                  <Brain size={13} className="text-purple-500 flex-shrink-0" />
-                  <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300"
-                    style={{ fontFamily: 'Sora, sans-serif' }}>AI Препорака</span>
+                  <Brain size={13} style={{ color: '#7c3aed' }} className="flex-shrink-0" />
+                  <span className="text-[11px] font-semibold"
+                    style={{ fontFamily: 'Sora, sans-serif', color: '#6d28d9' }}>AI Препорака</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-[var(--text-secondary)]">
-                      <strong className="text-purple-600 dark:text-purple-400">{perMealGr}g</strong> /оброк
+                      <strong style={{ color: '#7c3aed' }}>{perMealGr}g</strong> /оброк
                     </span>
                     <span className="text-[10px] text-[var(--text-muted)]">×{mealsCount} = {dailyGr}g/ден</span>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                    style={{
+                      background: 'rgba(139,92,246,0.18)',
+                      color: '#6d28d9',
+                    }}>
                     {rec.foodType} {rec.feedSizeMm}mm
                   </span>
                 </div>

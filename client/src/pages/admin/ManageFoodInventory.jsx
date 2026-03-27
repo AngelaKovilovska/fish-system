@@ -1,7 +1,33 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer } from 'lucide-react';
+
+// Map AI recommendation food type names → inventory food type names
+const AI_TO_STOCK_MAP = {
+  'Advance (1.5mm)': 'Advance (1.5mm)',
+  'Advance (1.0mm)': 'Advance (1.5mm)',
+  'Pre Grower-15 EF (2.0mm)': 'Pregrower-15 (2mm)',
+  'Special Pro (3.0mm)': 'SpecialPro EF (3mm)',
+  'Special Pro (4.5mm)': 'SpecialPro EF (3mm)',
+  'Grower-13 EF (3.0mm)': 'Grower-13EF (3mm)',
+  'Grower-13 EF (4.5mm)': 'Grower-13EF (4.5mm)',
+  'Grower-13 EF (6.0mm)': 'Grower-13EF (6mm)',
+  'Grower-13 EF (4.5/6.0mm)': 'Grower-13EF (4.5mm)',
+};
+
+function mapAiFoodType(aiFoodType) {
+  if (AI_TO_STOCK_MAP[aiFoodType]) return AI_TO_STOCK_MAP[aiFoodType];
+  // Fuzzy fallback
+  const lower = aiFoodType.toLowerCase();
+  if (lower.includes('advance')) return 'Advance (1.5mm)';
+  if (lower.includes('pre grower') || lower.includes('pregrower')) return 'Pregrower-15 (2mm)';
+  if (lower.includes('special pro') || lower.includes('specialpro')) return 'SpecialPro EF (3mm)';
+  if (lower.includes('grower') && lower.includes('6')) return 'Grower-13EF (6mm)';
+  if (lower.includes('grower') && lower.includes('4.5')) return 'Grower-13EF (4.5mm)';
+  if (lower.includes('grower') && lower.includes('3')) return 'Grower-13EF (3mm)';
+  return null;
+}
 
 export default function ManageFoodInventory() {
   const [inventory, setInventory] = useState([]);
@@ -12,18 +38,36 @@ export default function ManageFoodInventory() {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [aiRec, setAiRec] = useState(null);
 
   const load = async () => {
     try {
-      const [invData, logData] = await Promise.all([
+      const [invData, logData, aiData] = await Promise.all([
         api.getFoodInventory(),
         api.getFoodInventoryLog(3),
+        api.getAIRecommendations().catch(() => null),
       ]);
       setInventory(invData.inventory);
       setLog(logData.log);
+      setAiRec(aiData);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
+
+  // Calculate daily consumption per stock food type from AI recommendations
+  const getDailyNeedMap = () => {
+    if (!aiRec?.summary?.foodTypeNeeds) return {};
+    const map = {};
+    for (const need of aiRec.summary.foodTypeNeeds) {
+      const stockType = mapAiFoodType(need.foodType);
+      if (stockType) {
+        map[stockType] = (map[stockType] || 0) + need.dailyNeedKg;
+      }
+    }
+    return map;
+  };
+
+  const dailyNeedMap = getDailyNeedMap();
 
   useEffect(() => { load(); }, []);
 
@@ -70,38 +114,151 @@ export default function ManageFoodInventory() {
               <tr>
                 <th>Тип храна</th>
                 <th className="text-right">Залиха (kg)</th>
+                <th className="text-right">Дневна потрошувачка</th>
+                <th className="text-right">Трае уште</th>
                 <th className="text-right">Последно ажурирано</th>
               </tr>
             </thead>
             <tbody>
-              {inventory.map(item => (
-                <tr key={item.id}>
-                  <td className="font-medium">{item.food_type}</td>
-                  <td className="text-right">
-                    <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                      {parseFloat(item.quantity_kg).toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="text-right text-[var(--text-muted)]">
-                    {new Date(item.updated_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
-                  </td>
-                </tr>
-              ))}
+              {inventory.map(item => {
+                const stockKg = parseFloat(item.quantity_kg);
+                const dailyKg = dailyNeedMap[item.food_type] || 0;
+                const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : null;
+                return (
+                  <tr key={item.id}>
+                    <td className="font-medium">{item.food_type}</td>
+                    <td className="text-right">
+                      <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                        {stockKg.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="text-right text-[var(--text-muted)]">
+                      {dailyKg > 0
+                        ? <span className="text-[var(--text-secondary)]">{dailyKg.toFixed(2)} kg/ден</span>
+                        : <span className="text-[var(--text-muted)]">—</span>
+                      }
+                    </td>
+                    <td className="text-right">
+                      {daysLeft !== null ? (
+                        <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                          <Timer size={12} />
+                          {daysLeft <= 0 ? 'Завршена!' : daysLeft < 30 ? `${daysLeft} дена` : `~${Math.round(daysLeft / 30)} мес.`}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-muted)]">—</span>
+                      )}
+                    </td>
+                    <td className="text-right text-[var(--text-muted)]">
+                      {new Date(item.updated_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
         {/* Mobile list */}
         <div className="lg:hidden space-y-2">
-          {inventory.map(item => (
-            <div key={item.id} className="flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
-              <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-              <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                {parseFloat(item.quantity_kg).toFixed(2)} kg
-              </span>
-            </div>
-          ))}
+          {inventory.map(item => {
+            const stockKg = parseFloat(item.quantity_kg);
+            const dailyKg = dailyNeedMap[item.food_type] || 0;
+            const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : null;
+            return (
+              <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
+                  <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                    {stockKg.toFixed(2)} kg
+                  </span>
+                </div>
+                {daysLeft !== null && (
+                  <div className="flex justify-between items-center mt-1.5 text-[10px]">
+                    <span className="text-[var(--text-muted)]">{dailyKg.toFixed(2)} kg/ден</span>
+                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                      <Timer size={10} />
+                      {daysLeft <= 0 ? 'Завршена!' : daysLeft < 30 ? `${daysLeft} дена` : `~${Math.round(daysLeft / 30)} мес.`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* AI Stock Duration Summary */}
+      {aiRec && Object.keys(dailyNeedMap).length > 0 && (() => {
+        // Find the food type that runs out soonest
+        const stockItems = inventory
+          .map(item => {
+            const stockKg = parseFloat(item.quantity_kg);
+            const dailyKg = dailyNeedMap[item.food_type] || 0;
+            const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : Infinity;
+            return { foodType: item.food_type, stockKg, dailyKg, daysLeft };
+          })
+          .filter(s => s.dailyKg > 0)
+          .sort((a, b) => a.daysLeft - b.daysLeft);
+
+        if (stockItems.length === 0) return null;
+
+        const soonest = stockItems[0];
+        const critical = stockItems.filter(s => s.daysLeft <= 7);
+        const warning = stockItems.filter(s => s.daysLeft > 7 && s.daysLeft <= 21);
+
+        return (
+          <div className="card mb-4 animate-in-delay-1"
+            style={{
+              background: critical.length > 0
+                ? 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02))'
+                : warning.length > 0
+                  ? 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02))'
+                  : 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))',
+              border: critical.length > 0
+                ? '1px solid rgba(239,68,68,0.2)'
+                : warning.length > 0
+                  ? '1px solid rgba(245,158,11,0.2)'
+                  : '1px solid rgba(34,197,94,0.2)',
+            }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Brain size={15} style={{ color: '#7c3aed' }} />
+              <h3 className="section-title text-sm !mb-0">AI проценка на залихи</h3>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mb-3">
+              Базирано на AI препораките за хранење на сите базени
+            </p>
+
+            {critical.length > 0 && (
+              <div className="flex items-start gap-2 text-xs p-2 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 mb-2">
+                <AlertTriangle size={14} className="text-[var(--danger)] flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-[var(--danger)]">Критично!</strong>
+                  <span className="text-[var(--text-secondary)]"> {critical.map(s =>
+                    `${s.foodType} (${s.daysLeft <= 0 ? 'завршена' : `${s.daysLeft} дена`})`
+                  ).join(', ')}</span>
+                </div>
+              </div>
+            )}
+
+            {warning.length > 0 && (
+              <div className="flex items-start gap-2 text-xs p-2 rounded-[var(--r-sm)] bg-amber-50 dark:bg-amber-950/20 mb-2">
+                <Timer size={14} className="text-[var(--warning)] flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-[var(--warning)]">Набавете наскоро:</strong>
+                  <span className="text-[var(--text-secondary)]"> {warning.map(s =>
+                    `${s.foodType} (${s.daysLeft} дена)`
+                  ).join(', ')}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs text-[var(--text-muted)] mt-1">
+              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+                {soonest.daysLeft <= 0 ? 'ИТНО — залихата е завршена' : `за ~${soonest.daysLeft} дена`}
+              </strong> ({soonest.foodType})
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Add purchase form */}
       <div className="card mb-4 animate-in-delay-1">
