@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
 const CHECKLIST_ALARM_MESSAGES = {
@@ -41,6 +41,54 @@ const MK_MONTHS = [
 
 function formatDateMK(date) {
   return `${date.getDate()} ${MK_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatDateShortMK(date) {
+  return `${date.getDate()} ${MK_MONTHS[date.getMonth()].substring(0, 3)}`;
+}
+
+/* ── AI food type → stock food type mapping ── */
+const AI_TO_STOCK_MAP = {
+  'Advance (1.5mm)': 'Advance (1.5mm)',
+  'Advance (1.0mm)': 'Advance (1.5mm)',
+  'Pre Grower-15 EF (2.0mm)': 'Pregrower-15 (2mm)',
+  'Special Pro (3.0mm)': 'SpecialPro EF (3mm)',
+  'Special Pro (4.5mm)': 'SpecialPro EF (3mm)',
+  'Grower-13 EF (3.0mm)': 'Grower-13EF (3mm)',
+  'Grower-13 EF (4.5mm)': 'Grower-13EF (4.5mm)',
+  'Grower-13 EF (6.0mm)': 'Grower-13EF (6mm)',
+  'Grower-13 EF (4.5/6.0mm)': 'Grower-13EF (4.5mm)',
+};
+
+function mapAiFoodType(aiFoodType) {
+  if (AI_TO_STOCK_MAP[aiFoodType]) return AI_TO_STOCK_MAP[aiFoodType];
+  const lower = aiFoodType.toLowerCase();
+  if (lower.includes('advance')) return 'Advance (1.5mm)';
+  if (lower.includes('pre grower') || lower.includes('pregrower')) return 'Pregrower-15 (2mm)';
+  if (lower.includes('special pro') || lower.includes('specialpro')) return 'SpecialPro EF (3mm)';
+  if (lower.includes('grower') && lower.includes('6')) return 'Grower-13EF (6mm)';
+  if (lower.includes('grower') && lower.includes('4.5')) return 'Grower-13EF (4.5mm)';
+  if (lower.includes('grower') && lower.includes('3')) return 'Grower-13EF (3mm)';
+  return null;
+}
+
+function getDailyNeedMap(aiRec) {
+  if (!aiRec?.summary?.foodTypeNeeds) return {};
+  const map = {};
+  for (const need of aiRec.summary.foodTypeNeeds) {
+    const stockType = mapAiFoodType(need.foodType);
+    if (stockType) map[stockType] = (map[stockType] || 0) + need.dailyNeedKg;
+  }
+  return map;
+}
+
+function getStockEndDate(stockKg, dailyKg) {
+  if (!dailyKg || dailyKg <= 0) return null;
+  const daysLeft = Math.floor(stockKg / dailyKg);
+  if (daysLeft <= 0) return { date: null, daysLeft: 0, label: 'Завршена!' };
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + daysLeft);
+  return { date: endDate, daysLeft, label: `до ${formatDateShortMK(endDate)}` };
 }
 
 export default function Dashboard() {
@@ -388,73 +436,93 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Food Inventory — Visual Bars ── */}
-      {inventory.length > 0 && (
-        <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="section-title flex items-center gap-2 text-sm">
-              <Package size={15} className="text-[var(--primary)]" />
-              Залихи на храна
-            </h2>
-            {isAdmin && (
-              <Link to="/admin/inventory" className="text-[11px] text-[var(--primary)] font-medium hover:underline">
-                Управувај
-              </Link>
-            )}
-          </div>
+      {/* ── Food Inventory — Visual Bars + Stock Duration ── */}
+      {inventory.length > 0 && (() => {
+        const dailyNeedMap = getDailyNeedMap(aiRec);
 
-          <div className="card !p-4 space-y-3">
-            {inventory.map(item => {
-              const qty = parseFloat(item.quantity_kg);
-              const pct = Math.min((qty / barMax) * 100, 100);
-              const isLow = qty <= 5;
-              const isWarn = qty <= 15 && !isLow;
-              const barColor = isLow
-                ? 'var(--danger)'
-                : isWarn
-                  ? 'var(--warning)'
-                  : 'var(--success)';
-              const barBg = isLow
-                ? 'rgba(239,68,68,0.08)'
-                : isWarn
-                  ? 'rgba(245,158,11,0.08)'
-                  : 'rgba(34,197,94,0.08)';
+        return (
+          <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="section-title flex items-center gap-2 text-sm">
+                <Package size={15} className="text-[var(--primary)]" />
+                Залихи на храна
+              </h2>
+              {isAdmin && (
+                <Link to="/admin/inventory" className="text-[11px] text-[var(--primary)] font-medium hover:underline">
+                  Управувај
+                </Link>
+              )}
+            </div>
 
-              return (
-                <div key={item.id}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12px] font-medium text-[var(--text-secondary)]">
-                      {item.food_type}
-                    </span>
-                    <span className={`text-[12px] font-bold ${
-                      isLow ? 'text-[var(--danger)]' : isWarn ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
-                    }`}>
-                      {qty.toFixed(2)} kg
-                    </span>
+            <div className="card !p-4 space-y-3">
+              {inventory.map(item => {
+                const qty = parseFloat(item.quantity_kg);
+                const pct = Math.min((qty / barMax) * 100, 100);
+                const dailyKg = dailyNeedMap[item.food_type] || 0;
+                const stockEnd = getStockEndDate(qty, dailyKg);
+                const isLow = qty <= 5;
+                const isWarn = qty <= 15 && !isLow;
+                const barColor = isLow
+                  ? 'var(--danger)'
+                  : isWarn
+                    ? 'var(--warning)'
+                    : 'var(--success)';
+                const barBg = isLow
+                  ? 'rgba(239,68,68,0.08)'
+                  : isWarn
+                    ? 'rgba(245,158,11,0.08)'
+                    : 'rgba(34,197,94,0.08)';
+
+                return (
+                  <div key={item.id}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                        {item.food_type}
+                      </span>
+                      <span className={`text-[12px] font-bold ${
+                        isLow ? 'text-[var(--danger)]' : isWarn ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
+                      }`}>
+                        {qty.toFixed(2)} kg
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: barBg }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-700 ease-out"
+                        style={{
+                          width: `${pct}%`,
+                          background: barColor,
+                          minWidth: qty > 0 ? 4 : 0,
+                        }}
+                      />
+                    </div>
+                    {stockEnd && (
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[10px] text-[var(--text-muted)]">{dailyKg.toFixed(2)} kg/ден</span>
+                        <span className={`text-[10px] font-semibold inline-flex items-center gap-0.5 ${
+                          stockEnd.daysLeft <= 0 ? 'text-[var(--danger)]'
+                          : stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]'
+                          : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]'
+                          : 'text-[var(--success)]'
+                        }`}>
+                          <Timer size={9} />
+                          {stockEnd.label}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: barBg }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-700 ease-out"
-                      style={{
-                        width: `${pct}%`,
-                        background: barColor,
-                        minWidth: qty > 0 ? 4 : 0,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {inventory.some(i => parseFloat(i.quantity_kg) <= 5) && (
-              <p className="text-[11px] text-[var(--danger)] font-medium mt-1 flex items-center gap-1.5">
-                <AlertTriangle size={12} />
-                Ниски залихи — потребна набавка
-              </p>
-            )}
+              {inventory.some(i => parseFloat(i.quantity_kg) <= 5) && (
+                <p className="text-[11px] text-[var(--danger)] font-medium mt-1 flex items-center gap-1.5">
+                  <AlertTriangle size={12} />
+                  Ниски залихи — потребна набавка
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

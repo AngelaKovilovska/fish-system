@@ -16,9 +16,13 @@ const AI_TO_STOCK_MAP = {
   'Grower-13 EF (4.5/6.0mm)': 'Grower-13EF (4.5mm)',
 };
 
+const MK_MONTHS = [
+  'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
+  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
+];
+
 function mapAiFoodType(aiFoodType) {
   if (AI_TO_STOCK_MAP[aiFoodType]) return AI_TO_STOCK_MAP[aiFoodType];
-  // Fuzzy fallback
   const lower = aiFoodType.toLowerCase();
   if (lower.includes('advance')) return 'Advance (1.5mm)';
   if (lower.includes('pre grower') || lower.includes('pregrower')) return 'Pregrower-15 (2mm)';
@@ -27,6 +31,16 @@ function mapAiFoodType(aiFoodType) {
   if (lower.includes('grower') && lower.includes('4.5')) return 'Grower-13EF (4.5mm)';
   if (lower.includes('grower') && lower.includes('3')) return 'Grower-13EF (3mm)';
   return null;
+}
+
+function getStockEndDate(stockKg, dailyKg) {
+  if (!dailyKg || dailyKg <= 0) return null;
+  const daysLeft = Math.floor(stockKg / dailyKg);
+  if (daysLeft <= 0) return { date: null, daysLeft: 0, label: 'Завршена!' };
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + daysLeft);
+  const label = `до ${endDate.getDate()} ${MK_MONTHS[endDate.getMonth()].substring(0, 3)}`;
+  return { date: endDate, daysLeft, label };
 }
 
 export default function ManageFoodInventory() {
@@ -115,7 +129,7 @@ export default function ManageFoodInventory() {
                 <th>Тип храна</th>
                 <th className="text-right">Залиха (kg)</th>
                 <th className="text-right">Дневна потрошувачка</th>
-                <th className="text-right">Трае уште</th>
+                <th className="text-right">Залиха до</th>
                 <th className="text-right">Последно ажурирано</th>
               </tr>
             </thead>
@@ -123,7 +137,7 @@ export default function ManageFoodInventory() {
               {inventory.map(item => {
                 const stockKg = parseFloat(item.quantity_kg);
                 const dailyKg = dailyNeedMap[item.food_type] || 0;
-                const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : null;
+                const stockEnd = getStockEndDate(stockKg, dailyKg);
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
@@ -139,10 +153,10 @@ export default function ManageFoodInventory() {
                       }
                     </td>
                     <td className="text-right">
-                      {daysLeft !== null ? (
-                        <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                      {stockEnd ? (
+                        <span className={`inline-flex items-center gap-1 font-bold ${stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                           <Timer size={12} />
-                          {daysLeft <= 0 ? 'Завршена!' : daysLeft < 30 ? `${daysLeft} дена` : `~${Math.round(daysLeft / 30)} мес.`}
+                          {stockEnd.label}
                         </span>
                       ) : (
                         <span className="text-[var(--text-muted)]">—</span>
@@ -162,7 +176,7 @@ export default function ManageFoodInventory() {
           {inventory.map(item => {
             const stockKg = parseFloat(item.quantity_kg);
             const dailyKg = dailyNeedMap[item.food_type] || 0;
-            const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : null;
+            const stockEnd = getStockEndDate(stockKg, dailyKg);
             return (
               <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
                 <div className="flex justify-between items-center text-xs">
@@ -171,12 +185,12 @@ export default function ManageFoodInventory() {
                     {stockKg.toFixed(2)} kg
                   </span>
                 </div>
-                {daysLeft !== null && (
+                {stockEnd && (
                   <div className="flex justify-between items-center mt-1.5 text-[10px]">
                     <span className="text-[var(--text-muted)]">{dailyKg.toFixed(2)} kg/ден</span>
-                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                    <span className={`inline-flex items-center gap-1 font-bold ${stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                       <Timer size={10} />
-                      {daysLeft <= 0 ? 'Завршена!' : daysLeft < 30 ? `${daysLeft} дена` : `~${Math.round(daysLeft / 30)} мес.`}
+                      {stockEnd.label}
                     </span>
                   </div>
                 )}
@@ -188,22 +202,21 @@ export default function ManageFoodInventory() {
 
       {/* AI Stock Duration Summary */}
       {aiRec && Object.keys(dailyNeedMap).length > 0 && (() => {
-        // Find the food type that runs out soonest
         const stockItems = inventory
           .map(item => {
             const stockKg = parseFloat(item.quantity_kg);
             const dailyKg = dailyNeedMap[item.food_type] || 0;
-            const daysLeft = dailyKg > 0 ? Math.floor(stockKg / dailyKg) : Infinity;
-            return { foodType: item.food_type, stockKg, dailyKg, daysLeft };
+            const stockEnd = getStockEndDate(stockKg, dailyKg);
+            return { foodType: item.food_type, stockKg, dailyKg, stockEnd };
           })
-          .filter(s => s.dailyKg > 0)
-          .sort((a, b) => a.daysLeft - b.daysLeft);
+          .filter(s => s.dailyKg > 0 && s.stockEnd)
+          .sort((a, b) => (a.stockEnd.daysLeft || 0) - (b.stockEnd.daysLeft || 0));
 
         if (stockItems.length === 0) return null;
 
         const soonest = stockItems[0];
-        const critical = stockItems.filter(s => s.daysLeft <= 7);
-        const warning = stockItems.filter(s => s.daysLeft > 7 && s.daysLeft <= 21);
+        const critical = stockItems.filter(s => s.stockEnd.daysLeft <= 7);
+        const warning = stockItems.filter(s => s.stockEnd.daysLeft > 7 && s.stockEnd.daysLeft <= 21);
 
         return (
           <div className="card mb-4 animate-in-delay-1"
@@ -233,7 +246,7 @@ export default function ManageFoodInventory() {
                 <div>
                   <strong className="text-[var(--danger)]">Критично!</strong>
                   <span className="text-[var(--text-secondary)]"> {critical.map(s =>
-                    `${s.foodType} (${s.daysLeft <= 0 ? 'завршена' : `${s.daysLeft} дена`})`
+                    `${s.foodType} (${s.stockEnd.label})`
                   ).join(', ')}</span>
                 </div>
               </div>
@@ -245,15 +258,15 @@ export default function ManageFoodInventory() {
                 <div>
                   <strong className="text-[var(--warning)]">Набавете наскоро:</strong>
                   <span className="text-[var(--text-secondary)]"> {warning.map(s =>
-                    `${s.foodType} (${s.daysLeft} дена)`
+                    `${s.foodType} (${s.stockEnd.label})`
                   ).join(', ')}</span>
                 </div>
               </div>
             )}
 
             <div className="text-xs text-[var(--text-muted)] mt-1">
-              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
-                {soonest.daysLeft <= 0 ? 'ИТНО — залихата е завршена' : `за ~${soonest.daysLeft} дена`}
+              Следна набавка: <strong className={soonest.stockEnd.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.stockEnd.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+                {soonest.stockEnd.daysLeft <= 0 ? 'ИТНО — залихата е завршена' : soonest.stockEnd.label}
               </strong> ({soonest.foodType})
             </div>
           </div>
