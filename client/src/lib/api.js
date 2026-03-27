@@ -90,4 +90,11 @@ export const api = {
   getFoodInventory: () => request('/food-inventory'),
   addFoodPurchase: (data) => request('/food-inventory/purchase', { method: 'POST', body: JSON.stringify(data) }),
   getFoodInventoryLog: (days) => request(`/food-inventory/log?days=${days || 3}`),
+
+  // AI Feeding Recommendations
+  getAIRecommendations: () => request('/ai/recommendations'),
+  getAIPoolRecommendation: (poolNumber) => request(`/ai/pool/${poolNumber}`),
+  calculateAI: (data) => request('/ai/calculate', { method: 'POST', body: JSON.stringify(data) }),
+  getWaterAnalysis: () => request('/ai/water-analysis'),
+  getFeedingTable: () => request('/ai/feeding-table'),
 };

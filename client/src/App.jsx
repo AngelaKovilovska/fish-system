@@ -15,6 +15,7 @@ import ManageFoodInventory from './pages/admin/ManageFoodInventory';
 import AdminHub from './pages/admin/AdminHub';
 import MealForm from './pages/MealForm';
 import MealHistory from './pages/MealHistory';
+import AICalculator from './pages/AICalculator';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/meals" element={<MealHistory />} />
         <Route path="/meal/:mealType" element={<MealForm />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/ai-calculator" element={<AICalculator />} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminHub /></ProtectedRoute>} />
         <Route path="/admin/norms" element={<ProtectedRoute adminOnly><ManageNorms /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><ManageUsers /></ProtectedRoute>} />

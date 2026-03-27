@@ -2,47 +2,99 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Bell, Moon, Sun } from 'lucide-react';
+import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, Brain, ChevronDown, MoreHorizontal, UtensilsCrossed } from 'lucide-react';
 import FishBackground from './FishBackground';
 
-const navItems = [
+// ─── Sidebar sections ───
+const sidebarSections = [
+  {
+    items: [
+      { path: '/', label: 'Почетна', icon: Home },
+    ],
+  },
+  {
+    title: 'Дневни задачи',
+    items: [
+      { path: '/checklist', label: 'Запис', icon: ClipboardList },
+      { path: '/history', label: 'Историја', icon: Clock },
+    ],
+  },
+  {
+    title: 'Аналитика',
+    items: [
+      { path: '/ai-calculator', label: 'AI Храна', icon: Brain },
+      { path: '/reports', label: 'Извештаи', icon: FileBarChart },
+    ],
+  },
+];
+
+const adminSection = {
+  title: 'Админ',
+  items: [
+    { path: '/admin/measurements', label: 'Мерења', icon: Scale },
+    { path: '/admin/inventory', label: 'Залихи', icon: Package },
+    { path: '/admin/norms', label: 'Норми', icon: Settings },
+    { path: '/admin/users', label: 'Корисници', icon: Users },
+  ],
+};
+
+// ─── Mobile: main tabs (max 4) + More ───
+const mobilePrimaryTabs = [
   { path: '/', label: 'Почетна', icon: Home },
   { path: '/checklist', label: 'Запис', icon: ClipboardList },
-  { path: '/history', label: 'Историја', icon: Clock },
+  { path: '/ai-calculator', label: 'AI Храна', icon: Brain },
   { path: '/reports', label: 'Извештаи', icon: FileBarChart },
 ];
 
-const adminItems = [
+const mobileMoreItems = [
+  { path: '/history', label: 'Историја', icon: Clock },
+];
+
+const mobileAdminItems = [
   { path: '/admin/measurements', label: 'Мерења', icon: Scale },
   { path: '/admin/inventory', label: 'Залихи', icon: Package },
   { path: '/admin/norms', label: 'Норми', icon: Settings },
   { path: '/admin/users', label: 'Корисници', icon: Users },
 ];
 
+// Helper to check if any item in section is active
+function isSectionActive(items, pathname) {
+  return items.some(item => pathname === item.path || pathname.startsWith(item.path + '/'));
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const profileRef = useRef(null);
+  const moreRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
-  const mobileItems = isAdmin
-    ? [...navItems, { path: '/admin', label: 'Админ', icon: Settings }]
-    : navItems;
 
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
-        setShowProfile(false);
-      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false);
+      if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false);
     };
-    if (showProfile) document.addEventListener('mousedown', handleClickOutside);
+    if (showProfile || showMore) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfile]);
+  }, [showProfile, showMore]);
 
-  useEffect(() => { setShowProfile(false); }, [location.pathname]);
+  // Close on navigation
+  useEffect(() => {
+    setShowProfile(false);
+    setShowMore(false);
+  }, [location.pathname]);
+
+  // Check if "More" section has an active item
+  const moreItems = [...mobileMoreItems, ...(isAdmin ? mobileAdminItems : [])];
+  const isMoreActive = moreItems.some(item =>
+    location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+  );
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -70,24 +122,39 @@ export default function Layout() {
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-0.5">
-          {navItems.map(item => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link key={item.path} to={item.path}
-                className={`sidebar-link ${isActive ? 'active' : ''}`}>
-                <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.8} />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
+          {sidebarSections.map((section, sIdx) => (
+            <div key={sIdx}>
+              {/* Section title */}
+              {section.title && (
+                <>
+                  {sIdx > 0 && <div className="h-px bg-white/10 my-3 mx-2" />}
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-white/30 font-semibold px-3 mb-1"
+                    style={{ fontFamily: 'Sora, sans-serif' }}>{section.title}</p>
+                </>
+              )}
 
+              {/* Section items */}
+              {section.items.map(item => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link key={item.path} to={item.path}
+                    className={`sidebar-link ${isActive ? 'active' : ''}`}>
+                    <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.8} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Admin section */}
           {isAdmin && (
             <>
               <div className="h-px bg-white/10 my-3 mx-2" />
               <p className="text-[10px] uppercase tracking-[0.1em] text-white/30 font-semibold px-3 mb-1"
-                style={{ fontFamily: 'Sora, sans-serif' }}>Админ</p>
-              {adminItems.map(item => {
+                style={{ fontFamily: 'Sora, sans-serif' }}>{adminSection.title}</p>
+              {adminSection.items.map(item => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link key={item.path} to={item.path}
@@ -244,9 +311,8 @@ export default function Layout() {
 
       {/* ═══════ MOBILE BOTTOM TAB BAR ═══════ */}
       <nav className="bottom-tab-bar flex lg:hidden">
-        {mobileItems.map(item => {
-          const isActive = location.pathname === item.path ||
-            (item.path === '/admin' && location.pathname.startsWith('/admin'));
+        {mobilePrimaryTabs.map(item => {
+          const isActive = location.pathname === item.path;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>
@@ -255,7 +321,75 @@ export default function Layout() {
             </Link>
           );
         })}
+
+        {/* More button */}
+        {moreItems.length > 0 && (
+          <div className="relative" ref={moreRef}>
+            <button onClick={() => setShowMore(!showMore)}
+              className={`tab-item ${isMoreActive ? 'active' : ''}`}>
+              <MoreHorizontal size={20} strokeWidth={isMoreActive ? 2.2 : 1.6} />
+              <span>Повеќе</span>
+            </button>
+
+            {showMore && (
+              <div className="absolute bottom-[calc(100%+8px)] right-0 w-48 bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] py-1.5 animate-slide-down z-50"
+                style={{ boxShadow: 'var(--sh-elevated)' }}>
+                {moreMoreItems(moreItems, location.pathname)}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
     </div>
+  );
+}
+
+/* Render the "More" dropdown items */
+function moreMoreItems(items, pathname) {
+  // Group admin items separately
+  const regular = items.filter(i => !i.path.startsWith('/admin'));
+  const admin = items.filter(i => i.path.startsWith('/admin'));
+
+  return (
+    <>
+      {regular.map(item => {
+        const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+        return (
+          <Link key={item.path} to={item.path}
+            className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors ${
+              isActive
+                ? 'text-[var(--primary)] bg-[var(--primary-muted)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)]'
+            }`}
+            style={{ fontFamily: 'Sora, sans-serif' }}>
+            <item.icon size={16} strokeWidth={isActive ? 2.2 : 1.6} />
+            {item.label}
+          </Link>
+        );
+      })}
+
+      {admin.length > 0 && (
+        <>
+          <div className="h-px bg-[var(--border)] my-1.5 mx-2" />
+          <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-semibold px-3 py-1"
+            style={{ fontFamily: 'Sora, sans-serif' }}>Админ</p>
+          {admin.map(item => {
+            const isActive = pathname === item.path;
+            return (
+              <Link key={item.path} to={item.path}
+                className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'text-[var(--primary)] bg-[var(--primary-muted)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)]'
+                }`}
+                style={{ fontFamily: 'Sora, sans-serif' }}>
+                <item.icon size={16} strokeWidth={isActive ? 2.2 : 1.6} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </>
+      )}
+    </>
   );
 }

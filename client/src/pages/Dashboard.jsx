@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
 const CHECKLIST_ALARM_MESSAGES = {
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [inventory, setInventory] = useState([]);
   const [todayRecord, setTodayRecord] = useState(null); // null=loading, false=none, object=exists
   const [mealsStatus, setMealsStatus] = useState(null);
+  const [aiRec, setAiRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -62,6 +63,7 @@ export default function Dashboard() {
         .then(d => setTodayRecord(d.records.length > 0 ? d.records[0] : false))
         .catch(() => setTodayRecord(false)),
       api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
+      api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
     ])
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -265,6 +267,123 @@ export default function Dashboard() {
               Прикажи уште {alerts.length - 5}
             </button>
           )}
+        </div>
+      )}
+
+      {/* ── AI Feeding Recommendations ── */}
+      {aiRec && aiRec.summary && aiRec.summary.poolCount > 0 && (
+        <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="section-title flex items-center gap-2 text-sm">
+              <Brain size={15} className="text-purple-500" />
+              AI Препорака за храна
+            </h2>
+            <Link to="/ai-calculator" className="text-[11px] text-[var(--primary)] font-medium hover:underline flex items-center gap-1">
+              Калкулатор <ArrowRight size={10} />
+            </Link>
+          </div>
+
+          {/* Summary card */}
+          <div className="card !p-4 mb-2">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>Дневна потреба (сите базени)</p>
+                <p className="text-xl font-bold text-[var(--text-primary)] mt-0.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {aiRec.summary.totalDailyFoodKg.toFixed(2)} <span className="text-sm font-normal text-[var(--text-muted)]">kg</span>
+                </p>
+              </div>
+              {aiRec.summary.temperature != null && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--primary-muted)]">
+                  <Thermometer size={14} className="text-[var(--primary)]" />
+                  <span className="text-sm font-semibold text-[var(--primary)]">{aiRec.summary.temperature}°C</span>
+                </div>
+              )}
+            </div>
+
+            {/* Per food type breakdown */}
+            {aiRec.summary.foodTypeNeeds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {aiRec.summary.foodTypeNeeds.map((ft, i) => (
+                  <span key={i} className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
+                    {ft.foodType}: {ft.dailyNeedKg} kg
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Per-pool cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {Object.values(aiRec.pools).map(poolRec => {
+              if (!poolRec.hasData) {
+                return (
+                  <div key={poolRec.poolNumber} className="card !p-3 opacity-50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Fish size={13} className="text-[var(--text-muted)]" />
+                      <span className="text-[11px] font-bold text-[var(--text-muted)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        Базен {poolRec.poolNumber}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-muted)]">Нема податоци</p>
+                  </div>
+                );
+              }
+
+              const comp = poolRec.comparison;
+              const statusColor = !comp ? 'var(--text-muted)'
+                : comp.status === 'optimal' ? 'var(--success)'
+                : comp.status.includes('over') ? 'var(--danger)'
+                : 'var(--warning)';
+
+              return (
+                <div key={poolRec.poolNumber} className="card !p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Fish size={13} className="text-[var(--primary)]" />
+                      <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        Базен {poolRec.poolNumber}
+                      </span>
+                    </div>
+                    {comp && (
+                      <div className="w-2 h-2 rounded-full" style={{ background: statusColor }} title={comp.message} />
+                    )}
+                  </div>
+
+                  <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    {poolRec.recommendation.dailyFoodGr}<span className="text-[10px] font-normal text-[var(--text-muted)]"> g/ден</span>
+                  </p>
+
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-[10px] text-[var(--text-secondary)]">
+                      {poolRec.poolData.fishCount} риби × {poolRec.poolData.avgWeight}g
+                    </p>
+                    <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                      {poolRec.recommendation.foodType} ({poolRec.recommendation.feedSizeMm}mm)
+                    </p>
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {poolRec.recommendation.feedRatePercent}% BW · {poolRec.recommendation.mealsPerDay}×{poolRec.recommendation.perMealGr}g
+                    </p>
+                  </div>
+
+                  {/* Comparison with actual */}
+                  {comp && (
+                    <div className="mt-2 pt-1.5 border-t border-[var(--border)]">
+                      <p className="text-[10px] font-medium" style={{ color: statusColor }}>
+                        {comp.status === 'optimal' ? '✓ Оптимално' :
+                         comp.differencePercent > 0 ? `↑ +${comp.differencePercent}%` : `↓ ${comp.differencePercent}%`}
+                        <span className="text-[var(--text-muted)] font-normal"> (денес: {comp.actualGr}g)</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {poolRec.warnings?.transitionNote && (
+                    <p className="text-[9px] text-amber-600 mt-1">⚠ Транзиција</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

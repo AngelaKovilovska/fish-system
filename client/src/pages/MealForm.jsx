@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -26,6 +26,7 @@ export default function MealForm() {
   const [isEdit, setIsEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [poolMeasurements, setPoolMeasurements] = useState([]);
+  const [aiRec, setAiRec] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
@@ -46,10 +47,13 @@ export default function MealForm() {
     setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' })));
 
     try {
-      const [mealsData, measurementsData] = await Promise.all([
+      const [mealsData, measurementsData, aiData] = await Promise.all([
         api.getMeals(date),
         api.getPoolMeasurements(),
+        api.getAIRecommendations().catch(() => null),
       ]);
+
+      setAiRec(aiData);
 
       const existing = mealsData.meals.filter(m => m.meal_type === mealType);
       if (existing.length > 0) {
@@ -274,6 +278,46 @@ export default function MealForm() {
               <span>Последно мерење: <strong>{measurement.fish_count}</strong> риби, <strong>{measurement.avg_weight_gr} gr</strong></span>
             </div>
           )}
+
+          {/* AI Recommendation Info Bar */}
+          {(() => {
+            const poolAi = aiRec?.pools?.[activePool];
+            if (!poolAi?.hasData) return null;
+            const rec = poolAi.recommendation;
+            const mealsCount = rec.mealsPerDay;
+            const perMealGr = rec.perMealGr;
+            const dailyGr = rec.dailyFoodGr;
+
+            return (
+              <div className="rounded-[var(--r-sm)] p-3 flex flex-col gap-1.5"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(124,58,237,0.05))',
+                  border: '1px solid rgba(139,92,246,0.15)',
+                }}>
+                <div className="flex items-center gap-1.5">
+                  <Brain size={13} className="text-purple-500 flex-shrink-0" />
+                  <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300"
+                    style={{ fontFamily: 'Sora, sans-serif' }}>AI Препорака</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      <strong className="text-purple-600 dark:text-purple-400">{perMealGr}g</strong> /оброк
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)]">×{mealsCount} = {dailyGr}g/ден</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
+                    {rec.foodType} {rec.feedSizeMm}mm
+                  </span>
+                </div>
+                {poolAi.warnings?.transitionNote && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <Zap size={10} /> Транзиција
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Food type */}
           <div>
