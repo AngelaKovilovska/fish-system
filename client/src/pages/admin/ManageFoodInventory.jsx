@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText } from 'lucide-react';
 
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -13,22 +13,29 @@ function formatDateShortMK(dateStr) {
   return `${d.getDate()} ${MK_MONTHS[d.getMonth()].substring(0, 3)}`;
 }
 
+const emptyItem = () => ({ food_type: FOOD_TYPES[0], quantity_kg: '' });
+
 export default function ManageFoodInventory() {
   const [inventory, setInventory] = useState([]);
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [foodType, setFoodType] = useState(FOOD_TYPES[0]);
-  const [quantity, setQuantity] = useState('');
+  const [stockProjection, setStockProjection] = useState(null);
+
+  // Purchase form
+  const [supplier, setSupplier] = useState('');
+  const [documentNumber, setDocumentNumber] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [purchaseItems, setPurchaseItems] = useState([emptyItem()]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [stockProjection, setStockProjection] = useState(null);
 
   // Edit state
   const [editId, setEditId] = useState(null);
   const [editFoodType, setEditFoodType] = useState('');
   const [editQuantity, setEditQuantity] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editSupplier, setEditSupplier] = useState('');
+  const [editDocNumber, setEditDocNumber] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
   // Delete state
@@ -52,16 +59,34 @@ export default function ManageFoodInventory() {
 
   useEffect(() => { load(); }, []);
 
+  // Purchase item management
+  const updateItem = (idx, field, value) => {
+    setPurchaseItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+  };
+  const addItem = () => setPurchaseItems(prev => [...prev, emptyItem()]);
+  const removeItem = (idx) => {
+    if (purchaseItems.length <= 1) return;
+    setPurchaseItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handlePurchase = async () => {
-    if (!quantity || parseFloat(quantity) <= 0) {
-      setMessage('Внесете количина поголема од 0');
+    const validItems = purchaseItems.filter(it => it.food_type && parseFloat(it.quantity_kg) > 0);
+    if (validItems.length === 0) {
+      setMessage('Внесете барем еден тип храна со количина');
       return;
     }
     setSaving(true); setMessage('');
     try {
-      await api.addFoodPurchase({ food_type: foodType, quantity_kg: parseFloat(quantity), purchase_date: purchaseDate });
+      await api.addFoodPurchase({
+        supplier: supplier.trim() || undefined,
+        document_number: documentNumber.trim() || undefined,
+        purchase_date: purchaseDate,
+        items: validItems.map(it => ({ food_type: it.food_type, quantity_kg: parseFloat(it.quantity_kg) })),
+      });
       setMessage('Набавката е додадена!');
-      setQuantity('');
+      setPurchaseItems([emptyItem()]);
+      setSupplier('');
+      setDocumentNumber('');
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
@@ -72,14 +97,13 @@ export default function ManageFoodInventory() {
     setEditFoodType(entry.food_type);
     setEditQuantity(Math.abs(parseFloat(entry.change_kg)).toString());
     setEditDate(new Date(entry.date).toISOString().split('T')[0]);
+    setEditSupplier(entry.supplier || '');
+    setEditDocNumber(entry.document_number || '');
     setDeleteConfirmId(null);
   };
 
   const cancelEdit = () => {
     setEditId(null);
-    setEditFoodType('');
-    setEditQuantity('');
-    setEditDate('');
   };
 
   const saveEdit = async () => {
@@ -90,6 +114,8 @@ export default function ManageFoodInventory() {
         food_type: editFoodType,
         quantity_kg: parseFloat(editQuantity),
         purchase_date: editDate,
+        supplier: editSupplier.trim() || null,
+        document_number: editDocNumber.trim() || null,
       });
       cancelEdit();
       await load();
@@ -155,12 +181,7 @@ export default function ManageFoodInventory() {
                       {daysLeft != null && daysLeft >= 0 ? (
                         <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                           <Timer size={12} />
-                          {daysLeft <= 0
-                            ? 'Завршена!'
-                            : endDate
-                              ? `до ${formatDateShortMK(endDate)}`
-                              : `${daysLeft}+ дена`
-                          }
+                          {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
                         </span>
                       ) : (
                         <span className="text-[10px] text-[var(--text-muted)] italic">Не се троши</span>
@@ -193,12 +214,7 @@ export default function ManageFoodInventory() {
                     {daysLeft != null && daysLeft >= 0 ? (
                       <span className={`inline-flex items-center gap-1 font-bold text-[10px] ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
                         <Timer size={10} />
-                        {daysLeft <= 0
-                          ? 'Завршена!'
-                          : endDate
-                            ? `до ${formatDateShortMK(endDate)}`
-                            : `${daysLeft}+ дена`
-                        }
+                        {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
                       </span>
                     ) : (
                       <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
@@ -284,27 +300,26 @@ export default function ManageFoodInventory() {
         );
       })()}
 
-      {/* Add purchase form */}
+      {/* ── Add purchase form ── */}
       <div className="card mb-4 animate-in-delay-1">
         <h3 className="section-title text-sm mb-3 flex items-center gap-2">
           <Plus size={15} className="text-[var(--success)]" />
           Додај набавка
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+        {/* Document info row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Тип храна</label>
-            <select value={foodType} onChange={(e) => setFoodType(e.target.value)}
-              className="input-base">
-              {FOOD_TYPES.map(ft => (
-                <option key={ft} value={ft}>{ft}</option>
-              ))}
-            </select>
+            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Добавувач</label>
+            <input type="text" value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              className="input-base" placeholder="нпр. Coppens" />
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Количина (kg)</label>
-            <input type="number" step="any" value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="input-base" placeholder="нпр. 25" />
+            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на документ</label>
+            <input type="text" value={documentNumber}
+              onChange={(e) => setDocumentNumber(e.target.value)}
+              className="input-base" placeholder="нпр. ФА-00123" />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на набавка</label>
@@ -312,18 +327,53 @@ export default function ManageFoodInventory() {
               onChange={(e) => setPurchaseDate(e.target.value)}
               className="input-base" />
           </div>
-          <div className="flex items-end">
-            <button onClick={handlePurchase} disabled={saving} className="btn-primary w-full py-2.5">
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="wave-loader"><span /><span /><span /><span /></div>
-                </span>
-              ) : (
-                <><Plus size={15} /> Додај</>
-              )}
-            </button>
-          </div>
         </div>
+
+        {/* Separator */}
+        <div className="border-t border-[var(--border)] pt-3 mb-3">
+          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Ставки</label>
+        </div>
+
+        {/* Food items */}
+        <div className="space-y-2 mb-3">
+          {purchaseItems.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <select value={item.food_type} onChange={(e) => updateItem(idx, 'food_type', e.target.value)}
+                className="input-base flex-1 text-xs">
+                {FOOD_TYPES.map(ft => (
+                  <option key={ft} value={ft}>{ft}</option>
+                ))}
+              </select>
+              <input type="number" step="any" value={item.quantity_kg}
+                onChange={(e) => updateItem(idx, 'quantity_kg', e.target.value)}
+                className="input-base w-24 text-xs" placeholder="kg" />
+              {purchaseItems.length > 1 && (
+                <button onClick={() => removeItem(idx)}
+                  className="p-1.5 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex-shrink-0"
+                  title="Тргни">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button onClick={addItem}
+            className="btn-ghost text-xs flex items-center gap-1 text-[var(--primary)]">
+            <Plus size={13} /> Додај ставка
+          </button>
+          <button onClick={handlePurchase} disabled={saving} className="btn-primary !px-5 py-2.5">
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="wave-loader"><span /><span /><span /><span /></div>
+              </span>
+            ) : (
+              <><Plus size={15} /> Зачувај набавка</>
+            )}
+          </button>
+        </div>
+
         {message && (
           <p className={`text-xs mt-3 font-medium ${message.includes('додадена') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
             {message}
@@ -331,7 +381,7 @@ export default function ManageFoodInventory() {
         )}
       </div>
 
-      {/* Recent log */}
+      {/* ── Recent log ── */}
       {log.length > 0 && (
         <div className="card animate-in-delay-2">
           <h3 className="section-title text-sm mb-3 flex items-center gap-2">
@@ -359,7 +409,7 @@ export default function ManageFoodInventory() {
                   {/* Inline edit mode */}
                   {isEditing ? (
                     <div className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)] border border-[var(--primary)] space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <select value={editFoodType} onChange={(e) => setEditFoodType(e.target.value)}
                           className="input-base text-xs !py-1.5">
                           {FOOD_TYPES.map(ft => (
@@ -369,9 +419,17 @@ export default function ManageFoodInventory() {
                         <input type="number" step="any" value={editQuantity}
                           onChange={(e) => setEditQuantity(e.target.value)}
                           className="input-base text-xs !py-1.5" placeholder="kg" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
                         <input type="date" value={editDate}
                           onChange={(e) => setEditDate(e.target.value)}
                           className="input-base text-xs !py-1.5" />
+                        <input type="text" value={editSupplier}
+                          onChange={(e) => setEditSupplier(e.target.value)}
+                          className="input-base text-xs !py-1.5" placeholder="Добавувач" />
+                        <input type="text" value={editDocNumber}
+                          onChange={(e) => setEditDocNumber(e.target.value)}
+                          className="input-base text-xs !py-1.5" placeholder="Бр. документ" />
                       </div>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={cancelEdit}
@@ -404,7 +462,7 @@ export default function ManageFoodInventory() {
                   ) : (
                     /* Normal row */
                     <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150 group">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         {isPurchase ? (
                           <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
                         ) : (
@@ -412,11 +470,17 @@ export default function ManageFoodInventory() {
                         )}
                         <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
                         {isPurchase && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium">набавка</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium flex-shrink-0">набавка</span>
+                        )}
+                        {isPurchase && (entry.supplier || entry.document_number) && (
+                          <span className="text-[9px] text-[var(--text-muted)] truncate flex items-center gap-0.5" title={[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}>
+                            <FileText size={9} />
+                            {[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}
+                          </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold flex-shrink-0 ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`font-bold ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
                           {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
                         </span>
                         {isPurchase && entry.id && (

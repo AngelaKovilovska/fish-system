@@ -57,41 +57,51 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // POST /api/food-inventory/purchase - add purchased food (admin only)
+// Supports both single item { food_type, quantity_kg, purchase_date, supplier, document_number }
+// and multi-item { items: [{ food_type, quantity_kg }], purchase_date, supplier, document_number }
 router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { food_type, quantity_kg, purchase_date } = req.body;
-    if (!food_type || !quantity_kg || quantity_kg <= 0) {
-      return res.status(400).json({ error: 'Внесете тип и количина (> 0)' });
+    const { supplier, document_number, purchase_date } = req.body;
+    const date = purchase_date || new Date().toISOString().split('T')[0];
+
+    // Normalize to items array
+    let items;
+    if (req.body.items && Array.isArray(req.body.items)) {
+      items = req.body.items.filter(it => it.food_type && it.quantity_kg > 0);
+    } else if (req.body.food_type && req.body.quantity_kg > 0) {
+      items = [{ food_type: req.body.food_type, quantity_kg: req.body.quantity_kg }];
+    } else {
+      return res.status(400).json({ error: 'Внесете барем еден тип храна со количина > 0' });
+    }
+
+    if (items.length === 0) {
+      return res.status(400).json({ error: 'Внесете барем еден тип храна со количина > 0' });
     }
 
     await client.query('BEGIN');
 
-    // Upsert inventory
-    await client.query(
-      `INSERT INTO food_inventory (food_type, quantity_kg, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (food_type) DO UPDATE SET
-         quantity_kg = food_inventory.quantity_kg + $2,
-         updated_at = NOW()`,
-      [food_type, quantity_kg]
-    );
+    for (const item of items) {
+      // Upsert inventory
+      await client.query(
+        `INSERT INTO food_inventory (food_type, quantity_kg, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (food_type) DO UPDATE SET
+           quantity_kg = food_inventory.quantity_kg + $2,
+           updated_at = NOW()`,
+        [item.food_type, item.quantity_kg]
+      );
 
-    // Log the purchase
-    await client.query(
-      `INSERT INTO food_inventory_log (food_type, change_kg, reason, created_by, purchased_at)
-       VALUES ($1, $2, 'purchase', $3, $4)`,
-      [food_type, quantity_kg, req.user.id, purchase_date || new Date().toISOString().split('T')[0]]
-    );
+      // Log the purchase with supplier/doc info
+      await client.query(
+        `INSERT INTO food_inventory_log (food_type, change_kg, reason, created_by, purchased_at, supplier, document_number)
+         VALUES ($1, $2, 'purchase', $3, $4, $5, $6)`,
+        [item.food_type, item.quantity_kg, req.user.id, date, supplier || null, document_number || null]
+      );
+    }
 
     await client.query('COMMIT');
-
-    // Return updated inventory
-    const result = await pool.query(
-      'SELECT * FROM food_inventory WHERE food_type = $1', [food_type]
-    );
-
-    res.json({ message: 'Набавката е додадена', item: result.rows[0] });
+    res.json({ message: 'Набавката е додадена', count: items.length });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Purchase error:', err);
@@ -106,7 +116,7 @@ router.put('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
-    const { food_type, quantity_kg, purchase_date } = req.body;
+    const { food_type, quantity_kg, purchase_date, supplier, document_number } = req.body;
 
     if (!quantity_kg || quantity_kg <= 0) {
       return res.status(400).json({ error: 'Количината мора да е поголема од 0' });
@@ -129,9 +139,13 @@ router.put('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
       `UPDATE food_inventory_log
        SET food_type = COALESCE($1, food_type),
            change_kg = $2,
-           purchased_at = COALESCE($3, purchased_at)
-       WHERE id = $4 AND reason = 'purchase'`,
-      [food_type || oldEntry.food_type, quantity_kg, purchase_date || oldEntry.purchased_at, id]
+           purchased_at = COALESCE($3, purchased_at),
+           supplier = COALESCE($4, supplier),
+           document_number = COALESCE($5, document_number)
+       WHERE id = $6 AND reason = 'purchase'`,
+      [food_type || oldEntry.food_type, quantity_kg, purchase_date || oldEntry.purchased_at,
+       supplier !== undefined ? supplier : oldEntry.supplier,
+       document_number !== undefined ? document_number : oldEntry.document_number, id]
     );
 
     // Update inventory updated_at timestamps
@@ -207,7 +221,8 @@ router.get('/log', authMiddleware, async (req, res) => {
     // Purchases from log (individual entries)
     const purchases = await pool.query(
       `SELECT fil.id, fil.food_type, fil.change_kg, fil.reason,
-              fil.purchased_at as date, u.full_name as created_by_name
+              fil.purchased_at as date, u.full_name as created_by_name,
+              fil.supplier, fil.document_number
        FROM food_inventory_log fil
        LEFT JOIN users u ON fil.created_by = u.id
        WHERE fil.reason = 'purchase' AND fil.purchased_at >= $1
