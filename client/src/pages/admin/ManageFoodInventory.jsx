@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search } from 'lucide-react';
 
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -28,8 +28,10 @@ export default function ManageFoodInventory() {
   const [purchaseItems, setPurchaseItems] = useState([emptyItem()]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEntryIds, setEditingEntryIds] = useState([]);
 
-  // Edit state
+  // Single-entry edit state (from log)
   const [editId, setEditId] = useState(null);
   const [editFoodType, setEditFoodType] = useState('');
   const [editQuantity, setEditQuantity] = useState('');
@@ -41,11 +43,14 @@ export default function ManageFoodInventory() {
   // Delete state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
+  // Browse log by date
+  const [logDays, setLogDays] = useState(3);
+
   const load = async () => {
     try {
       const [invData, logData, projData] = await Promise.all([
         api.getFoodInventory(),
-        api.getFoodInventoryLog(3),
+        api.getFoodInventoryLog(logDays),
         api.getStockProjection().catch(() => null),
       ]);
       setInventory(invData.inventory);
@@ -57,7 +62,7 @@ export default function ManageFoodInventory() {
 
   const proj = stockProjection?.projections || {};
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [logDays]);
 
   // Purchase item management
   const updateItem = (idx, field, value) => {
@@ -69,6 +74,43 @@ export default function ManageFoodInventory() {
     setPurchaseItems(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Load existing purchases for a date into the form for editing
+  const loadDatePurchases = (dateStr) => {
+    const datePurchases = log.filter(e =>
+      e.reason === 'purchase' &&
+      new Date(e.date).toISOString().split('T')[0] === dateStr
+    );
+
+    if (datePurchases.length > 0) {
+      setIsEditMode(true);
+      setEditingEntryIds(datePurchases.map(e => e.id));
+      setPurchaseItems(datePurchases.map(e => ({
+        id: e.id,
+        food_type: e.food_type,
+        quantity_kg: Math.abs(parseFloat(e.change_kg)).toString(),
+      })));
+      // Take supplier/doc from first entry
+      setSupplier(datePurchases[0].supplier || '');
+      setDocumentNumber(datePurchases[0].document_number || '');
+    } else {
+      resetForm();
+    }
+  };
+
+  const handleDateChange = (newDate) => {
+    setPurchaseDate(newDate);
+    loadDatePurchases(newDate);
+  };
+
+  const resetForm = () => {
+    setIsEditMode(false);
+    setEditingEntryIds([]);
+    setPurchaseItems([emptyItem()]);
+    setSupplier('');
+    setDocumentNumber('');
+    setMessage('');
+  };
+
   const handlePurchase = async () => {
     const validItems = purchaseItems.filter(it => it.food_type && parseFloat(it.quantity_kg) > 0);
     if (validItems.length === 0) {
@@ -77,16 +119,21 @@ export default function ManageFoodInventory() {
     }
     setSaving(true); setMessage('');
     try {
+      if (isEditMode) {
+        // Delete old entries then insert new ones
+        for (const oldId of editingEntryIds) {
+          await api.deleteFoodPurchase(oldId);
+        }
+      }
       await api.addFoodPurchase({
         supplier: supplier.trim() || undefined,
         document_number: documentNumber.trim() || undefined,
         purchase_date: purchaseDate,
         items: validItems.map(it => ({ food_type: it.food_type, quantity_kg: parseFloat(it.quantity_kg) })),
       });
-      setMessage('Набавката е додадена!');
-      setPurchaseItems([emptyItem()]);
-      setSupplier('');
-      setDocumentNumber('');
+      setMessage(isEditMode ? 'Набавката е ажурирана!' : 'Набавката е додадена!');
+      resetForm();
+      setPurchaseDate(new Date().toISOString().split('T')[0]);
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
@@ -102,9 +149,7 @@ export default function ManageFoodInventory() {
     setDeleteConfirmId(null);
   };
 
-  const cancelEdit = () => {
-    setEditId(null);
-  };
+  const cancelEdit = () => { setEditId(null); };
 
   const saveEdit = async () => {
     if (!editQuantity || parseFloat(editQuantity) <= 0) return;
@@ -129,6 +174,14 @@ export default function ManageFoodInventory() {
       setDeleteConfirmId(null);
       await load();
     } catch (err) { console.error(err); }
+  };
+
+  // Load purchases for a date from log into the form
+  const editDateFromLog = (dateStr) => {
+    setPurchaseDate(dateStr);
+    loadDatePurchases(dateStr);
+    // Scroll to form
+    document.getElementById('purchase-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   if (loading) return (
@@ -300,32 +353,47 @@ export default function ManageFoodInventory() {
         );
       })()}
 
-      {/* ── Add purchase form ── */}
-      <div className="card mb-4 animate-in-delay-1">
-        <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-          <Plus size={15} className="text-[var(--success)]" />
-          Додај набавка
-        </h3>
+      {/* ── Add/Edit purchase form ── */}
+      <div id="purchase-form" className="card mb-4 animate-in-delay-1">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="section-title text-sm !mb-0 flex items-center gap-2">
+            {isEditMode ? <Pencil size={15} className="text-[var(--primary)]" /> : <Plus size={15} className="text-[var(--success)]" />}
+            {isEditMode ? 'Измени набавка' : 'Додај набавка'}
+          </h3>
+          {isEditMode && (
+            <button onClick={() => { resetForm(); setPurchaseDate(new Date().toISOString().split('T')[0]); }}
+              className="btn-ghost text-xs text-[var(--text-muted)] flex items-center gap-1">
+              <X size={12} /> Откажи
+            </button>
+          )}
+        </div>
 
-        {/* Document info row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-          <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Добавувач</label>
-            <input type="text" value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              className="input-base" placeholder="нпр. Coppens" />
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на документ</label>
-            <input type="text" value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
-              className="input-base" placeholder="нпр. ФА-00123" />
+        {/* Document info */}
+        <div className="space-y-3 mb-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Добавувач</label>
+              <input type="text" value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+                className="input-base" placeholder="нпр. Coppens" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на документ</label>
+              <input type="text" value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                className="input-base" placeholder="нпр. ФА-00123" />
+            </div>
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на набавка</label>
             <input type="date" value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
+              onChange={(e) => handleDateChange(e.target.value)}
               className="input-base" />
+            {isEditMode && (
+              <p className="text-[10px] text-[var(--primary)] mt-1 font-medium">
+                Пронајдени {editingEntryIds.length} набавки за овој датум — можете да ги измените
+              </p>
+            )}
           </div>
         </div>
 
@@ -334,26 +402,29 @@ export default function ManageFoodInventory() {
           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Ставки</label>
         </div>
 
-        {/* Food items */}
-        <div className="space-y-2 mb-3">
+        {/* Food items — each item is a row with select + input */}
+        <div className="space-y-2.5 mb-3">
           {purchaseItems.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <select value={item.food_type} onChange={(e) => updateItem(idx, 'food_type', e.target.value)}
-                className="input-base"
-                style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', flex: '3 1 0%', minWidth: 0 }}>
-                {FOOD_TYPES.map(ft => (
-                  <option key={ft} value={ft}>{ft}</option>
-                ))}
-              </select>
-              <input type="number" step="any" value={item.quantity_kg}
-                onChange={(e) => updateItem(idx, 'quantity_kg', e.target.value)}
-                className="input-base" placeholder="kg"
-                style={{ fontSize: '0.8125rem', flex: '1 1 0%', minWidth: '70px', maxWidth: '100px' }} />
+            <div key={idx} className="flex gap-2 items-start">
+              <div className="flex-1 min-w-0">
+                <select value={item.food_type}
+                  onChange={(e) => updateItem(idx, 'food_type', e.target.value)}
+                  className="input-base w-full">
+                  {FOOD_TYPES.map(ft => (
+                    <option key={ft} value={ft}>{ft}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-20 flex-shrink-0">
+                <input type="number" step="any" value={item.quantity_kg}
+                  onChange={(e) => updateItem(idx, 'quantity_kg', e.target.value)}
+                  className="input-base w-full text-center" placeholder="kg" />
+              </div>
               {purchaseItems.length > 1 && (
                 <button onClick={() => removeItem(idx)}
-                  className="p-1.5 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex-shrink-0"
+                  className="p-2 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex-shrink-0 mt-0.5"
                   title="Тргни">
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               )}
             </div>
@@ -365,19 +436,22 @@ export default function ManageFoodInventory() {
             className="btn-ghost text-xs flex items-center gap-1 text-[var(--primary)]">
             <Plus size={13} /> Додај ставка
           </button>
-          <button onClick={handlePurchase} disabled={saving} className="btn-primary !px-5 py-2.5">
+          <button onClick={handlePurchase} disabled={saving}
+            className="btn-primary !px-5 py-2.5">
             {saving ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="wave-loader"><span /><span /><span /><span /></div>
               </span>
+            ) : isEditMode ? (
+              <><Check size={15} /> Ажурирај</>
             ) : (
-              <><Plus size={15} /> Зачувај набавка</>
+              <><Plus size={15} /> Зачувај</>
             )}
           </button>
         </div>
 
         {message && (
-          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') || message.includes('ажурирана') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
             {message}
           </p>
         )}
@@ -386,10 +460,24 @@ export default function ManageFoodInventory() {
       {/* ── Recent log ── */}
       {log.length > 0 && (
         <div className="card animate-in-delay-2">
-          <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-            <Clock size={15} className="text-[var(--text-muted)]" />
-            Последни 3 дена
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="section-title text-sm !mb-0 flex items-center gap-2">
+              <Clock size={15} className="text-[var(--text-muted)]" />
+              Историја
+            </h3>
+            <div className="flex items-center gap-1">
+              {[3, 7, 30].map(d => (
+                <button key={d} onClick={() => setLogDays(d)}
+                  className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                    logDays === d
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
+                  }`}>
+                  {d}д
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
             {log.map((entry, i) => {
               const dateStr = new Date(entry.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -398,13 +486,23 @@ export default function ManageFoodInventory() {
               const isPurchase = entry.reason === 'purchase';
               const isEditing = editId === entry.id;
               const isDeleting = deleteConfirmId === entry.id;
+              const entryDateISO = new Date(entry.date).toISOString().split('T')[0];
 
               return (
                 <div key={`${entry.reason}-${entry.food_type}-${entry.date}-${i}`}>
                   {showDateHeader && (
-                    <div className={`flex items-center gap-2 ${i > 0 ? 'mt-3 pt-3 border-t border-[var(--border)]' : ''} mb-1.5`}>
-                      <Calendar size={11} className="text-[var(--text-muted)]" />
-                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">{dateStr}</span>
+                    <div className={`flex items-center justify-between ${i > 0 ? 'mt-3 pt-3 border-t border-[var(--border)]' : ''} mb-1.5`}>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={11} className="text-[var(--text-muted)]" />
+                        <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">{dateStr}</span>
+                      </div>
+                      {/* Edit all purchases for this date */}
+                      {log.some(e => e.reason === 'purchase' && new Date(e.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) === dateStr) && (
+                        <button onClick={() => editDateFromLog(entryDateISO)}
+                          className="text-[9px] px-2 py-0.5 rounded-full text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors flex items-center gap-1 font-medium">
+                          <Pencil size={9} /> Измени ден
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -445,10 +543,9 @@ export default function ManageFoodInventory() {
                       </div>
                     </div>
                   ) : isDeleting ? (
-                    /* Delete confirmation */
                     <div className="p-2.5 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 border border-[var(--danger)]">
                       <p className="text-xs text-[var(--danger)] font-medium mb-2">
-                        Избриши набавка: {entry.food_type} — {Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg?
+                        Избриши: {entry.food_type} — {Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg?
                       </p>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => setDeleteConfirmId(null)}
@@ -475,8 +572,8 @@ export default function ManageFoodInventory() {
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium flex-shrink-0">набавка</span>
                         )}
                         {isPurchase && (entry.supplier || entry.document_number) && (
-                          <span className="text-[9px] text-[var(--text-muted)] truncate flex items-center gap-0.5" title={[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}>
-                            <FileText size={9} />
+                          <span className="text-[9px] text-[var(--text-muted)] truncate hidden sm:inline-flex items-center gap-0.5" title={[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}>
+                            <FileText size={9} className="flex-shrink-0" />
                             {[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}
                           </span>
                         )}
