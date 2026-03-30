@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { POOL_NUMBERS } from '../lib/constants';
-import { Mail, Eye, ChevronLeft, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer } from 'lucide-react';
 
 const REPORT_TYPES = [
   { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
@@ -126,6 +126,111 @@ export default function Reports() {
   };
 
   const report = REPORT_TYPES.find(r => r.key === activeReport);
+
+  const handlePrint = () => {
+    if (!previewData && activeReport !== 'inventory') return;
+    const title = report?.label || 'Извештај';
+    let subtitle = '';
+    if (report?.needsDates) subtitle = `Период: ${fmtDate(from)} — ${fmtDate(to)}`;
+    if (poolNumber) subtitle += ` | Базен ${poolNumber}`;
+    if (activeReport === 'weight' && measurementDate) subtitle = `Датум на мерење: ${fmtDate(measurementDate)}${poolNumber ? ` | Базен ${poolNumber}` : ''}`;
+
+    let tableHTML = '';
+
+    if (activeReport === 'food') {
+      const rows = (previewData.data || []).map(d =>
+        `<tr><td>${d.food_type || 'Непознат'}</td><td class="r">${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–'}</td><td class="r">${(parseFloat(d.total_gr) / 1000).toFixed(2)}</td><td class="r">${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–'}</td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Тип храна</th><th class="r">Набавено (kg)</th><th class="r">Потрошено (kg)</th><th class="r">Преостанато (kg)</th></tr></thead><tbody>${rows}</tbody></table>
+        <p class="total">Вкупно потрошена храна: ${previewData.totalKg} kg</p>`;
+    }
+
+    if (activeReport === 'weight') {
+      const rows = (previewData.data || []).map(d =>
+        `<tr><td>${fmtDate(d.measured_at)}</td><td>Базен ${d.pool_number}</td><td class="r">${d.fish_count}</td><td class="r">${d.avg_weight_gr}</td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Датум</th><th>Базен</th><th class="r">Број риби</th><th class="r">Тежина (gr)</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    if (activeReport === 'alerts') {
+      const rows = (previewData.data || []).map(d =>
+        `<tr><td>${fmtDate(d.date)}</td><td>${PARAM_LABELS[d.parameter_name] || d.parameter_name}</td><td class="r danger">${d.value}</td><td class="r">${d.min_norm ?? '–'}</td><td class="r">${d.max_norm ?? '–'}</td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Датум</th><th>Параметар</th><th class="r">Вредност</th><th class="r">Мин</th><th class="r">Макс</th></tr></thead><tbody>${rows}</tbody></table>
+        <p class="total">Вкупно аларми: ${previewData.total}</p>`;
+    }
+
+    if (activeReport === 'sorting') {
+      const rows = (previewData.dates || []).map((d, i) =>
+        `<tr><td class="r">${i + 1}</td><td>${d}</td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Бр.</th><th>Датум на сортирање</th></tr></thead><tbody>${rows}</tbody></table>
+        <p class="total">Вкупно сортирања: ${previewData.total}</p>`;
+    }
+
+    if (activeReport === 'purchases') {
+      const rows = (previewData.data || []).map(d =>
+        `<tr><td>${fmtDate(d.purchased_at || d.created_at)}</td><td>${d.food_type}</td><td class="r">${parseFloat(d.change_kg).toFixed(2)}</td><td>${d.created_by_name || '–'}</td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Датум</th><th>Тип храна</th><th class="r">Количина (kg)</th><th>Внесено од</th></tr></thead><tbody>${rows}</tbody></table>
+        <p class="total">Вкупно набавки: ${previewData.total} | Вкупно количина: ${previewData.totalKg} kg</p>`;
+    }
+
+    if (activeReport === 'inventory') {
+      const invRows = inventory.map(item =>
+        `<tr><td>${item.food_type}</td><td class="r" style="font-weight:700;${parseFloat(item.quantity_kg) <= 5 ? 'color:#dc2626' : parseFloat(item.quantity_kg) <= 15 ? 'color:#d97706' : ''}">${parseFloat(item.quantity_kg).toFixed(2)}</td><td class="r">${fmtDate(item.updated_at)}</td></tr>`
+      ).join('');
+      const logRows = inventoryLog.slice(0, 30).map(entry =>
+        `<tr><td>${entry.food_type}</td><td class="r" style="font-weight:700;${entry.reason === 'purchase' ? 'color:#16a34a' : 'color:#dc2626'}">${entry.reason === 'purchase' ? '+' : ''}${parseFloat(entry.change_kg).toFixed(2)} kg</td><td>${entry.reason === 'purchase' ? 'Набавка' : 'Потрошувачка'}</td><td class="r">${fmtDate(entry.purchased_at || entry.created_at)}</td></tr>`
+      ).join('');
+      tableHTML = `<h3>Тековни залихи</h3>
+        <table><thead><tr><th>Тип храна</th><th class="r">Залиха (kg)</th><th class="r">Ажурирано</th></tr></thead><tbody>${invRows}</tbody></table>
+        ${inventoryLog.length > 0 ? `<h3 style="margin-top:24px">Последни промени</h3>
+        <table><thead><tr><th>Тип храна</th><th class="r">Промена</th><th>Тип</th><th class="r">Датум</th></tr></thead><tbody>${logRows}</tbody></table>` : ''}`;
+      subtitle = `Генерирано: ${fmtDate(new Date())}`;
+    }
+
+    const now = new Date();
+    const printDate = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} — ФАМАКОМ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;padding:24px;font-size:12px;max-width:900px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1a8a;padding-bottom:12px;margin-bottom:20px}
+.brand{font-size:18px;font-weight:800;color:#1a1a8a;letter-spacing:0.5px}
+.brand-sub{font-size:10px;color:#666;margin-top:2px}
+.print-date{font-size:10px;color:#888;text-align:right}
+h2{font-size:16px;color:#1a1a2e;margin-bottom:4px}
+h3{font-size:13px;color:#1a1a8a;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}
+.subtitle{font-size:11px;color:#666;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
+th{background:#f0f4ff;color:#1a1a8a;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.3px;padding:8px 10px;border-bottom:2px solid #c7d2fe;text-align:left}
+td{padding:7px 10px;border-bottom:1px solid #e5e7eb}
+tr:nth-child(even){background:#fafbff}
+.r{text-align:right}
+.danger{color:#dc2626;font-weight:700}
+.total{background:#f0f4ff;padding:10px 14px;border-radius:6px;font-weight:700;color:#1a1a8a;margin-top:8px;font-size:12px}
+.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;font-size:9px;color:#aaa}
+@media print{body{padding:12px}@page{margin:15mm 10mm;size:A4}}
+</style></head><body>
+<div class="header">
+  <div><div class="brand">ФАМАКОМ АКВАКУЛТУРА</div><div class="brand-sub">Систем за управување со рибник</div></div>
+  <div class="print-date">Испечатено: ${printDate}</div>
+</div>
+<h2>${title}</h2>
+${subtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
+${tableHTML}
+<div class="footer">ФАМАКОМ АКВАКУЛТУРА — Автоматски генериран извештај</div>
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
 
   const renderPreview = () => {
     if (!previewData) return null;
@@ -421,7 +526,18 @@ export default function Reports() {
         </div>
 
         {/* Inventory — show content directly */}
-        {isInventory && renderInventory()}
+        {isInventory && (
+          <>
+            {renderInventory()}
+            {!inventoryLoading && inventory.length > 0 && (
+              <div className="mt-4">
+                <button onClick={handlePrint} className="btn-secondary w-full py-3">
+                  <Printer size={18} /> Принтај извештај
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Standard reports — form or preview */}
         {!isInventory && !previewData && (
@@ -510,16 +626,21 @@ export default function Reports() {
 
             {renderPreview()}
 
-            <button onClick={handleSendEmail} disabled={sending} className="btn-primary w-full py-3">
-              {sending ? (
-                <span className="flex items-center gap-2">
-                  <div className="wave-loader"><span /><span /><span /><span /></div>
-                  Се испраќа...
-                </span>
-              ) : (
-                <><Mail size={18} /> Испрати на email</>
-              )}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={handlePrint} className="btn-secondary w-full py-3">
+                <Printer size={18} /> Принтај
+              </button>
+              <button onClick={handleSendEmail} disabled={sending} className="btn-primary w-full py-3">
+                {sending ? (
+                  <span className="flex items-center gap-2">
+                    <div className="wave-loader"><span /><span /><span /><span /></div>
+                    Се испраќа...
+                  </span>
+                ) : (
+                  <><Mail size={18} /> Испрати на email</>
+                )}
+              </button>
+            </div>
 
             {emailSent && <div className="alert-success text-xs">Извештајот е испратен на вашиот email.</div>}
             {error && <div className="alert-danger text-xs">{error}</div>}

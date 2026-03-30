@@ -15,6 +15,42 @@ function formatDateShortMK(dateStr) {
 
 const emptyItem = () => ({ food_type: FOOD_TYPES[0], quantity_kg: '' });
 
+// Transliteration maps for fuzzy search (Latin ↔ Cyrillic)
+const latToCyr = { a:'а', b:'б', v:'в', g:'г', d:'д', e:'е', zh:'ж', z:'з', i:'и', j:'ј', k:'к', l:'л', m:'м', n:'н', o:'о', p:'п', r:'р', s:'с', t:'т', u:'у', f:'ф', h:'х', c:'ц', ch:'ч', sh:'ш', dz:'ѕ' };
+const cyrToLat = {};
+Object.entries(latToCyr).forEach(([l, c]) => { cyrToLat[c] = l; });
+
+function normalizeSearch(str) {
+  if (!str) return '';
+  let s = str.toLowerCase();
+  // Convert Latin to Cyrillic (multi-char first: zh, ch, sh, dz)
+  let cyr = '';
+  let i = 0;
+  while (i < s.length) {
+    const two = s.substring(i, i + 2);
+    if (latToCyr[two]) { cyr += latToCyr[two]; i += 2; }
+    else if (latToCyr[s[i]]) { cyr += latToCyr[s[i]]; i++; }
+    else { cyr += s[i]; i++; }
+  }
+  // Also build Latin version
+  let lat = '';
+  for (const ch of s) {
+    lat += cyrToLat[ch] || ch;
+  }
+  return { cyr, lat, orig: s };
+}
+
+function fuzzyMatch(haystack, needle) {
+  if (!needle) return true;
+  const h = (haystack || '').toLowerCase();
+  const n = normalizeSearch(needle);
+  const hNorm = normalizeSearch(h);
+  // Match if any normalized form of needle appears in any normalized form of haystack
+  return h.includes(n.orig) || h.includes(n.cyr) || h.includes(n.lat)
+    || hNorm.cyr.includes(n.cyr) || hNorm.cyr.includes(n.orig)
+    || hNorm.lat.includes(n.lat) || hNorm.lat.includes(n.orig);
+}
+
 export default function ManageFoodInventory() {
   const [inventory, setInventory] = useState([]);
   const [log, setLog] = useState([]);
@@ -467,11 +503,10 @@ export default function ManageFoodInventory() {
         // Apply filters
         const filteredLog = log.filter(entry => {
           if (searchSupplier) {
-            const s = (entry.supplier || '').toLowerCase();
-            if (!s.includes(searchSupplier.toLowerCase())) return false;
+            if (!fuzzyMatch(entry.supplier, searchSupplier)) return false;
           }
           if (searchProduct) {
-            if (entry.food_type !== searchProduct) return false;
+            if (!fuzzyMatch(entry.food_type, searchProduct)) return false;
           }
           if (searchDateFrom) {
             const entryDate = new Date(entry.date).toISOString().split('T')[0];
@@ -531,14 +566,9 @@ export default function ManageFoodInventory() {
                 </div>
                 <div>
                   <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Производ</label>
-                  <select value={searchProduct}
+                  <input type="text" value={searchProduct}
                     onChange={(e) => setSearchProduct(e.target.value)}
-                    className="input-base text-xs !py-1.5">
-                    <option value="">Сите</option>
-                    {FOOD_TYPES.map(ft => (
-                      <option key={ft} value={ft}>{ft}</option>
-                    ))}
-                  </select>
+                    className="input-base text-xs !py-1.5" placeholder="Пребарај..." />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
