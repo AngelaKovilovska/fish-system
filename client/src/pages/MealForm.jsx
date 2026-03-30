@@ -265,17 +265,6 @@ export default function MealForm() {
         )}
       </div>
 
-      {/* Pre-filled from last meal notice */}
-      {usingDefaults && lastMealDate && (
-        <div className="info-box mb-4 animate-in-delay-1 flex items-start gap-2 text-xs">
-          <Info size={14} className="flex-shrink-0 mt-0.5 text-[var(--primary)]" />
-          <span>
-            Пополнето од последен внес ({new Date(lastMealDate).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}).
-            Можете да ги промените вредностите.
-          </span>
-        </div>
-      )}
-
       {/* Pool tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 animate-in-delay-1">
         {POOL_NUMBERS.map(num => (
