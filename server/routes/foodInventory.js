@@ -101,6 +101,101 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// PUT /api/food-inventory/purchase/:id - edit a purchase entry (admin only)
+router.put('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { food_type, quantity_kg, purchase_date } = req.body;
+
+    if (!quantity_kg || quantity_kg <= 0) {
+      return res.status(400).json({ error: 'Количината мора да е поголема од 0' });
+    }
+
+    // Get the old entry first
+    const old = await client.query(
+      'SELECT * FROM food_inventory_log WHERE id = $1 AND reason = $2',
+      [id, 'purchase']
+    );
+    if (old.rows.length === 0) {
+      return res.status(404).json({ error: 'Набавката не е пронајдена' });
+    }
+    const oldEntry = old.rows[0];
+
+    await client.query('BEGIN');
+
+    // Update the log entry
+    await client.query(
+      `UPDATE food_inventory_log
+       SET food_type = COALESCE($1, food_type),
+           change_kg = $2,
+           purchased_at = COALESCE($3, purchased_at)
+       WHERE id = $4 AND reason = 'purchase'`,
+      [food_type || oldEntry.food_type, quantity_kg, purchase_date || oldEntry.purchased_at, id]
+    );
+
+    // Update inventory updated_at timestamps
+    const newFoodType = food_type || oldEntry.food_type;
+    await client.query(
+      'UPDATE food_inventory SET updated_at = NOW() WHERE food_type = $1',
+      [oldEntry.food_type]
+    );
+    if (newFoodType !== oldEntry.food_type) {
+      await client.query(
+        'UPDATE food_inventory SET updated_at = NOW() WHERE food_type = $1',
+        [newFoodType]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Набавката е ажурирана' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Update purchase error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /api/food-inventory/purchase/:id - delete a purchase entry (admin only)
+router.delete('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+
+    const old = await client.query(
+      'SELECT * FROM food_inventory_log WHERE id = $1 AND reason = $2',
+      [id, 'purchase']
+    );
+    if (old.rows.length === 0) {
+      return res.status(404).json({ error: 'Набавката не е пронајдена' });
+    }
+
+    await client.query('BEGIN');
+
+    await client.query(
+      "DELETE FROM food_inventory_log WHERE id = $1 AND reason = 'purchase'",
+      [id]
+    );
+
+    // Update inventory updated_at
+    await client.query(
+      'UPDATE food_inventory SET updated_at = NOW() WHERE food_type = $1',
+      [old.rows[0].food_type]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: 'Набавката е избришана' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Delete purchase error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/food-inventory/log - get inventory change history (aggregated by day)
 router.get('/log', authMiddleware, async (req, res) => {
   try {

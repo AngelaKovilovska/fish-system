@@ -89,6 +89,8 @@ export const api = {
   // Food inventory
   getFoodInventory: () => request('/food-inventory'),
   addFoodPurchase: (data) => request('/food-inventory/purchase', { method: 'POST', body: JSON.stringify(data) }),
+  updateFoodPurchase: (id, data) => request(`/food-inventory/purchase/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFoodPurchase: (id) => request(`/food-inventory/purchase/${id}`, { method: 'DELETE' }),
   getFoodInventoryLog: (days) => request(`/food-inventory/log?days=${days || 3}`),
 
   // AI Feeding Recommendations

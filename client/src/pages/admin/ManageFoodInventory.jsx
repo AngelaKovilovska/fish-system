@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X } from 'lucide-react';
 
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -23,6 +23,16 @@ export default function ManageFoodInventory() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [stockProjection, setStockProjection] = useState(null);
+
+  // Edit state
+  const [editId, setEditId] = useState(null);
+  const [editFoodType, setEditFoodType] = useState('');
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Delete state
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const load = async () => {
     try {
@@ -55,6 +65,44 @@ export default function ManageFoodInventory() {
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
+  };
+
+  const startEdit = (entry) => {
+    setEditId(entry.id);
+    setEditFoodType(entry.food_type);
+    setEditQuantity(Math.abs(parseFloat(entry.change_kg)).toString());
+    setEditDate(new Date(entry.date).toISOString().split('T')[0]);
+    setDeleteConfirmId(null);
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditFoodType('');
+    setEditQuantity('');
+    setEditDate('');
+  };
+
+  const saveEdit = async () => {
+    if (!editQuantity || parseFloat(editQuantity) <= 0) return;
+    setEditSaving(true);
+    try {
+      await api.updateFoodPurchase(editId, {
+        food_type: editFoodType,
+        quantity_kg: parseFloat(editQuantity),
+        purchase_date: editDate,
+      });
+      cancelEdit();
+      await load();
+    } catch (err) { console.error(err); }
+    finally { setEditSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteFoodPurchase(id);
+      setDeleteConfirmId(null);
+      await load();
+    } catch (err) { console.error(err); }
   };
 
   if (loading) return (
@@ -290,12 +338,15 @@ export default function ManageFoodInventory() {
             <Clock size={15} className="text-[var(--text-muted)]" />
             Последни 3 дена
           </h3>
-          <div className="space-y-1.5 max-h-[350px] overflow-y-auto">
+          <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
             {log.map((entry, i) => {
               const dateStr = new Date(entry.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
               const prevDate = i > 0 ? new Date(log[i-1].date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
               const showDateHeader = dateStr !== prevDate;
               const isPurchase = entry.reason === 'purchase';
+              const isEditing = editId === entry.id;
+              const isDeleting = deleteConfirmId === entry.id;
+
               return (
                 <div key={`${entry.reason}-${entry.food_type}-${entry.date}-${i}`}>
                   {showDateHeader && (
@@ -304,22 +355,87 @@ export default function ManageFoodInventory() {
                       <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">{dateStr}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {isPurchase ? (
-                        <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
-                      ) : (
-                        <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
-                      )}
-                      <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
-                      {isPurchase && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium">набавка</span>
-                      )}
+
+                  {/* Inline edit mode */}
+                  {isEditing ? (
+                    <div className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)] border border-[var(--primary)] space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <select value={editFoodType} onChange={(e) => setEditFoodType(e.target.value)}
+                          className="input-base text-xs !py-1.5">
+                          {FOOD_TYPES.map(ft => (
+                            <option key={ft} value={ft}>{ft}</option>
+                          ))}
+                        </select>
+                        <input type="number" step="any" value={editQuantity}
+                          onChange={(e) => setEditQuantity(e.target.value)}
+                          className="input-base text-xs !py-1.5" placeholder="kg" />
+                        <input type="date" value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="input-base text-xs !py-1.5" />
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={cancelEdit}
+                          className="btn-ghost text-xs px-2.5 py-1 flex items-center gap-1 text-[var(--text-muted)]">
+                          <X size={12} /> Откажи
+                        </button>
+                        <button onClick={saveEdit} disabled={editSaving}
+                          className="btn-primary text-xs !px-3 !py-1 flex items-center gap-1">
+                          <Check size={12} /> Зачувај
+                        </button>
+                      </div>
                     </div>
-                    <span className={`font-bold flex-shrink-0 ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
-                      {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
-                    </span>
-                  </div>
+                  ) : isDeleting ? (
+                    /* Delete confirmation */
+                    <div className="p-2.5 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 border border-[var(--danger)]">
+                      <p className="text-xs text-[var(--danger)] font-medium mb-2">
+                        Избриши набавка: {entry.food_type} — {Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg?
+                      </p>
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setDeleteConfirmId(null)}
+                          className="btn-ghost text-xs px-2.5 py-1 text-[var(--text-muted)]">
+                          Откажи
+                        </button>
+                        <button onClick={() => handleDelete(entry.id)}
+                          className="text-xs px-3 py-1 rounded-[var(--r-sm)] bg-[var(--danger)] text-white font-semibold hover:opacity-90 transition-opacity">
+                          Избриши
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Normal row */
+                    <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150 group">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isPurchase ? (
+                          <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
+                        ) : (
+                          <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+                        )}
+                        <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                        {isPurchase && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium">набавка</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold flex-shrink-0 ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                          {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
+                        </span>
+                        {isPurchase && entry.id && (
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => startEdit(entry)}
+                              className="p-1 rounded hover:bg-[var(--primary-muted)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                              title="Измени">
+                              <Pencil size={12} />
+                            </button>
+                            <button onClick={() => { setDeleteConfirmId(entry.id); setEditId(null); }}
+                              className="p-1 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+                              title="Избриши">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
