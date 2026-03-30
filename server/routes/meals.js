@@ -122,6 +122,46 @@ router.get('/status', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/meals/last-values?meal_type=breakfast - get last entered values per pool for a meal type
+router.get('/last-values', authMiddleware, async (req, res) => {
+  try {
+    const { meal_type } = req.query;
+    if (!meal_type || !VALID_MEAL_TYPES.includes(meal_type)) {
+      return res.status(400).json({ error: 'Невалиден тип на оброк' });
+    }
+
+    // Get the most recent date that has data for this meal type
+    const lastDate = await pool.query(
+      `SELECT date FROM pool_meals
+       WHERE meal_type = $1 AND food_type IS NOT NULL AND food_quantity_gr > 0
+       ORDER BY date DESC LIMIT 1`,
+      [meal_type]
+    );
+
+    if (lastDate.rows.length === 0) {
+      return res.json({ pools: [], lastDate: null });
+    }
+
+    const date = lastDate.rows[0].date;
+
+    const result = await pool.query(
+      `SELECT pool_number, food_type, food_quantity_gr
+       FROM pool_meals
+       WHERE date = $1 AND meal_type = $2
+       ORDER BY pool_number`,
+      [date, meal_type]
+    );
+
+    res.json({
+      pools: result.rows,
+      lastDate: date,
+    });
+  } catch (err) {
+    console.error('Get last meal values error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // POST /api/meals - save/update a meal (upsert)
 router.post('/', authMiddleware, async (req, res) => {
   const client = await pool.connect();

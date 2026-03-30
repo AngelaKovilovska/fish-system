@@ -1,19 +1,32 @@
 const API_BASE = '/api';
 
 async function request(url, options = {}) {
-  const res = await fetch(`${API_BASE}${url}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30 sec timeout
 
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API_BASE}${url}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      signal: controller.signal,
+      ...options,
+    });
 
-  if (!res.ok) {
-    throw new Error(data.error || 'Серверска грешка');
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Серверска грешка');
+    }
+
+    return data;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Барањето истече — серверот не одговори. Обидете се повторно.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data;
 }
 
 export const api = {
@@ -83,6 +96,7 @@ export const api = {
   },
   getMealsStatus: (date) => request(`/meals/status?date=${date}`),
   getMeals: (date) => request(`/meals?date=${date}`),
+  getLastMealValues: (meal_type) => request(`/meals/last-values?meal_type=${meal_type}`),
   saveMeal: (data) => request('/meals', { method: 'POST', body: JSON.stringify(data) }),
   deleteMeal: (date, meal_type) => request('/meals', { method: 'DELETE', body: JSON.stringify({ date, meal_type }) }),
 

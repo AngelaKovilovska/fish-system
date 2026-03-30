@@ -38,25 +38,32 @@ export default function MealForm() {
   const mealLabel = MEAL_LABELS[mealType] || mealType;
   const mealIcon = MEAL_ICONS[mealType] || '🍽️';
 
+  const [lastMealDate, setLastMealDate] = useState(null);
+  const [usingDefaults, setUsingDefaults] = useState(false);
+
   // Load meal data for the selected date
   const loadMealData = useCallback(async (date) => {
     setLoading(true);
     setError('');
     setSuccess('');
     setIsEdit(false);
+    setUsingDefaults(false);
+    setLastMealDate(null);
     setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' })));
 
     try {
-      const [mealsData, measurementsData, aiData] = await Promise.all([
+      const [mealsData, measurementsData, aiData, lastValues] = await Promise.all([
         api.getMeals(date),
         api.getPoolMeasurements(),
         api.getAIRecommendations().catch(() => null),
+        api.getLastMealValues(mealType).catch(() => ({ pools: [], lastDate: null })),
       ]);
 
       setAiRec(aiData);
 
       const existing = mealsData.meals.filter(m => m.meal_type === mealType);
       if (existing.length > 0) {
+        // Editing existing meal for this date
         setIsEdit(true);
         setPoolsData(POOL_NUMBERS.map(n => {
           const meal = existing.find(m => m.pool_number === n);
@@ -65,6 +72,19 @@ export default function MealForm() {
             food_type: meal?.food_type || '',
             food_quantity_gr: meal?.food_quantity_gr != null && meal.food_quantity_gr > 0
               ? meal.food_quantity_gr : '',
+          };
+        }));
+      } else if (lastValues.pools && lastValues.pools.length > 0) {
+        // No meal for this date — pre-fill with last entered values
+        setUsingDefaults(true);
+        setLastMealDate(lastValues.lastDate);
+        setPoolsData(POOL_NUMBERS.map(n => {
+          const last = lastValues.pools.find(p => p.pool_number === n);
+          return {
+            pool_number: n,
+            food_type: last?.food_type || '',
+            food_quantity_gr: last?.food_quantity_gr != null && parseFloat(last.food_quantity_gr) > 0
+              ? parseFloat(last.food_quantity_gr) : '',
           };
         }));
       }
@@ -244,6 +264,17 @@ export default function MealForm() {
           </p>
         )}
       </div>
+
+      {/* Pre-filled from last meal notice */}
+      {usingDefaults && lastMealDate && (
+        <div className="info-box mb-4 animate-in-delay-1 flex items-start gap-2 text-xs">
+          <Info size={14} className="flex-shrink-0 mt-0.5 text-[var(--primary)]" />
+          <span>
+            Пополнето од последен внес ({new Date(lastMealDate).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}).
+            Можете да ги промените вредностите.
+          </span>
+        </div>
+      )}
 
       {/* Pool tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 animate-in-delay-1">

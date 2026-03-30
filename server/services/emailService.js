@@ -21,6 +21,9 @@ function getTransporter() {
     secure: port === 465,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
+    connectionTimeout: 10000,  // 10 sec to connect
+    greetingTimeout: 10000,    // 10 sec for SMTP greeting
+    socketTimeout: 15000,      // 15 sec for socket inactivity
   });
 
   return transporter;
@@ -55,8 +58,8 @@ async function sendReportEmail({ to, subject, html, attachments }) {
     return { success: true, messageId: info.messageId };
   } catch (err) {
     console.error('Email send error:', err.message);
-    // Reset transporter on auth errors so it retries fresh
-    if (err.code === 'EAUTH' || err.responseCode === 535) {
+    // Reset transporter on auth/connection errors so it retries fresh
+    if (err.code === 'EAUTH' || err.responseCode === 535 || err.code === 'ESOCKET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ECONNECTION') {
       transporter = null;
     }
     return { success: false, error: err.message };
