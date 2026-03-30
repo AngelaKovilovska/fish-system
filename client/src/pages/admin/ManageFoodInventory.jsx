@@ -339,14 +339,16 @@ export default function ManageFoodInventory() {
           {purchaseItems.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <select value={item.food_type} onChange={(e) => updateItem(idx, 'food_type', e.target.value)}
-                className="input-base flex-1 text-xs">
+                className="input-base"
+                style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', flex: '3 1 0%', minWidth: 0 }}>
                 {FOOD_TYPES.map(ft => (
                   <option key={ft} value={ft}>{ft}</option>
                 ))}
               </select>
               <input type="number" step="any" value={item.quantity_kg}
                 onChange={(e) => updateItem(idx, 'quantity_kg', e.target.value)}
-                className="input-base w-24 text-xs" placeholder="kg" />
+                className="input-base" placeholder="kg"
+                style={{ fontSize: '0.8125rem', flex: '1 1 0%', minWidth: '70px', maxWidth: '100px' }} />
               {purchaseItems.length > 1 && (
                 <button onClick={() => removeItem(idx)}
                   className="p-1.5 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex-shrink-0"
@@ -484,7 +486,7 @@ export default function ManageFoodInventory() {
                           {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
                         </span>
                         {isPurchase && entry.id && (
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button onClick={() => startEdit(entry)}
                               className="p-1 rounded hover:bg-[var(--primary-muted)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
                               title="Измени">
