@@ -43,8 +43,13 @@ export default function ManageFoodInventory() {
   // Delete state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  // Browse log by date
+  // Browse log
   const [logDays, setLogDays] = useState(3);
+  const [searchSupplier, setSearchSupplier] = useState('');
+  const [searchProduct, setSearchProduct] = useState('');
+  const [searchDateFrom, setSearchDateFrom] = useState('');
+  const [searchDateTo, setSearchDateTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const load = async () => {
     try {
@@ -458,30 +463,114 @@ export default function ManageFoodInventory() {
       </div>
 
       {/* ── Recent log ── */}
-      {log.length > 0 && (
+      {log.length > 0 && (() => {
+        // Apply filters
+        const filteredLog = log.filter(entry => {
+          if (searchSupplier) {
+            const s = (entry.supplier || '').toLowerCase();
+            if (!s.includes(searchSupplier.toLowerCase())) return false;
+          }
+          if (searchProduct) {
+            if (entry.food_type !== searchProduct) return false;
+          }
+          if (searchDateFrom) {
+            const entryDate = new Date(entry.date).toISOString().split('T')[0];
+            if (entryDate < searchDateFrom) return false;
+          }
+          if (searchDateTo) {
+            const entryDate = new Date(entry.date).toISOString().split('T')[0];
+            if (entryDate > searchDateTo) return false;
+          }
+          return true;
+        });
+
+        const hasActiveFilters = searchSupplier || searchProduct || searchDateFrom || searchDateTo;
+
+        return (
         <div className="card animate-in-delay-2">
           <div className="flex items-center justify-between mb-3">
             <h3 className="section-title text-sm !mb-0 flex items-center gap-2">
               <Clock size={15} className="text-[var(--text-muted)]" />
               Историја
             </h3>
-            <div className="flex items-center gap-1">
-              {[3, 7, 30].map(d => (
-                <button key={d} onClick={() => setLogDays(d)}
-                  className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
-                    logDays === d
-                      ? 'bg-[var(--primary)] text-white'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
-                  }`}>
-                  {d}д
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowFilters(!showFilters)}
+                className={`text-[10px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
+                  showFilters || hasActiveFilters
+                    ? 'bg-[var(--primary)] text-white'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--bg)] border border-[var(--border)]'
+                }`}>
+                <Search size={10} />
+                Пребарај
+                {hasActiveFilters && <span className="ml-0.5">•</span>}
+              </button>
+              <div className="flex items-center gap-1">
+                {[3, 7, 30].map(d => (
+                  <button key={d} onClick={() => setLogDays(d)}
+                    className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                      logDays === d
+                        ? 'bg-[var(--primary)] text-white'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
+                    }`}>
+                    {d}д
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Search filters */}
+          {showFilters && (
+            <div className="mb-3 p-3 rounded-[var(--r-sm)] bg-[var(--bg)] space-y-2.5">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Добавувач</label>
+                  <input type="text" value={searchSupplier}
+                    onChange={(e) => setSearchSupplier(e.target.value)}
+                    className="input-base text-xs !py-1.5" placeholder="Пребарај..." />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Производ</label>
+                  <select value={searchProduct}
+                    onChange={(e) => setSearchProduct(e.target.value)}
+                    className="input-base text-xs !py-1.5">
+                    <option value="">Сите</option>
+                    {FOOD_TYPES.map(ft => (
+                      <option key={ft} value={ft}>{ft}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Од датум</label>
+                  <input type="date" value={searchDateFrom}
+                    onChange={(e) => setSearchDateFrom(e.target.value)}
+                    className="input-base text-xs !py-1.5" />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">До датум</label>
+                  <input type="date" value={searchDateTo}
+                    onChange={(e) => setSearchDateTo(e.target.value)}
+                    className="input-base text-xs !py-1.5" />
+                </div>
+              </div>
+              {hasActiveFilters && (
+                <button onClick={() => { setSearchSupplier(''); setSearchProduct(''); setSearchDateFrom(''); setSearchDateTo(''); }}
+                  className="text-[10px] text-[var(--danger)] font-medium flex items-center gap-1 hover:underline">
+                  <X size={10} /> Тргни филтри
+                </button>
+              )}
+            </div>
+          )}
+
+          {filteredLog.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)] text-center py-4">Нема резултати</p>
+          ) : (
           <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
-            {log.map((entry, i) => {
+            {filteredLog.map((entry, i) => {
               const dateStr = new Date(entry.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
-              const prevDate = i > 0 ? new Date(log[i-1].date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+              const prevDate = i > 0 ? new Date(filteredLog[i-1].date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
               const showDateHeader = dateStr !== prevDate;
               const isPurchase = entry.reason === 'purchase';
               const isEditing = editId === entry.id;
@@ -603,8 +692,10 @@ export default function ManageFoodInventory() {
               );
             })}
           </div>
+          )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
