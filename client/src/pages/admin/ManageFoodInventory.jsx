@@ -529,20 +529,29 @@ export default function ManageFoodInventory() {
           </div>
 
           {/* Search filters */}
-          {showFilters && (
+          {showFilters && (() => {
+            const suppliers = [...new Set(log.filter(e => e.supplier).map(e => e.supplier))].sort();
+            const products = [...new Set(log.map(e => e.food_type).filter(Boolean))].sort();
+            return (
             <div className="mb-3 p-3 rounded-[var(--r-sm)] bg-[var(--bg)] space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Добавувач</label>
-                  <input type="text" value={searchSupplier}
+                  <input type="text" list="supplier-list" value={searchSupplier}
                     onChange={(e) => setSearchSupplier(e.target.value)}
-                    className="input-base text-xs !py-1.5" placeholder="Пребарај..." />
+                    className="input-base text-xs !py-1.5" placeholder="Избери или пребарај..." />
+                  <datalist id="supplier-list">
+                    {suppliers.map(s => <option key={s} value={s} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Производ</label>
-                  <input type="text" value={searchProduct}
+                  <input type="text" list="product-list" value={searchProduct}
                     onChange={(e) => setSearchProduct(e.target.value)}
-                    className="input-base text-xs !py-1.5" placeholder="Пребарај..." />
+                    className="input-base text-xs !py-1.5" placeholder="Избери или пребарај..." />
+                  <datalist id="product-list">
+                    {products.map(p => <option key={p} value={p} />)}
+                  </datalist>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -566,7 +575,8 @@ export default function ManageFoodInventory() {
                 </button>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {filteredLog.length === 0 ? (
             <p className="text-xs text-[var(--text-muted)] text-center py-4">Нема резултати</p>
