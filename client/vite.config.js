@@ -44,6 +44,7 @@ export default defineConfig({
         globIgnores: ['**/pwa-*.png', '**/apple-touch-icon*.png'],
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https?:\/\/.*\/api\/.*/i,

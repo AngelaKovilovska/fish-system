@@ -76,8 +76,8 @@ if (IS_PROD) {
 
   // Set correct cache headers per file type
   app.use((req, res, next) => {
-    if (/^\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js|index\.html)/.test(req.path)) {
-      res.setHeader('Cache-Control', 'no-cache');
+    if (/^\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js|workbox-|index\.html|registerSW)/.test(req.path)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
     next();
   });
@@ -87,8 +87,8 @@ if (IS_PROD) {
     immutable: true,
     index: false,
     setHeaders: (res, filePath) => {
-      if (/\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js|index\.html)/.test(filePath)) {
-        res.setHeader('Cache-Control', 'no-cache');
+      if (/\/(pwa-|apple-touch-icon|manifest\.webmanifest|sw\.js|workbox-|index\.html|registerSW)/.test(filePath)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       }
     },
   }));
