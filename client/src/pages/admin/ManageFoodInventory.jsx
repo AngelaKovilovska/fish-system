@@ -58,11 +58,14 @@ export default function ManageFoodInventory() {
   const [searchDateTo, setSearchDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  const hasActiveFilters = searchSupplier || searchProduct || searchDateFrom || searchDateTo;
+
   const load = async () => {
     try {
+      const fetchDays = showFilters ? 365 : logDays;
       const [invData, logData, projData] = await Promise.all([
         api.getFoodInventory(),
-        api.getFoodInventoryLog(logDays),
+        api.getFoodInventoryLog(fetchDays),
         api.getStockProjection().catch(() => null),
       ]);
       setInventory(invData.inventory);
@@ -74,7 +77,7 @@ export default function ManageFoodInventory() {
 
   const proj = stockProjection?.projections || {};
 
-  useEffect(() => { load(); }, [logDays]);
+  useEffect(() => { load(); }, [logDays, showFilters]);
 
   // Purchase item management
   const updateItem = (idx, field, value) => {
@@ -490,8 +493,6 @@ export default function ManageFoodInventory() {
           return true;
         });
 
-        const hasActiveFilters = searchSupplier || searchProduct || searchDateFrom || searchDateTo;
-
         return (
         <div className="card animate-in-delay-2">
           <div className="flex items-center justify-between mb-3">
@@ -510,18 +511,20 @@ export default function ManageFoodInventory() {
                 Пребарај
                 {hasActiveFilters && <span className="ml-0.5">•</span>}
               </button>
-              <div className="flex items-center gap-1">
-                {[3, 7, 30].map(d => (
-                  <button key={d} onClick={() => setLogDays(d)}
-                    className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
-                      logDays === d
-                        ? 'bg-[var(--primary)] text-white'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
-                    }`}>
-                    {d}д
-                  </button>
-                ))}
-              </div>
+              {!showFilters && (
+                <div className="flex items-center gap-1">
+                  {[3, 7, 30].map(d => (
+                    <button key={d} onClick={() => setLogDays(d)}
+                      className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
+                        logDays === d
+                          ? 'bg-[var(--primary)] text-white'
+                          : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
+                      }`}>
+                      {d}д
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
