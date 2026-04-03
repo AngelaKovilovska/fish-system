@@ -21,7 +21,7 @@ const cyrToLat = {};
 Object.entries(latToCyr).forEach(([l, c]) => { cyrToLat[c] = l; });
 
 function normalizeSearch(str) {
-  if (!str) return '';
+  if (!str) return { cyr: '', lat: '', orig: '' };
   let s = str.toLowerCase();
   // Convert Latin to Cyrillic (multi-char first: zh, ch, sh, dz)
   let cyr = '';
