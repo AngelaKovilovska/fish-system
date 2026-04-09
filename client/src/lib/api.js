@@ -50,6 +50,7 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return request(`/records?${query}`);
   },
+  getCalendar: (month) => request(`/records/calendar?month=${month}`),
   getRecord: (id) => request(`/records/${id}`),
   createRecord: (data) => request('/records', { method: 'POST', body: JSON.stringify(data) }),
   updateRecord: (id, data) => request(`/records/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

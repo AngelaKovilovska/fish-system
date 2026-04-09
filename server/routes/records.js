@@ -7,6 +7,76 @@ const { validateRecordBody } = require('../middleware/validate');
 
 const router = express.Router();
 
+// GET /api/records/calendar?month=YYYY-MM — calendar data for a month
+router.get('/calendar', authMiddleware, async (req, res) => {
+  try {
+    const { month } = req.query; // format: YYYY-MM
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Потребен е месец во формат YYYY-MM' });
+    }
+
+    const firstDay = `${month}-01`;
+    const lastDay = new Date(parseInt(month.split('-')[0]), parseInt(month.split('-')[1]), 0)
+      .toISOString().split('T')[0];
+
+    // Get daily records with alert counts
+    const recordsResult = await pool.query(
+      `SELECT dr.id, dr.date, u.full_name as checked_by_name, dr.created_at,
+              COALESCE((SELECT COUNT(*) FROM alerts a WHERE a.daily_record_id = dr.id), 0)::int as alert_count
+       FROM daily_records dr
+       JOIN users u ON dr.checked_by = u.id
+       WHERE dr.date >= $1 AND dr.date <= $2
+       ORDER BY dr.date`,
+      [firstDay, lastDay]
+    );
+
+    // Get meals status for the month
+    const mealsResult = await pool.query(
+      `SELECT date, array_agg(DISTINCT meal_type) as meal_types
+       FROM pool_meals
+       WHERE date >= $1 AND date <= $2
+       GROUP BY date`,
+      [firstDay, lastDay]
+    );
+
+    const mealsMap = {};
+    for (const row of mealsResult.rows) {
+      mealsMap[row.date] = row.meal_types;
+    }
+
+    const days = {};
+    for (const rec of recordsResult.rows) {
+      const dateStr = new Date(rec.date).toISOString().split('T')[0];
+      days[dateStr] = {
+        record_id: rec.id,
+        checklist: true,
+        checked_by: rec.checked_by_name,
+        alert_count: rec.alert_count,
+        meals: mealsMap[rec.date] || [],
+      };
+    }
+
+    // Add days with meals but no checklist
+    for (const [date, meals] of Object.entries(mealsMap)) {
+      const dateStr = new Date(date).toISOString().split('T')[0];
+      if (!days[dateStr]) {
+        days[dateStr] = {
+          record_id: null,
+          checklist: false,
+          checked_by: null,
+          alert_count: 0,
+          meals,
+        };
+      }
+    }
+
+    res.json({ month, days });
+  } catch (err) {
+    console.error('Calendar data error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/records - list daily records with pagination
 router.get('/', authMiddleware, async (req, res) => {
   try {
