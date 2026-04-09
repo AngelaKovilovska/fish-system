@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
@@ -26,6 +26,7 @@ function getFirstDayOfWeek(year, month) {
 }
 
 export default function ChecklistHistory() {
+  const navigate = useNavigate();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [calendarData, setCalendarData] = useState({});
@@ -170,7 +171,15 @@ export default function ChecklistHistory() {
                   key={day}
                   type="button"
                   disabled={future}
-                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  onClick={() => {
+                    // If this day has a record, navigate directly to it
+                    if (data?.record_id) {
+                      navigate(`/history/${data.record_id}`);
+                      return;
+                    }
+                    // Otherwise toggle the detail panel (for days with only meals or empty)
+                    setSelectedDay(isSelected ? null : day);
+                  }}
                   className={`
                     aspect-square rounded-xl flex flex-col items-center justify-center
                     transition-all duration-150 relative
