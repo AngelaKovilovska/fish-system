@@ -134,11 +134,12 @@ router.get('/status', authMiddleware, async (req, res) => {
     if (!date) return res.status(400).json({ error: 'Потребен е датум' });
 
     const result = await pool.query(
-      `SELECT pm.meal_type, u.full_name as fed_by_name, pm.created_at
+      `SELECT pm.meal_type,
+              (SELECT u.full_name FROM users u WHERE u.id = (array_agg(pm.fed_by))[1]) as fed_by_name,
+              MIN(pm.created_at) as created_at
        FROM pool_meals pm
-       LEFT JOIN users u ON pm.fed_by = u.id
        WHERE pm.date = $1
-       GROUP BY pm.meal_type, u.full_name, pm.created_at
+       GROUP BY pm.meal_type
        ORDER BY pm.meal_type`,
       [date]
     );

@@ -215,9 +215,17 @@ export default function Dashboard() {
                       {meal.label}
                     </p>
                     {filled ? (
-                      <p className="text-[10px] text-[var(--success)] mt-0.5 font-medium truncate">
-                        ✓ {status.fed_by_name?.split(' ')[0] || 'Готово'}
-                      </p>
+                      <>
+                        <p className="text-[10px] text-[var(--success)] mt-0.5 font-medium truncate">
+                          ✓ {status.fed_by_name?.split(' ')[0] || 'Готово'}
+                        </p>
+                        {status.created_at && (
+                          <p className="text-[9px] text-[var(--text-muted)] mt-0.5 flex items-center justify-center gap-0.5">
+                            <Timer size={8} />
+                            {new Date(status.created_at).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <p className="text-[10px] text-amber-500 mt-0.5 font-medium">
                         Не е внесен
