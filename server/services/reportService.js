@@ -15,11 +15,12 @@ const PARAMETER_LABELS = {
   // Water control
   temperature: 'Температура',
   ph: 'pH',
-  dissolved_oxygen: 'DO (кислород)',
-  nitrates: 'Нитрати (NO3)',
-  nitrites: 'Нитрити (NO2)',
-  hardness: 'TH (тврдина)',
-  tds: 'TDS',
+  total_alkalinity: 'Total Alkalinity',
+  hardness: 'Total Hardness',
+  nitrates: 'Нитрати (NO₃⁻)',
+  nitrites: 'Нитрити (NO₂⁻)',
+  total_chlorine: 'Total Chlorine',
+  ammonium: 'Амониум (NH₄⁺/NH₃)',
   // Filtration
   bio_filter_level: 'Био филтер ниво',
   bio_filter_foam: 'Пена во Био филтер',

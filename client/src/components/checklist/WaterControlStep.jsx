@@ -1,14 +1,15 @@
 import { PARAMETER_LABELS } from '../../lib/constants';
-import { AlertTriangle, Droplets, Thermometer, Beaker, Activity } from 'lucide-react';
+import { AlertTriangle, Droplets, Thermometer, Beaker, FlaskConical, ShieldAlert } from 'lucide-react';
 
 const FIELD_ICONS = {
   temperature: Thermometer,
   ph: Beaker,
-  dissolved_oxygen: Activity,
+  total_alkalinity: FlaskConical,
+  hardness: Droplets,
   nitrates: Droplets,
   nitrites: Droplets,
-  hardness: Droplets,
-  tds: Droplets,
+  total_chlorine: ShieldAlert,
+  ammonium: AlertTriangle,
 };
 
 export default function WaterControlStep({ data, onChange, norms, requiredFields = [] }) {

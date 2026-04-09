@@ -1,11 +1,12 @@
 export const PARAMETER_LABELS = {
   temperature: { label: 'Температура', unit: '°C' },
   ph: { label: 'pH', unit: '' },
-  dissolved_oxygen: { label: 'DO (кислород)', unit: 'mg/L' },
-  nitrates: { label: 'Нитрати (NO3)', unit: 'mg/L' },
-  nitrites: { label: 'Нитрити (NO2)', unit: 'mg/L' },
-  hardness: { label: 'TH (тврдина)', unit: 'mg/L' },
-  tds: { label: 'TDS', unit: 'ppm' },
+  total_alkalinity: { label: 'Total Alkalinity', unit: 'mg/L' },
+  hardness: { label: 'Total Hardness', unit: 'mg/L' },
+  nitrates: { label: 'Нитрати (NO₃⁻)', unit: 'mg/L' },
+  nitrites: { label: 'Нитрити (NO₂⁻)', unit: 'mg/L' },
+  total_chlorine: { label: 'Total Chlorine', unit: 'mg/L' },
+  ammonium: { label: 'Амониум (NH₄⁺/NH₃)', unit: 'mg/L' },
 };
 
 export const FILTRATION_LABELS = {

@@ -13,9 +13,9 @@ const REPORT_TYPES = [
 ];
 
 const PARAM_LABELS = {
-  temperature: 'Температура', ph: 'pH', dissolved_oxygen: 'DO (кислород)',
-  nitrates: 'Нитрати (NO3)', nitrites: 'Нитрити (NO2)', hardness: 'TH (тврдина)',
-  tds: 'TDS', bio_filter_foam: 'Пена во Био филтер',
+  temperature: 'Температура', ph: 'pH', total_alkalinity: 'Total Alkalinity',
+  hardness: 'Total Hardness', nitrates: 'Нитрати (NO₃⁻)', nitrites: 'Нитрити (NO₂⁻)',
+  total_chlorine: 'Total Chlorine', ammonium: 'Амониум (NH₄⁺/NH₃)', bio_filter_foam: 'Пена во Био филтер',
   bio_filter_level: 'Био филтер ниво', mechanical_filter: 'Механички филтер',
   circulation_pump: 'Циркулациона пумпа', thermo_pump: 'Термо пумпа',
   aeration: 'Аерација', sieve_filter: 'Сито филтер',

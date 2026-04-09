@@ -29,11 +29,12 @@ async function checkAndCreateAlerts(dailyRecordId, waterData, filtrationData, fi
   const parameterMap = {
     temperature: waterData.temperature,
     ph: waterData.ph,
-    dissolved_oxygen: waterData.dissolved_oxygen,
+    total_alkalinity: waterData.total_alkalinity,
     nitrates: waterData.nitrates,
     nitrites: waterData.nitrites,
     hardness: waterData.hardness,
-    tds: waterData.tds,
+    total_chlorine: waterData.total_chlorine,
+    ammonium: waterData.ammonium,
   };
 
   const alerts = [];

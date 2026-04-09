@@ -4,8 +4,8 @@
  * ═══════════════════════════════════════════════════════════════
  *
  * Uses Z-score analysis + moving average to detect anomalies
- * in water quality parameters (temperature, pH, dissolved oxygen,
- * nitrates, nitrites, hardness, TDS).
+ * in water quality parameters (temperature, pH, total alkalinity,
+ * hardness, nitrates, nitrites, total chlorine, ammonium).
  *
  * Thresholds based on African catfish optimal ranges.
  */
@@ -13,12 +13,13 @@
 // ─── Optimal ranges for African catfish ───
 const OPTIMAL_RANGES = {
   temperature:      { min: 26, max: 28, unit: '°C',    label: 'Температура' },
-  ph:               { min: 6.5, max: 8.5, unit: '',    label: 'pH' },
-  dissolved_oxygen: { min: 4, max: 12, unit: 'mg/L',   label: 'Раствор. кислород' },
-  nitrates:         { min: 0, max: 80, unit: 'mg/L',   label: 'Нитрати' },
-  nitrites:         { min: 0, max: 0.5, unit: 'mg/L',  label: 'Нитрити' },
-  hardness:         { min: 50, max: 300, unit: 'mg/L',  label: 'Тврдост' },
-  tds:              { min: 100, max: 800, unit: 'ppm',  label: 'TDS' },
+  ph:               { min: 6.5, max: 7.5, unit: '',    label: 'pH' },
+  total_alkalinity: { min: 100, max: 200, unit: 'mg/L', label: 'Total Alkalinity' },
+  hardness:         { min: 100, max: 300, unit: 'mg/L', label: 'Total Hardness' },
+  nitrates:         { min: 0, max: 100, unit: 'mg/L',   label: 'Нитрати' },
+  nitrites:         { min: 0, max: 0.5, unit: 'mg/L',   label: 'Нитрити' },
+  total_chlorine:   { min: 0, max: 0.01, unit: 'mg/L',  label: 'Total Chlorine' },
+  ammonium:         { min: 0, max: 0.05, unit: 'mg/L',  label: 'Амониум' },
 };
 
 // Z-score threshold for anomaly detection
@@ -47,7 +48,7 @@ function zScore(value, mean, stdDev) {
 /**
  * Analyze water parameters for anomalies
  *
- * @param {Object} currentValues - Current water readings { temperature, ph, dissolved_oxygen, ... }
+ * @param {Object} currentValues - Current water readings { temperature, ph, total_alkalinity, ... }
  * @param {Array} historicalReadings - Array of past water_control records (last 7-30 days)
  * @returns {Object} Analysis results with anomalies and trend data
  */

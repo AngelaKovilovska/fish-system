@@ -11,7 +11,7 @@ import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pen
 
 const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности'];
 const STEP_ICONS = ['💧', '⚙️', '🐟', '🐟', '📋'];
-const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites'];
+const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites', 'ammonium'];
 const MK_MONTHS = ['Јануари','Февруари','Март','Април','Мај','Јуни','Јули','Август','Септември','Октомври','Ноември','Декември'];
 
 export default function ChecklistForm() {

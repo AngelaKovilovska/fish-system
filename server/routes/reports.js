@@ -116,11 +116,12 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     const WATER_PARAMS = [
       ['temperature', 'Температура', '°C'],
       ['ph', 'pH', ''],
-      ['dissolved_oxygen', 'DO (кислород)', 'mg/L'],
-      ['nitrates', 'Нитрати (NO3)', 'mg/L'],
-      ['nitrites', 'Нитрити (NO2)', 'mg/L'],
-      ['hardness', 'TH (тврдина)', 'mg/L'],
-      ['tds', 'TDS', 'ppm'],
+      ['total_alkalinity', 'Total Alkalinity', 'mg/L'],
+      ['hardness', 'Total Hardness', 'mg/L'],
+      ['nitrates', 'Нитрати (NO₃⁻)', 'mg/L'],
+      ['nitrites', 'Нитрити (NO₂⁻)', 'mg/L'],
+      ['total_chlorine', 'Total Chlorine', 'mg/L'],
+      ['ammonium', 'Амониум (NH₄⁺/NH₃)', 'mg/L'],
     ];
     const FILTRATION_FIELDS = [
       ['bio_filter_level', 'Ниво на вода во БИО филтер е до обележаното ниво'],

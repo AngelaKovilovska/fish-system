@@ -48,7 +48,7 @@ function validateRecordBody(req, res, next) {
   // Validate water_control numeric fields if present
   const wc = req.body.water_control;
   if (wc) {
-    const numericFields = ['temperature', 'ph', 'dissolved_oxygen', 'nitrates', 'nitrites', 'hardness', 'tds'];
+    const numericFields = ['temperature', 'ph', 'total_alkalinity', 'nitrates', 'nitrites', 'hardness', 'total_chlorine', 'ammonium'];
     for (const field of numericFields) {
       if (wc[field] != null && wc[field] !== '' && isNaN(Number(wc[field]))) {
         return res.status(400).json({ error: `Невалидна вредност за ${field}` });

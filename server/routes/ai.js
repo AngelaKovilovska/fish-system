@@ -215,8 +215,8 @@ router.get('/water-analysis', authMiddleware, async (req, res) => {
 
     // Get historical readings (last 30 days)
     const historyRes = await pool.query(`
-      SELECT wc.temperature, wc.ph, wc.dissolved_oxygen,
-             wc.nitrates, wc.nitrites, wc.hardness, wc.tds
+      SELECT wc.temperature, wc.ph, wc.total_alkalinity,
+             wc.nitrates, wc.nitrites, wc.hardness, wc.total_chlorine, wc.ammonium
       FROM water_control wc
       JOIN daily_records dr ON wc.daily_record_id = dr.id
       WHERE dr.date >= CURRENT_DATE - INTERVAL '30 days'
