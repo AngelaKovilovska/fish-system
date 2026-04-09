@@ -275,28 +275,6 @@ export default function MealForm() {
         )}
       </div>
 
-      {/* Fill from last button */}
-      {!isEdit && lastMealPools.length > 0 && !usingDefaults && (
-        <button
-          type="button"
-          onClick={fillFromLast}
-          className="w-full mb-4 animate-in-delay-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-sm)] text-sm font-semibold transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
-          style={{
-            background: 'var(--surface)',
-            border: '1.5px dashed var(--primary)',
-            color: 'var(--primary)',
-          }}
-        >
-          <Copy size={15} />
-          Пополни од последно внесување
-          {lastMealDate && (
-            <span className="text-[10px] font-normal opacity-70">
-              ({new Date(lastMealDate + 'T00:00:00').toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })})
-            </span>
-          )}
-        </button>
-      )}
-
       {/* Pool tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 animate-in-delay-1">
         {POOL_NUMBERS.map(num => (
@@ -316,11 +294,23 @@ export default function MealForm() {
       {/* Pool form */}
       <div className={`card mb-4 animate-in-delay-2 ${currentIncomplete ? 'border-[var(--danger)]' : ''}`}>
         <div className="space-y-3.5">
-          <div className="flex items-center gap-2">
-            <Fish size={16} className="text-[var(--primary)]" />
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-              Базен бр. {activePool}
-            </h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Fish size={16} className="text-[var(--primary)]" />
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                Базен бр. {activePool}
+              </h3>
+            </div>
+            {!isEdit && lastMealPools.length > 0 && !usingDefaults && (
+              <button
+                type="button"
+                onClick={fillFromLast}
+                className="text-[11px] font-semibold text-[var(--primary)] hover:underline flex items-center gap-1"
+              >
+                <Copy size={12} />
+                Пополни
+              </button>
+            )}
           </div>
 
           {/* Pool measurement info */}
