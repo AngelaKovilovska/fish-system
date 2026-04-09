@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap, Copy } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -39,6 +39,7 @@ export default function MealForm() {
   const mealIcon = MEAL_ICONS[mealType] || '🍽️';
 
   const [lastMealDate, setLastMealDate] = useState(null);
+  const [lastMealPools, setLastMealPools] = useState([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
 
   // Load meal data for the selected date
@@ -49,6 +50,7 @@ export default function MealForm() {
     setIsEdit(false);
     setUsingDefaults(false);
     setLastMealDate(null);
+    setLastMealPools([]);
     setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' })));
 
     try {
@@ -60,6 +62,12 @@ export default function MealForm() {
       ]);
 
       setAiRec(aiData);
+
+      // Save last values for optional fill button
+      if (lastValues.pools && lastValues.pools.length > 0) {
+        setLastMealDate(lastValues.lastDate);
+        setLastMealPools(lastValues.pools);
+      }
 
       const existing = mealsData.meals.filter(m => m.meal_type === mealType);
       if (existing.length > 0) {
@@ -74,20 +82,8 @@ export default function MealForm() {
               ? meal.food_quantity_gr : '',
           };
         }));
-      } else if (lastValues.pools && lastValues.pools.length > 0) {
-        // No meal for this date — pre-fill with last entered values
-        setUsingDefaults(true);
-        setLastMealDate(lastValues.lastDate);
-        setPoolsData(POOL_NUMBERS.map(n => {
-          const last = lastValues.pools.find(p => p.pool_number === n);
-          return {
-            pool_number: n,
-            food_type: last?.food_type || '',
-            food_quantity_gr: last?.food_quantity_gr != null && parseFloat(last.food_quantity_gr) > 0
-              ? parseFloat(last.food_quantity_gr) : '',
-          };
-        }));
       }
+      // Fields stay empty for new meals — user can click button to load last values
       setPoolMeasurements(measurementsData.measurements || []);
     } catch (err) {
       console.error(err);
@@ -109,6 +105,20 @@ export default function MealForm() {
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate);
     setActivePool(1);
+  };
+
+  const fillFromLast = () => {
+    if (lastMealPools.length === 0) return;
+    setUsingDefaults(true);
+    setPoolsData(POOL_NUMBERS.map(n => {
+      const last = lastMealPools.find(p => p.pool_number === n);
+      return {
+        pool_number: n,
+        food_type: last?.food_type || '',
+        food_quantity_gr: last?.food_quantity_gr != null && parseFloat(last.food_quantity_gr) > 0
+          ? parseFloat(last.food_quantity_gr) : '',
+      };
+    }));
   };
 
   const updatePool = (poolNum, field, value) => {
@@ -264,6 +274,28 @@ export default function MealForm() {
           </p>
         )}
       </div>
+
+      {/* Fill from last button */}
+      {!isEdit && lastMealPools.length > 0 && !usingDefaults && (
+        <button
+          type="button"
+          onClick={fillFromLast}
+          className="w-full mb-4 animate-in-delay-1 flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-sm)] text-sm font-semibold transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+          style={{
+            background: 'var(--surface)',
+            border: '1.5px dashed var(--primary)',
+            color: 'var(--primary)',
+          }}
+        >
+          <Copy size={15} />
+          Пополни од последно внесување
+          {lastMealDate && (
+            <span className="text-[10px] font-normal opacity-70">
+              ({new Date(lastMealDate + 'T00:00:00').toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })})
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Pool tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 animate-in-delay-1">
