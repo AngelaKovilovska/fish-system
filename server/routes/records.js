@@ -21,7 +21,7 @@ router.get('/calendar', authMiddleware, async (req, res) => {
 
     // Get daily records with alert counts
     const recordsResult = await pool.query(
-      `SELECT dr.id, dr.date, u.full_name as checked_by_name, dr.created_at,
+      `SELECT dr.id, TO_CHAR(dr.date, 'YYYY-MM-DD') as date_str, u.full_name as checked_by_name,
               COALESCE((SELECT COUNT(*) FROM alerts a WHERE a.daily_record_id = dr.id), 0)::int as alert_count
        FROM daily_records dr
        JOIN users u ON dr.checked_by = u.id
@@ -32,7 +32,7 @@ router.get('/calendar', authMiddleware, async (req, res) => {
 
     // Get meals status for the month
     const mealsResult = await pool.query(
-      `SELECT date, array_agg(DISTINCT meal_type) as meal_types
+      `SELECT TO_CHAR(date, 'YYYY-MM-DD') as date_str, array_agg(DISTINCT meal_type) as meal_types
        FROM pool_meals
        WHERE date >= $1 AND date <= $2
        GROUP BY date`,
@@ -41,24 +41,22 @@ router.get('/calendar', authMiddleware, async (req, res) => {
 
     const mealsMap = {};
     for (const row of mealsResult.rows) {
-      mealsMap[row.date] = row.meal_types;
+      mealsMap[row.date_str] = row.meal_types;
     }
 
     const days = {};
     for (const rec of recordsResult.rows) {
-      const dateStr = new Date(rec.date).toISOString().split('T')[0];
-      days[dateStr] = {
+      days[rec.date_str] = {
         record_id: rec.id,
         checklist: true,
         checked_by: rec.checked_by_name,
         alert_count: rec.alert_count,
-        meals: mealsMap[rec.date] || [],
+        meals: mealsMap[rec.date_str] || [],
       };
     }
 
     // Add days with meals but no checklist
-    for (const [date, meals] of Object.entries(mealsMap)) {
-      const dateStr = new Date(date).toISOString().split('T')[0];
+    for (const [dateStr, meals] of Object.entries(mealsMap)) {
       if (!days[dateStr]) {
         days[dateStr] = {
           record_id: null,
