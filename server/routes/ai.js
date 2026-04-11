@@ -20,6 +20,7 @@ const {
   GROWOUT_TABLE,
   FEED_PRODUCTS,
 } = require('../services/feedingRecommendation');
+const { projectCurrentWeight } = require('../services/growthPrediction');
 const { analyzeWaterParameters } = require('../services/waterAnomalyDetection');
 
 const router = express.Router();
@@ -35,15 +36,19 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       'SELECT pool_number, current_count FROM pool_fish_inventory ORDER BY pool_number'
     );
 
-    // 2. Get latest measurement per pool (for avg_weight_gr)
+    // 2. Get latest measurement per pool (W0, fish_count at measurement, measured date)
     const measurementsRes = await pool.query(`
       SELECT DISTINCT ON (pool_number)
-        pool_number, fish_count, avg_weight_gr, measured_at
+        pool_number,
+        fish_count,
+        avg_weight_gr,
+        measured_at,
+        DATE(measured_at) as measured_date
       FROM pool_measurements
       ORDER BY pool_number, measured_at DESC
     `);
 
-    // 3. Get latest water temperature from today's or most recent record
+    // 3. Get latest water temperature (used as fallback if no historical average)
     const waterRes = await pool.query(`
       SELECT wc.temperature
       FROM water_control wc
@@ -52,7 +57,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       LIMIT 1
     `);
 
-    // 4. Get today's actual feeding (from pool_meals or pool_feeding)
+    // 4. Get today's actual feeding (partial if early in the day)
     const today = new Date().toISOString().split('T')[0];
     const todayMealsRes = await pool.query(`
       SELECT pool_number, SUM(food_quantity_gr) as total_food_gr
@@ -61,7 +66,42 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       GROUP BY pool_number
     `, [today]);
 
-    // Build pool data array
+    // 5. NEW: Get total feed given AFTER each pool's last measurement
+    //    Only counts complete days (date > measured_date AND date < today)
+    //    so partial "today" doesn't contaminate the projection.
+    const feedSinceRes = await pool.query(`
+      WITH latest_meas AS (
+        SELECT DISTINCT ON (pool_number)
+          pool_number, DATE(measured_at) as measured_date
+        FROM pool_measurements
+        ORDER BY pool_number, measured_at DESC
+      )
+      SELECT
+        lm.pool_number,
+        COALESCE(SUM(pm.food_quantity_gr), 0) as total_feed_gr
+      FROM latest_meas lm
+      LEFT JOIN pool_meals pm
+        ON pm.pool_number = lm.pool_number
+        AND pm.date > lm.measured_date
+        AND pm.date < CURRENT_DATE
+      GROUP BY lm.pool_number
+    `);
+
+    // 6. NEW: Average water temperature across each pool's projection period.
+    //    For simplicity we compute one global average from the earliest measurement
+    //    onwards — RAS temperature is stable so per-pool breakdown is unnecessary.
+    const avgTempRes = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= COALESCE(
+        (SELECT DATE(MIN(measured_at)) FROM pool_measurements),
+        CURRENT_DATE - INTERVAL '30 days'
+      )
+      AND dr.date < CURRENT_DATE
+    `);
+
+    // ─── Build lookup maps ───
     const measurementMap = {};
     measurementsRes.rows.forEach(m => {
       measurementMap[m.pool_number] = m;
@@ -72,21 +112,74 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       todayFeedMap[m.pool_number] = parseFloat(m.total_food_gr) || 0;
     });
 
-    const pools = inventoryRes.rows.map(inv => ({
-      pool_number: inv.pool_number,
-      current_count: inv.current_count,
-      avg_weight_gr: measurementMap[inv.pool_number]?.avg_weight_gr || null,
-      last_measured: measurementMap[inv.pool_number]?.measured_at || null,
-    }));
+    const feedSinceMap = {};
+    feedSinceRes.rows.forEach(m => {
+      feedSinceMap[m.pool_number] = parseFloat(m.total_feed_gr) || 0;
+    });
 
-    const temperature = waterRes.rows[0]?.temperature != null
+    const latestTemperature = waterRes.rows[0]?.temperature != null
       ? parseFloat(waterRes.rows[0].temperature)
       : null;
 
-    // Calculate recommendations
-    const result = calculateAllRecommendations(pools, temperature);
+    const avgTemperature = avgTempRes.rows[0]?.avg_temp != null
+      ? parseFloat(avgTempRes.rows[0].avg_temp)
+      : latestTemperature;
 
-    // Add actual feeding comparison
+    // ─── NEW: Project current weight for each pool using growth prediction ───
+    const projectionByPool = {};
+    const todayDate = new Date(today);
+
+    for (const inv of inventoryRes.rows) {
+      const meas = measurementMap[inv.pool_number];
+      if (!meas || !meas.avg_weight_gr) {
+        projectionByPool[inv.pool_number] = {
+          W_now: null,
+          isProjected: false,
+          basis: 'no-measurement',
+          warnings: ['Нема мерење за овој базен'],
+        };
+        continue;
+      }
+
+      const measuredDate = new Date(meas.measured_date);
+      const daysElapsed = Math.max(
+        0,
+        Math.floor((todayDate - measuredDate) / (1000 * 60 * 60 * 24))
+      );
+
+      const feedSinceGr = feedSinceMap[inv.pool_number] || 0;
+      const feedSinceKg = feedSinceGr / 1000;
+
+      const projection = projectCurrentWeight({
+        fishCountAtMeasurement: meas.fish_count,
+        W0: parseFloat(meas.avg_weight_gr),
+        daysElapsed,
+        totalFeedKgSince: feedSinceKg,
+        avgTemperature,
+      });
+
+      projectionByPool[inv.pool_number] = projection;
+    }
+
+    // ─── Build pool data using PROJECTED weight (not measured) ───
+    const pools = inventoryRes.rows.map(inv => {
+      const meas = measurementMap[inv.pool_number];
+      const proj = projectionByPool[inv.pool_number];
+      // Prefer projected weight; fall back to raw measurement; finally null
+      const effectiveWeight = proj?.W_now ?? meas?.avg_weight_gr ?? null;
+
+      return {
+        pool_number: inv.pool_number,
+        current_count: inv.current_count,
+        avg_weight_gr: effectiveWeight,
+        last_measured: meas?.measured_at || null,
+      };
+    });
+
+    // Use the latest temperature for TODAY's feeding (not the historical average)
+    const result = calculateAllRecommendations(pools, latestTemperature);
+
+    // ─── Enrich each pool's response with projection metadata + comparison ───
     for (const [pn, rec] of Object.entries(result.pools)) {
       const actualGr = todayFeedMap[pn] || 0;
       if (actualGr > 0 && rec.hasData) {
@@ -95,7 +188,31 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
         rec.comparison = null;
       }
       rec.todayActualFoodGr = actualGr;
+
+      // Attach projection info so the UI can show "проектирана тежина"
+      const proj = projectionByPool[pn];
+      if (proj) {
+        rec.weightProjection = {
+          isProjected: proj.isProjected,
+          W0: measurementMap[pn]?.avg_weight_gr
+            ? parseFloat(measurementMap[pn].avg_weight_gr)
+            : null,
+          W_now: proj.W_now,
+          daysElapsed: proj.daysElapsed,
+          basis: proj.basis,
+          lastMeasured: measurementMap[pn]?.measured_at || null,
+          metadata: proj.metadata || null,
+          warnings: proj.warnings || [],
+        };
+      }
     }
+
+    // Add overall projection info to summary
+    result.summary.projectionInfo = {
+      avgTemperatureUsed: avgTemperature != null ? Math.round(avgTemperature * 10) / 10 : null,
+      latestTemperatureUsed: latestTemperature,
+      projectedPoolCount: Object.values(projectionByPool).filter(p => p.isProjected).length,
+    };
 
     res.json(result);
   } catch (err) {
@@ -121,9 +238,12 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
       [poolNumber]
     );
 
-    // Get latest measurement
+    // Get latest measurement (W0, fish count at measurement, measured date)
     const measRes = await pool.query(
-      'SELECT avg_weight_gr, measured_at FROM pool_measurements WHERE pool_number = $1 ORDER BY measured_at DESC LIMIT 1',
+      `SELECT fish_count, avg_weight_gr, measured_at, DATE(measured_at) as measured_date
+       FROM pool_measurements
+       WHERE pool_number = $1
+       ORDER BY measured_at DESC LIMIT 1`,
       [poolNumber]
     );
 
@@ -134,16 +254,60 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
       ORDER BY dr.date DESC LIMIT 1
     `);
 
+    // NEW: Total feed given after last measurement (complete days only)
+    const feedSinceRes = await pool.query(`
+      SELECT COALESCE(SUM(food_quantity_gr), 0) as total_feed_gr
+      FROM pool_meals
+      WHERE pool_number = $1
+        AND date > $2::date
+        AND date < CURRENT_DATE
+    `, [poolNumber, measRes.rows[0]?.measured_date || '1970-01-01']);
+
+    // NEW: Average temperature since measurement
+    const avgTempRes = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= $1::date
+        AND dr.date < CURRENT_DATE
+    `, [measRes.rows[0]?.measured_date || '1970-01-01']);
+
     const fishCount = invRes.rows[0]?.current_count || 0;
-    const avgWeight = measRes.rows[0]?.avg_weight_gr || 0;
-    const temperature = waterRes.rows[0]?.temperature != null
+    const W0 = measRes.rows[0]?.avg_weight_gr
+      ? parseFloat(measRes.rows[0].avg_weight_gr)
+      : 0;
+    const fishCountAtMeasurement = measRes.rows[0]?.fish_count || 0;
+    const latestTemperature = waterRes.rows[0]?.temperature != null
       ? parseFloat(waterRes.rows[0].temperature)
       : null;
+    const avgTemperature = avgTempRes.rows[0]?.avg_temp != null
+      ? parseFloat(avgTempRes.rows[0].avg_temp)
+      : latestTemperature;
 
-    const recommendation = calculatePoolRecommendation(fishCount, avgWeight, temperature);
+    // NEW: Project current weight
+    const today = new Date().toISOString().split('T')[0];
+    const measuredDate = measRes.rows[0]?.measured_date
+      ? new Date(measRes.rows[0].measured_date)
+      : null;
+    const daysElapsed = measuredDate
+      ? Math.max(0, Math.floor((new Date(today) - measuredDate) / (1000 * 60 * 60 * 24)))
+      : 0;
+    const feedSinceGr = parseFloat(feedSinceRes.rows[0]?.total_feed_gr) || 0;
+
+    const projection = projectCurrentWeight({
+      fishCountAtMeasurement,
+      W0,
+      daysElapsed,
+      totalFeedKgSince: feedSinceGr / 1000,
+      avgTemperature,
+    });
+
+    // Use projected weight if available, otherwise fall back to raw W0
+    const effectiveWeight = projection.W_now ?? W0;
+
+    const recommendation = calculatePoolRecommendation(fishCount, effectiveWeight, latestTemperature);
 
     // Get today's actual feeding
-    const today = new Date().toISOString().split('T')[0];
     const mealsRes = await pool.query(
       'SELECT SUM(food_quantity_gr) as total FROM pool_meals WHERE date = $1 AND pool_number = $2',
       [today, poolNumber]
@@ -153,9 +317,18 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
     res.json({
       poolNumber,
       fishCount,
-      avgWeight,
+      avgWeight: effectiveWeight,
       lastMeasured: measRes.rows[0]?.measured_at || null,
-      temperature,
+      temperature: latestTemperature,
+      weightProjection: {
+        isProjected: projection.isProjected,
+        W0,
+        W_now: projection.W_now,
+        daysElapsed: projection.daysElapsed,
+        basis: projection.basis,
+        metadata: projection.metadata || null,
+        warnings: projection.warnings || [],
+      },
       ...recommendation,
       comparison: actualGr > 0 && recommendation.hasData ? compareWithActual(recommendation, actualGr) : null,
       todayActualFoodGr: actualGr,

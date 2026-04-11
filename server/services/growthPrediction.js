@@ -590,6 +590,140 @@ function calculateActualFCR({ fishCount, W0, W1, totalFeedKg, days, temperature 
   };
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * projectCurrentWeight()
+ *
+ * Специјализирана обвивка што проектира КОЛКУ ТЕЖАТ РИБИТЕ ДЕНЕС
+ * од последното мерење, врз основа на храната дадена во меѓувреме.
+ *
+ * Идеја: рибите се мерени на даден ден (на пр. пред 18 дена) со W0=100g.
+ * Оттогаш, фармерот во pool_meals внесол низа оброци (вкупно F kg).
+ * Просечната температура на вода во тие 18 дена е T.
+ * Колку тежат денес?
+ *
+ * Тоа го решаваме со `predictGrowth()` — го добиваме W1, кое потоа се
+ * користи како "avg_weight_gr за денес" во дневната препорака за храна.
+ *
+ * Така препораката за денешното хранење се базира на РЕАЛНА моментална
+ * тежина, а не на застарена од пред 2-3 недели.
+ *
+ * @param {Object} input
+ * @param {number} input.fishCountAtMeasurement — N во моментот на мерење
+ * @param {number} input.W0                      — просечна тежина во мерењето (g)
+ * @param {number} input.daysElapsed            — денови од мерењето до денес
+ * @param {number} input.totalFeedKgSince        — вкупна храна дадена во меѓувреме (kg)
+ * @param {number} [input.avgTemperature]       — просечна температура (°C)
+ *
+ * @returns {Object} { W_now, daysElapsed, isProjected, basis, metadata, warnings }
+ *    isProjected = true значи тежината е проектирана (не е само копија на W0)
+ */
+function projectCurrentWeight(input) {
+  const {
+    fishCountAtMeasurement,
+    W0,
+    daysElapsed,
+    totalFeedKgSince,
+    avgTemperature = null,
+  } = input;
+
+  // Базна валидација
+  if (!W0 || W0 <= 0) {
+    return {
+      W_now: null,
+      daysElapsed: 0,
+      isProjected: false,
+      basis: 'no-measurement',
+      warnings: ['Нема валидно мерење за проекција'],
+    };
+  }
+
+  // Ако рибите биле мерени денес — нема што да се проектира
+  if (!daysElapsed || daysElapsed <= 0) {
+    return {
+      W_now: W0,
+      daysElapsed: 0,
+      isProjected: false,
+      basis: 'measured-today',
+      warnings: [],
+    };
+  }
+
+  // Ако нема внесена храна помеѓу мерењето и денес — врати W0
+  // (не можеме да го проектираме растот без да знаеме колку храна е дадена)
+  if (!totalFeedKgSince || totalFeedKgSince <= 0) {
+    return {
+      W_now: W0,
+      daysElapsed,
+      isProjected: false,
+      basis: 'no-feed-recorded',
+      warnings: [`${daysElapsed} дена од последно мерење, но нема запишана храна во меѓувреме. Вратена е оригиналната тежина.`],
+    };
+  }
+
+  // Ако не знаеме N во мерењето, fall-back на 1 (просечниот feed per fish ќе биде F × 1000)
+  // — но тоа е бесмислено, па подобро да прекинеме
+  if (!fishCountAtMeasurement || fishCountAtMeasurement <= 0) {
+    return {
+      W_now: W0,
+      daysElapsed,
+      isProjected: false,
+      basis: 'no-fish-count',
+      warnings: ['Нема податок за број на риби во мерењето — вратена оригинална тежина'],
+    };
+  }
+
+  // Извршете целосна пресметка на прираст
+  const prediction = predictGrowth({
+    fishCount: fishCountAtMeasurement,
+    initialWeight: W0,
+    totalFeedKg: totalFeedKgSince,
+    days: daysElapsed,
+    temperature: avgTemperature,
+  });
+
+  if (prediction.error) {
+    return {
+      W_now: W0,
+      daysElapsed,
+      isProjected: false,
+      basis: 'prediction-error',
+      warnings: [`Грешка во пресметка: ${prediction.error}`],
+    };
+  }
+
+  // Staleness warnings
+  const warnings = [...(prediction.warnings || [])];
+  if (daysElapsed > 30) {
+    warnings.push(`Последно мерење е пред ${daysElapsed} дена — препорачува се ново мерење за поточни препораки`);
+  }
+  if (daysElapsed > 60) {
+    warnings.push(`Мерењето е старо ${daysElapsed} дена — проекцијата станува неточна над 60 дена`);
+  }
+
+  return {
+    W_now: prediction.growth.W1,
+    daysElapsed,
+    isProjected: true,
+    basis: 'growth-prediction',
+    metadata: {
+      W0,
+      fishCountAtMeasurement,
+      totalFeedKgSince,
+      avgTemperature,
+      daysElapsed,
+      growthGr: prediction.growth.growthPerFishGr,
+      dailyGrowthGr: prediction.growth.dailyGrowthGr,
+      sgr: prediction.growth.sgr,
+      fcrUsed: prediction.fcr.used,
+      phasesTraversed: prediction.fcr.phasesTraversed,
+      expectedW1FromCurve: prediction.validation.expectedW1FromCurve,
+      deviationPercent: prediction.validation.growthDeviationPercent,
+    },
+    warnings,
+  };
+}
+
 module.exports = {
   predictGrowth,
   calculateActualFCR,
@@ -598,6 +732,7 @@ module.exports = {
   getExpectedWeightFromCurve,
   simulateGrowthDaily,
   computeFcrTempMultiplier,
+  projectCurrentWeight,
   PHASE_FCR,
   DEFAULT_SURVIVAL_PER_DAY,
   TEMP_FCR_PENALTY_COEFFICIENT,
