@@ -111,14 +111,10 @@ const TEMP_ADJUSTMENTS = [
   { minTemp: 36, maxTemp: 50, factor: 0.0,  note: 'Екстремно топло — не хранете' },
 ];
 
-// ─── Meals per day recommendation based on fish size ───
-function getMealsPerDay(avgWeight) {
-  if (avgWeight < 1)    return 6;  // Fry: 6 meals (per Coppens: 8,11,14,17,20,23h)
-  if (avgWeight < 10)   return 5;  // Small fry: 5 meals
-  if (avgWeight < 35)   return 4;  // Fingerlings: 4 meals
-  if (avgWeight < 90)   return 3;  // Juveniles: 3 meals
-  if (avgWeight < 300)  return 3;  // Sub-adults: 3 meals
-  return 2;                        // Adults: 2 meals
+// ─── Meals per day — FIXED at 3 for all pools ───
+// Фамаком Аквакултура: сите базени се хранат 3× дневно (утро, пладне, вечер).
+function getMealsPerDay() {
+  return 3;
 }
 
 /**
