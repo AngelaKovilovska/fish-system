@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS } from '../lib/constants';
-import { Mail, Eye, ChevronLeft, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, Cell, Legend,
+} from 'recharts';
 
 const REPORT_TYPES = [
+  { key: 'daily', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
   { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
   { key: 'weight', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
   { key: 'alerts', label: 'Аларми', desc: 'Историја на активирани аларми', icon: AlertTriangle, needsDates: true, needsPool: false },
@@ -11,6 +17,28 @@ const REPORT_TYPES = [
   { key: 'purchases', label: 'Набавки на храна', desc: 'Кога и колку храна е купена', icon: ShoppingCart, needsDates: true, needsPool: false },
   { key: 'inventory', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
 ];
+
+// Chart colors
+const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#e11d48', '#4f46e5'];
+
+// Custom tooltip for charts
+function ChartTooltipContent({ active, payload, label, suffix = '' }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: 'var(--r-md)', padding: '8px 12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px',
+    }}>
+      <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4, fontFamily: 'Sora, sans-serif' }}>{label}</p>
+      {payload.map((entry, i) => (
+        <p key={i} style={{ color: entry.color || 'var(--text-secondary)', margin: '2px 0' }}>
+          {entry.name}: <strong>{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}{suffix}</strong>
+        </p>
+      ))}
+    </div>
+  );
+}
 
 const PARAM_LABELS = {
   temperature: 'Температура', ph: 'pH', total_alkalinity: 'Total Alkalinity',
@@ -34,6 +62,7 @@ function fmtDate(dateVal) {
 }
 
 export default function Reports() {
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const defaultFrom = `${currentYear}-01-01`;
   const defaultTo = `${currentYear}-12-31`;
@@ -232,6 +261,236 @@ ${tableHTML}
     }
   };
 
+  /* ── Chart visualizations for each report type ── */
+  const renderChart = () => {
+    if (!previewData) return null;
+
+    // ── Food consumption bar chart ──
+    if (activeReport === 'food' && (previewData.data || []).length > 0) {
+      const chartData = previewData.data.map(d => ({
+        name: d.food_type || 'Непознат',
+        Набавено: d.purchased_kg != null ? parseFloat(parseFloat(d.purchased_kg).toFixed(2)) : 0,
+        Потрошено: parseFloat((parseFloat(d.total_gr) / 1000).toFixed(2)),
+        Преостанато: d.remaining_kg != null ? parseFloat(parseFloat(d.remaining_kg).toFixed(2)) : 0,
+      }));
+
+      return (
+        <div className="card mb-4 animate-in">
+          <h3 className="section-title text-sm mb-3">Потрошувачка по тип храна (kg)</h3>
+          <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 50 + 60)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+              <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="Набавено" fill="#2563eb" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="Потрошено" fill="#dc2626" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="Преостанато" fill="#059669" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    // ── Weight line/bar chart ──
+    if (activeReport === 'weight' && (previewData.data || []).length > 0) {
+      const data = previewData.data;
+
+      // Group by pool for line chart (multiple dates)
+      const uniqueDates = [...new Set(data.map(d => d.measured_at))];
+      const uniquePools = [...new Set(data.map(d => d.pool_number))].sort((a, b) => a - b);
+
+      if (uniqueDates.length > 1) {
+        // Line chart: weight over time, one line per pool
+        const chartData = uniqueDates.map(date => {
+          const point = { date: fmtDate(date) };
+          for (const pool of uniquePools) {
+            const match = data.find(d => d.measured_at === date && d.pool_number === pool);
+            if (match) point[`Б${pool}`] = parseFloat(match.avg_weight_gr);
+          }
+          return point;
+        });
+
+        return (
+          <div className="card mb-4 animate-in">
+            <h3 className="section-title text-sm mb-3">Крива на раст (gr)</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<ChartTooltipContent suffix=" gr" />} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {uniquePools.map((pool, i) => (
+                  <Line key={pool} type="monotone" dataKey={`Б${pool}`}
+                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                    strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}
+                    connectNulls />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      } else {
+        // Bar chart: single date, bars per pool
+        const chartData = data.map(d => ({
+          name: `Б${d.pool_number}`,
+          Тежина: parseFloat(d.avg_weight_gr),
+          Риби: parseInt(d.fish_count),
+        }));
+
+        return (
+          <div className="card mb-4 animate-in">
+            <h3 className="section-title text-sm mb-3">Тежина по базен (gr) — {fmtDate(data[0].measured_at)}</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<ChartTooltipContent suffix=" gr" />} />
+                <Bar dataKey="Тежина" radius={[6, 6, 0, 0]}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      }
+    }
+
+    // ── Alerts timeline bar chart ──
+    if (activeReport === 'alerts' && (previewData.data || []).length > 0) {
+      // Group alerts by date
+      const dateMap = {};
+      for (const d of previewData.data) {
+        const dateStr = fmtDate(d.date);
+        if (!dateMap[dateStr]) dateMap[dateStr] = 0;
+        dateMap[dateStr]++;
+      }
+      const chartData = Object.entries(dateMap).map(([date, count]) => ({ date, Аларми: count }));
+
+      // Also group by parameter for a secondary view
+      const paramMap = {};
+      for (const d of previewData.data) {
+        const name = PARAM_LABELS[d.parameter_name] || d.parameter_name;
+        if (!paramMap[name]) paramMap[name] = 0;
+        paramMap[name]++;
+      }
+      const paramData = Object.entries(paramMap)
+        .map(([name, count]) => ({ name, Број: count }))
+        .sort((a, b) => b.Број - a.Број);
+
+      return (
+        <div className="card mb-4 animate-in space-y-4">
+          <div>
+            <h3 className="section-title text-sm mb-3">Аларми по ден</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="Аларми" fill="#dc2626" radius={[4, 4, 0, 0]}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={chartData[i].Аларми > 3 ? '#991b1b' : '#dc2626'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {paramData.length > 1 && (
+            <div>
+              <h3 className="section-title text-sm mb-3">Најчести параметри со аларм</h3>
+              <ResponsiveContainer width="100%" height={Math.max(150, paramData.length * 35 + 40)}>
+                <BarChart data={paramData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="Број" fill="#f59e0b" radius={[0, 4, 4, 0]}>
+                    {paramData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[(i + 3) % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Purchases bar chart ──
+    if (activeReport === 'purchases' && (previewData.data || []).length > 0) {
+      // Group by food type
+      const typeMap = {};
+      for (const d of previewData.data) {
+        if (!typeMap[d.food_type]) typeMap[d.food_type] = 0;
+        typeMap[d.food_type] += parseFloat(d.change_kg);
+      }
+      const chartData = Object.entries(typeMap)
+        .map(([name, total]) => ({ name, Количина: parseFloat(total.toFixed(2)) }))
+        .sort((a, b) => b.Количина - a.Количина);
+
+      return (
+        <div className="card mb-4 animate-in">
+          <h3 className="section-title text-sm mb-3">Набавки по тип храна (kg)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+              <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
+              <Bar dataKey="Количина" fill="#059669" radius={[6, 6, 0, 0]}>
+                {chartData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    // ── Sorting — simple visual timeline ──
+    if (activeReport === 'sorting' && (previewData.dates || []).length > 0) {
+      const dates = previewData.dates;
+      // Calculate gaps between sortings
+      const chartData = dates.map((d, i) => {
+        const current = new Date(d);
+        const prev = i > 0 ? new Date(dates[i - 1]) : null;
+        const gap = prev ? Math.round((current - prev) / (1000 * 60 * 60 * 24)) : 0;
+        return { date: fmtDate(d), Денови: gap };
+      });
+
+      if (chartData.length > 1) {
+        return (
+          <div className="card mb-4 animate-in">
+            <h3 className="section-title text-sm mb-3">Денови помеѓу сортирања</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData.slice(1)} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<ChartTooltipContent suffix=" дена" />} />
+                <Bar dataKey="Денови" fill="#7c3aed" radius={[6, 6, 0, 0]}>
+                  {chartData.slice(1).map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      }
+    }
+
+    return null;
+  };
+
   const renderPreview = () => {
     if (!previewData) return null;
 
@@ -414,6 +673,37 @@ ${tableHTML}
 
     return (
       <div className="space-y-4">
+        {/* Inventory bar chart */}
+        {inventory.length > 0 && (
+          <div className="card animate-in">
+            <h3 className="section-title text-sm mb-3">Залихи по тип храна (kg)</h3>
+            <ResponsiveContainer width="100%" height={Math.max(160, inventory.length * 45 + 40)}>
+              <BarChart
+                data={inventory.map(item => ({
+                  name: item.food_type,
+                  Залиха: parseFloat(parseFloat(item.quantity_kg).toFixed(2)),
+                }))}
+                layout="vertical"
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
+                <Bar dataKey="Залиха" radius={[0, 6, 6, 0]}>
+                  {inventory.map((item, i) => (
+                    <Cell key={i} fill={
+                      parseFloat(item.quantity_kg) <= 5 ? '#dc2626' :
+                      parseFloat(item.quantity_kg) <= 15 ? '#d97706' :
+                      '#059669'
+                    } />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
         {/* Current stock */}
         <div className="card animate-in">
           <h3 className="section-title text-sm mb-3 flex items-center gap-2">
@@ -616,7 +906,11 @@ ${tableHTML}
 
         {/* Preview data */}
         {!isInventory && previewData && (
-          <div className="card animate-in space-y-4">
+          <div className="animate-in space-y-0">
+            {/* Chart visualization ABOVE the table */}
+            {renderChart()}
+
+            <div className="card space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="section-title">{report.label}</h2>
               <button onClick={handleBackFromPreview} className="btn-ghost text-sm">
@@ -644,6 +938,7 @@ ${tableHTML}
 
             {emailSent && <div className="alert-success text-xs">Извештајот е испратен на вашиот email.</div>}
             {error && <div className="alert-danger text-xs">{error}</div>}
+            </div>
           </div>
         )}
       </div>
@@ -659,7 +954,7 @@ ${tableHTML}
         {REPORT_TYPES.map((r, i) => {
           const Icon = r.icon;
           return (
-            <button key={r.key} onClick={() => handleSelectReport(r.key)}
+            <button key={r.key} onClick={() => r.isLink ? navigate(r.linkTo) : handleSelectReport(r.key)}
               className={`card-hover text-left animate-in-delay-${Math.min(i + 1, 5)} !p-6`}>
               <div className="flex items-center gap-2.5 mb-1.5">
                 <div className="icon-box"

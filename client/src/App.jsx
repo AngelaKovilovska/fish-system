@@ -16,6 +16,7 @@ import AdminHub from './pages/admin/AdminHub';
 import MealForm from './pages/MealForm';
 import MealHistory from './pages/MealHistory';
 import AICalculator from './pages/AICalculator';
+import EntryHub from './pages/EntryHub';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -43,6 +44,7 @@ function AppRoutes() {
 
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/entry" element={<EntryHub />} />
         <Route path="/checklist" element={<ChecklistForm />} />
         <Route path="/checklist/:id" element={<ChecklistForm />} />
         <Route path="/history" element={<ChecklistHistory />} />

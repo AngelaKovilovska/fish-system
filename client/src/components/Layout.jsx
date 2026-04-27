@@ -2,28 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, ClipboardList, Clock, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, Brain, ChevronDown, MoreHorizontal, UtensilsCrossed } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, Brain, ChevronDown, MoreHorizontal } from 'lucide-react';
 import FishBackground from './FishBackground';
 
-// ─── Sidebar sections ───
+// ─── 4 main sections: Дома, Внес, Извештаи, AI ───
 const sidebarSections = [
   {
     items: [
-      { path: '/', label: 'Почетна', icon: Home },
-    ],
-  },
-  {
-    title: 'Дневни задачи',
-    items: [
-      { path: '/checklist', label: 'Запис', icon: ClipboardList },
-      { path: '/history', label: 'Историја', icon: Clock },
-    ],
-  },
-  {
-    title: 'Аналитика',
-    items: [
-      { path: '/ai-calculator', label: 'AI Храна', icon: Brain },
+      { path: '/', label: 'Дома', icon: Home },
+      { path: '/entry', label: 'Внес', icon: PenSquare },
       { path: '/reports', label: 'Извештаи', icon: FileBarChart },
+      { path: '/ai-calculator', label: 'AI', icon: Brain },
     ],
   },
 ];
@@ -38,17 +27,15 @@ const adminSection = {
   ],
 };
 
-// ─── Mobile: main tabs (max 4) + More ───
+// ─── Mobile: 4 tabs, admin in profile dropdown ───
 const mobilePrimaryTabs = [
-  { path: '/', label: 'Почетна', icon: Home },
-  { path: '/checklist', label: 'Запис', icon: ClipboardList },
-  { path: '/ai-calculator', label: 'AI Храна', icon: Brain },
+  { path: '/', label: 'Дома', icon: Home },
+  { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/reports', label: 'Извештаи', icon: FileBarChart },
+  { path: '/ai-calculator', label: 'AI', icon: Brain },
 ];
 
-const mobileMoreItems = [
-  { path: '/history', label: 'Историја', icon: Clock },
-];
+const mobileMoreItems = [];
 
 const mobileAdminItems = [
   { path: '/admin/measurements', label: 'Мерења', icon: Scale },
@@ -73,6 +60,13 @@ export default function Layout() {
 
   const isAdmin = user?.role === 'admin';
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
+
+  // Routes that belong to the "Внес" section for active state highlighting
+  const entryPaths = ['/entry', '/checklist', '/meal/', '/meals'];
+  const isEntryActive = entryPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
+  // Routes that belong to "Извештаи" section
+  const reportPaths = ['/reports', '/history'];
+  const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -136,7 +130,10 @@ export default function Layout() {
 
               {/* Section items */}
               {section.items.map(item => {
-                const isActive = location.pathname === item.path;
+                let isActive = location.pathname === item.path;
+                // Special active logic for grouped sections
+                if (item.path === '/entry') isActive = isEntryActive;
+                if (item.path === '/reports') isActive = isReportsActive;
                 return (
                   <Link key={item.path} to={item.path}
                     className={`sidebar-link ${isActive ? 'active' : ''}`}>
@@ -245,7 +242,22 @@ export default function Layout() {
                     {isAdmin ? 'Админ' : 'Работник'}
                   </span>
                 </div>
-                <div className="h-px bg-[var(--border)] mb-3" />
+                {isAdmin && (
+                  <>
+                    <div className="h-px bg-[var(--border)] mb-2" />
+                    <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-semibold px-3 mb-1"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>Админ</p>
+                    {adminSection.items.map(item => (
+                      <Link key={item.path} to={item.path}
+                        className="flex items-center gap-2 px-3 py-2 rounded-[var(--r-sm)] text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        style={{ fontFamily: 'Sora, sans-serif' }}>
+                        <item.icon size={14} />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </>
+                )}
+                <div className="h-px bg-[var(--border)] my-2" />
                 <button onClick={logout}
                   className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--r-sm)] text-[var(--danger)] text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
@@ -312,7 +324,9 @@ export default function Layout() {
       {/* ═══════ MOBILE BOTTOM TAB BAR ═══════ */}
       <nav className="bottom-tab-bar flex lg:hidden">
         {mobilePrimaryTabs.map(item => {
-          const isActive = location.pathname === item.path;
+          let isActive = location.pathname === item.path;
+          if (item.path === '/entry') isActive = isEntryActive;
+          if (item.path === '/reports') isActive = isReportsActive;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>
