@@ -10,7 +10,7 @@ const sidebarSections = [
   {
     items: [
       { path: '/', label: 'Дома', icon: Home },
-      { path: '/checklist', label: 'Внес', icon: PenSquare },
+      { path: '/entry', label: 'Внес', icon: PenSquare },
       { path: '/reports', label: 'Извештаи', icon: FileBarChart },
       { path: '/ai-calculator', label: 'AI', icon: Brain },
     ],
@@ -20,8 +20,6 @@ const sidebarSections = [
 const adminSection = {
   title: 'Админ',
   items: [
-    { path: '/admin/measurements', label: 'Мерења', icon: Scale },
-    { path: '/admin/inventory', label: 'Залихи', icon: Package },
     { path: '/admin/norms', label: 'Норми', icon: Settings },
     { path: '/admin/users', label: 'Корисници', icon: Users },
   ],
@@ -38,8 +36,6 @@ const mobilePrimaryTabs = [
 const mobileMoreItems = [];
 
 const mobileAdminItems = [
-  { path: '/admin/measurements', label: 'Мерења', icon: Scale },
-  { path: '/admin/inventory', label: 'Залихи', icon: Package },
   { path: '/admin/norms', label: 'Норми', icon: Settings },
   { path: '/admin/users', label: 'Корисници', icon: Users },
 ];
@@ -62,7 +58,7 @@ export default function Layout() {
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
 
   // Routes that belong to the "Внес" section for active state highlighting
-  const entryPaths = ['/checklist', '/meal/', '/meals'];
+  const entryPaths = ['/entry', '/checklist', '/meal/', '/meals', '/admin/measurements', '/admin/inventory'];
   const isEntryActive = entryPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   // Routes that belong to "Извештаи" section
   const reportPaths = ['/reports', '/history'];

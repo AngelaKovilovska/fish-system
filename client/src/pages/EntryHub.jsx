@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import {
-  ClipboardList, UtensilsCrossed, Sunrise, Sun, Moon,
-  Check, ChevronRight, Calendar,
+  ClipboardList, Sunrise, Sun, Moon,
+  Check, ChevronRight, Calendar, Scale, Package,
 } from 'lucide-react';
 
 const MEALS = [
@@ -13,6 +14,8 @@ const MEALS = [
 ];
 
 export default function EntryHub() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const today = new Date().toISOString().split('T')[0];
   const [checklistDone, setChecklistDone] = useState(false);
   const [mealStatus, setMealStatus] = useState({});
@@ -159,6 +162,56 @@ export default function EntryHub() {
           );
         })}
       </div>
+
+      {/* Admin-only: Measurements & Inventory */}
+      {isAdmin && (
+        <>
+          <div className="flex items-center gap-3 my-4 animate-in-delay-1">
+            <div className="h-px flex-1 bg-[var(--border)]" />
+            <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+              style={{ fontFamily: 'Sora, sans-serif' }}>Админ</span>
+            <div className="h-px flex-1 bg-[var(--border)]" />
+          </div>
+
+          <div className="space-y-3">
+            <Link to="/admin/measurements"
+              className="card card-hover !py-4 flex items-center gap-4 group animate-in-delay-5">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                <Scale size={22} style={{ color: '#6366f1' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-[var(--text-primary)]"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>
+                  Мерења на базени
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Број на риби и просечна тежина по базен
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+            </Link>
+
+            <Link to="/admin/inventory"
+              className="card card-hover !py-4 flex items-center gap-4 group animate-in-delay-5">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.18)' }}>
+                <Package size={22} style={{ color: '#10b981' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-[var(--text-primary)]"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>
+                  Набавки на храна
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Залихи, нови набавки и историја
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }
