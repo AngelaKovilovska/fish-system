@@ -135,14 +135,16 @@ export default function RecordDetail() {
       const poolMealData = poolNumbers.map(poolNum => {
         const poolMeals = meals.filter(m => m.pool_number === poolNum);
         const mealRows = mealTypes.map(type => {
-          const meal = poolMeals.find(m => m.meal_type === type);
-          return { label: { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' }[type], food_type: meal?.food_type || null, qty: parseFloat(meal?.food_quantity_gr) || 0 };
+          const mealEntries = poolMeals.filter(m => m.meal_type === type && parseFloat(m.food_quantity_gr) > 0);
+          const totalQty = mealEntries.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
+          const foodDesc = mealEntries.map(m => `${m.food_type} — ${m.food_quantity_gr} gr`).join(', ');
+          return { label: { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' }[type], foodDesc, qty: totalQty };
         });
         return { poolNum, mealRows, total: mealRows.reduce((s, m) => s + m.qty, 0) };
       }).filter(p => p.total > 0);
       const grandTotal = poolMealData.reduce((s, p) => s + p.total, 0);
       const mealHTML = poolMealData.map(({ poolNum, mealRows, total }) =>
-        `<div class="pool-block"><strong>Базен ${poolNum}</strong>${mealRows.map(m => row(m.label, m.qty > 0 ? `${m.food_type} — ${m.qty} gr` : '–')).join('')}<div class="pool-total">Вкупно: ${total} gr</div></div>`
+        `<div class="pool-block"><strong>Базен ${poolNum}</strong>${mealRows.map(m => row(m.label, m.qty > 0 ? m.foodDesc : '–')).join('')}<div class="pool-total">Вкупно: ${total} gr</div></div>`
       ).join('');
       html += section('6. Храна', mealHTML + `<div class="total">Вкупно храна (сите оброци): ${grandTotal} gr</div>`);
     }
@@ -230,8 +232,10 @@ ${html}
   const poolMealData = poolNumbers.map(poolNum => {
     const poolMeals = meals.filter(m => m.pool_number === poolNum);
     const mealRows = mealTypes.map(type => {
-      const meal = poolMeals.find(m => m.meal_type === type);
-      return { type, label: MEAL_LABELS[type], food_type: meal?.food_type || null, food_quantity_gr: parseFloat(meal?.food_quantity_gr) || 0, has_data: meal && parseFloat(meal.food_quantity_gr) > 0 };
+      const mealEntries = poolMeals.filter(m => m.meal_type === type && parseFloat(m.food_quantity_gr) > 0);
+      const totalQty = mealEntries.reduce((s, m) => s + parseFloat(m.food_quantity_gr || 0), 0);
+      const foodItems = mealEntries.map(m => ({ food_type: m.food_type, food_quantity_gr: parseFloat(m.food_quantity_gr || 0) }));
+      return { type, label: MEAL_LABELS[type], foodItems, food_quantity_gr: totalQty, has_data: mealEntries.length > 0 };
     });
     return { poolNum, mealRows, total: mealRows.reduce((s, m) => s + m.food_quantity_gr, 0) };
   }).filter(p => p.total > 0);
@@ -483,7 +487,9 @@ ${html}
                       {meal.has_data ? (
                         <>
                           <p className="text-[11px] font-bold text-[var(--text-primary)]">{meal.food_quantity_gr}g</p>
-                          <p className="text-[9px] text-[var(--text-muted)]">{meal.food_type}</p>
+                          {meal.foodItems.map((fi, idx) => (
+                            <p key={idx} className="text-[9px] text-[var(--text-muted)]">{fi.food_type}{meal.foodItems.length > 1 ? ` ${fi.food_quantity_gr}g` : ''}</p>
+                          ))}
                         </>
                       ) : (
                         <p className="text-[10px] text-[var(--text-muted)]">–</p>

@@ -94,11 +94,30 @@ router.get('/last-values', authMiddleware, async (req, res) => {
       `SELECT pool_number, food_type, food_quantity_gr
        FROM pool_meals
        WHERE date = $1 AND meal_type = $2
-       ORDER BY pool_number`,
+       ORDER BY pool_number, id`,
       [date, meal_type]
     );
 
-    res.json({ pools: result.rows, lastDate: date });
+    // Group by pool_number → foods array (supports multi-food per pool)
+    const poolMap = {};
+    for (const row of result.rows) {
+      if (!poolMap[row.pool_number]) {
+        poolMap[row.pool_number] = { pool_number: row.pool_number, foods: [] };
+      }
+      poolMap[row.pool_number].foods.push({
+        food_type: row.food_type,
+        food_quantity_gr: row.food_quantity_gr,
+      });
+    }
+
+    // Also include legacy flat fields for backward compatibility
+    const pools = Object.values(poolMap).map(p => ({
+      ...p,
+      food_type: p.foods[0]?.food_type || null,
+      food_quantity_gr: p.foods[0]?.food_quantity_gr || 0,
+    }));
+
+    res.json({ pools, lastDate: date });
   } catch (err) {
     console.error('Get last meal values error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
@@ -205,28 +224,44 @@ router.post('/', authMiddleware, async (req, res) => {
     );
 
     // Insert new meal entries
+    // Supports both formats:
+    //   Legacy: pools = [{ pool_number, food_type, food_quantity_gr }]
+    //   Multi-food: pools = [{ pool_number, foods: [{ food_type, food_quantity_gr }] }]
     const insertedIds = [];
     for (const p of pools) {
-      const result = await client.query(
-        `INSERT INTO pool_meals (date, pool_number, meal_type, food_type, food_quantity_gr, fed_by)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [date, p.pool_number, meal_type, p.food_type || null, p.food_quantity_gr || 0, req.user.id]
-      );
-      const mealId = result.rows[0].id;
-      insertedIds.push(mealId);
+      // Normalize to foods array (backward compatible with single food_type)
+      const foods = Array.isArray(p.foods) && p.foods.length > 0
+        ? p.foods
+        : [{ food_type: p.food_type, food_quantity_gr: p.food_quantity_gr }];
 
-      // Deduct from food inventory
-      if (p.food_type && p.food_quantity_gr > 0) {
-        const changeKg = parseFloat(p.food_quantity_gr) / 1000;
-        await client.query(
-          'UPDATE food_inventory SET quantity_kg = quantity_kg - $1, updated_at = NOW() WHERE food_type = $2',
-          [changeKg, p.food_type]
+      for (const food of foods) {
+        const foodType = food.food_type || null;
+        const foodQty = parseFloat(food.food_quantity_gr) || 0;
+
+        // Skip completely empty entries (no type and no quantity)
+        if (!foodType && foodQty <= 0) continue;
+
+        const result = await client.query(
+          `INSERT INTO pool_meals (date, pool_number, meal_type, food_type, food_quantity_gr, fed_by)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+          [date, p.pool_number, meal_type, foodType, foodQty, req.user.id]
         );
-        await client.query(
-          `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by)
-           VALUES ($1, $2, 'consumption', $3, $4)`,
-          [p.food_type, -changeKg, mealId, req.user.id]
-        );
+        const mealId = result.rows[0].id;
+        insertedIds.push(mealId);
+
+        // Deduct from food inventory
+        if (foodType && foodQty > 0) {
+          const changeKg = foodQty / 1000;
+          await client.query(
+            'UPDATE food_inventory SET quantity_kg = quantity_kg - $1, updated_at = NOW() WHERE food_type = $2',
+            [changeKg, foodType]
+          );
+          await client.query(
+            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by)
+             VALUES ($1, $2, 'consumption', $3, $4)`,
+            [foodType, -changeKg, mealId, req.user.id]
+          );
+        }
       }
     }
 

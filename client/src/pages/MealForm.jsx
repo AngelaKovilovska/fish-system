@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
-import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap, Copy } from 'lucide-react';
+import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap, Copy, Plus, X } from 'lucide-react';
 
 const MEAL_LABELS = {
   breakfast: 'Појадок',
@@ -31,8 +31,9 @@ export default function MealForm() {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
 
+  const emptyFood = () => ({ food_type: '', food_quantity_gr: '' });
   const [poolsData, setPoolsData] = useState(
-    POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' }))
+    POOL_NUMBERS.map(n => ({ pool_number: n, foods: [emptyFood()] }))
   );
 
   const mealLabel = MEAL_LABELS[mealType] || mealType;
@@ -51,7 +52,7 @@ export default function MealForm() {
     setUsingDefaults(false);
     setLastMealDate(null);
     setLastMealPools([]);
-    setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, food_type: '', food_quantity_gr: '' })));
+    setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, foods: [emptyFood()] })));
 
     try {
       const [mealsData, measurementsData, aiData, lastValues] = await Promise.all([
@@ -71,15 +72,20 @@ export default function MealForm() {
 
       const existing = mealsData.meals.filter(m => m.meal_type === mealType);
       if (existing.length > 0) {
-        // Editing existing meal for this date
+        // Editing existing meal for this date — group rows by pool_number
         setIsEdit(true);
         setPoolsData(POOL_NUMBERS.map(n => {
-          const meal = existing.find(m => m.pool_number === n);
+          const poolRows = existing.filter(m => m.pool_number === n);
+          const foods = poolRows
+            .filter(m => m.food_type || (m.food_quantity_gr != null && m.food_quantity_gr > 0))
+            .map(m => ({
+              food_type: m.food_type || '',
+              food_quantity_gr: m.food_quantity_gr != null && m.food_quantity_gr > 0
+                ? m.food_quantity_gr : '',
+            }));
           return {
             pool_number: n,
-            food_type: meal?.food_type || '',
-            food_quantity_gr: meal?.food_quantity_gr != null && meal.food_quantity_gr > 0
-              ? meal.food_quantity_gr : '',
+            foods: foods.length > 0 ? foods : [emptyFood()],
           };
         }));
       }
@@ -112,28 +118,59 @@ export default function MealForm() {
     setUsingDefaults(true);
     setPoolsData(POOL_NUMBERS.map(n => {
       const last = lastMealPools.find(p => p.pool_number === n);
-      return {
-        pool_number: n,
-        food_type: last?.food_type || '',
-        food_quantity_gr: last?.food_quantity_gr != null && parseFloat(last.food_quantity_gr) > 0
-          ? parseFloat(last.food_quantity_gr) : '',
-      };
+      // Server now returns foods[] array per pool
+      const foods = last?.foods?.length > 0
+        ? last.foods.map(f => ({
+            food_type: f.food_type || '',
+            food_quantity_gr: f.food_quantity_gr != null && parseFloat(f.food_quantity_gr) > 0
+              ? parseFloat(f.food_quantity_gr) : '',
+          }))
+        : last?.food_type
+          ? [{ food_type: last.food_type, food_quantity_gr: parseFloat(last.food_quantity_gr) || '' }]
+          : [emptyFood()];
+      return { pool_number: n, foods };
     }));
   };
 
-  const updatePool = (poolNum, field, value) => {
-    setPoolsData(prev => prev.map(p =>
-      p.pool_number === poolNum ? { ...p, [field]: value } : p
-    ));
+  const updateFood = (poolNum, foodIndex, field, value) => {
+    setPoolsData(prev => prev.map(p => {
+      if (p.pool_number !== poolNum) return p;
+      const foods = p.foods.map((f, i) => i === foodIndex ? { ...f, [field]: value } : f);
+      return { ...p, foods };
+    }));
   };
 
-  // Validation: check which pools have incomplete data
+  const addFood = (poolNum) => {
+    setPoolsData(prev => prev.map(p => {
+      if (p.pool_number !== poolNum) return p;
+      return { ...p, foods: [...p.foods, emptyFood()] };
+    }));
+  };
+
+  const removeFood = (poolNum, foodIndex) => {
+    setPoolsData(prev => prev.map(p => {
+      if (p.pool_number !== poolNum) return p;
+      if (p.foods.length <= 1) return { ...p, foods: [emptyFood()] }; // keep at least one
+      return { ...p, foods: p.foods.filter((_, i) => i !== foodIndex) };
+    }));
+  };
+
+  // Validation helpers for multi-food entries
+  const isFoodComplete = (f) => {
+    const hasType = f.food_type && f.food_type.trim() !== '';
+    const hasQty = f.food_quantity_gr !== '' && parseFloat(f.food_quantity_gr) > 0;
+    return hasType && hasQty;
+  };
+  const isFoodPartial = (f) => {
+    const hasType = f.food_type && f.food_type.trim() !== '';
+    const hasQty = f.food_quantity_gr !== '' && parseFloat(f.food_quantity_gr) > 0;
+    return (hasType && !hasQty) || (!hasType && hasQty);
+  };
+
   const getIncomplePools = () => {
     const incomplete = [];
     for (const p of poolsData) {
-      const hasType = p.food_type && p.food_type.trim() !== '';
-      const hasQty = p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0;
-      if ((hasType && !hasQty) || (!hasType && hasQty)) {
+      if (p.foods.some(isFoodPartial)) {
         incomplete.push(p.pool_number);
       }
     }
@@ -141,10 +178,10 @@ export default function MealForm() {
   };
 
   const hasAnyData = () => {
-    return poolsData.some(p =>
-      (p.food_type && p.food_type.trim() !== '') ||
-      (p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0)
-    );
+    return poolsData.some(p => p.foods.some(f =>
+      (f.food_type && f.food_type.trim() !== '') ||
+      (f.food_quantity_gr !== '' && parseFloat(f.food_quantity_gr) > 0)
+    ));
   };
 
   const handleSubmit = async () => {
@@ -168,7 +205,10 @@ export default function MealForm() {
       await api.saveMeal({
         date: selectedDate,
         meal_type: mealType,
-        pools: poolsData,
+        pools: poolsData.map(p => ({
+          pool_number: p.pool_number,
+          foods: p.foods.filter(f => isFoodComplete(f)),
+        })),
       });
       setSuccess(isEdit ? 'Оброкот е ажуриран!' : 'Оброкот е зачуван!');
       setTimeout(() => navigate('/'), 1500);
@@ -204,26 +244,22 @@ export default function MealForm() {
     );
   }
 
-  const poolData = poolsData.find(p => p.pool_number === activePool) || {};
+  const poolData = poolsData.find(p => p.pool_number === activePool) || { foods: [emptyFood()] };
   const measurement = poolMeasurements.find(m => m.pool_number === activePool);
 
   const isPoolIncomplete = (num) => {
     const p = poolsData.find(pd => pd.pool_number === num);
     if (!p) return false;
-    const hasType = p.food_type && p.food_type.trim() !== '';
-    const hasQty = p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0;
-    return (hasType && !hasQty) || (!hasType && hasQty);
+    return p.foods.some(isFoodPartial);
   };
 
   const isPoolFilled = (num) => {
     const p = poolsData.find(pd => pd.pool_number === num);
     if (!p) return false;
-    return (p.food_type && p.food_type.trim() !== '') && (p.food_quantity_gr !== '' && parseFloat(p.food_quantity_gr) > 0);
+    return p.foods.some(isFoodComplete);
   };
 
-  const currentHasType = poolData.food_type && poolData.food_type.trim() !== '';
-  const currentHasQty = poolData.food_quantity_gr !== '' && parseFloat(poolData.food_quantity_gr) > 0;
-  const currentIncomplete = (currentHasType && !currentHasQty) || (!currentHasType && currentHasQty);
+  const currentIncomplete = poolData.foods.some(isFoodPartial);
   const isHistorical = selectedDate !== today;
 
   return (
@@ -365,39 +401,67 @@ export default function MealForm() {
             );
           })()}
 
-          {/* Food type */}
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
-              style={{ fontFamily: 'Sora, sans-serif' }}>
-              <UtensilsCrossed size={12} className="text-[var(--primary)]" />
-              Тип на храна <span className="text-[var(--danger)]">*</span>
-            </label>
-            <select
-              value={poolData.food_type ?? ''}
-              onChange={(e) => updatePool(activePool, 'food_type', e.target.value)}
-              className={`input-base ${!currentHasType && currentHasQty ? 'border-[var(--danger)]' : ''}`}
-            >
-              <option value="">-- Избери тип на храна --</option>
-              {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
-            </select>
-          </div>
+          {/* Food entries — multiple food types per pool */}
+          {poolData.foods.map((food, fi) => {
+            const hasType = food.food_type && food.food_type.trim() !== '';
+            const hasQty = food.food_quantity_gr !== '' && parseFloat(food.food_quantity_gr) > 0;
+            return (
+              <div key={fi} className={`${fi > 0 ? 'pt-3 border-t border-dashed border-[var(--border)]' : ''}`}>
+                {poolData.foods.length > 1 && (
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold text-[var(--text-muted)]"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>
+                      Храна {fi + 1}
+                    </span>
+                    <button type="button" onClick={() => removeFood(activePool, fi)}
+                      className="text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full p-0.5 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>
+                      <UtensilsCrossed size={12} className="text-[var(--primary)]" />
+                      Тип на храна <span className="text-[var(--danger)]">*</span>
+                    </label>
+                    <select
+                      value={food.food_type ?? ''}
+                      onChange={(e) => updateFood(activePool, fi, 'food_type', e.target.value)}
+                      className={`input-base ${!hasType && hasQty ? 'border-[var(--danger)]' : ''}`}
+                    >
+                      <option value="">-- Избери тип на храна --</option>
+                      {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>
+                      <Weight size={12} className="text-[var(--primary)]" />
+                      Количина (gr) <span className="text-[var(--danger)]">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={food.food_quantity_gr ?? ''}
+                      onChange={(e) => updateFood(activePool, fi, 'food_quantity_gr', e.target.value)}
+                      className={`input-base ${hasType && !hasQty ? 'border-[var(--danger)]' : ''}`}
+                      placeholder="нпр. 200"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
-          {/* Food quantity */}
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
-              style={{ fontFamily: 'Sora, sans-serif' }}>
-              <Weight size={12} className="text-[var(--primary)]" />
-              Количина на храна (gr) <span className="text-[var(--danger)]">*</span>
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={poolData.food_quantity_gr ?? ''}
-              onChange={(e) => updatePool(activePool, 'food_quantity_gr', e.target.value)}
-              className={`input-base ${currentHasType && !currentHasQty ? 'border-[var(--danger)]' : ''}`}
-              placeholder="нпр. 200"
-            />
-          </div>
+          {/* Add another food type */}
+          <button type="button" onClick={() => addFood(activePool)}
+            className="w-full py-2 rounded-lg border border-dashed border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: 'Sora, sans-serif' }}>
+            <Plus size={14} />
+            Додади уште еден тип храна
+          </button>
         </div>
       </div>
 
