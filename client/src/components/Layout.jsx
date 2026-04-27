@@ -10,7 +10,7 @@ const sidebarSections = [
   {
     items: [
       { path: '/', label: 'Дома', icon: Home },
-      { path: '/entry', label: 'Внес', icon: PenSquare },
+      { path: '/checklist', label: 'Внес', icon: PenSquare },
       { path: '/reports', label: 'Извештаи', icon: FileBarChart },
       { path: '/ai-calculator', label: 'AI', icon: Brain },
     ],
@@ -62,7 +62,7 @@ export default function Layout() {
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
 
   // Routes that belong to the "Внес" section for active state highlighting
-  const entryPaths = ['/entry', '/checklist', '/meal/', '/meals'];
+  const entryPaths = ['/checklist', '/meal/', '/meals'];
   const isEntryActive = entryPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   // Routes that belong to "Извештаи" section
   const reportPaths = ['/reports', '/history'];
