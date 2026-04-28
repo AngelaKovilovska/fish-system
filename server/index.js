@@ -116,6 +116,28 @@ async function runMigrations() {
   } catch (err) {
     console.error('Migration error:', err);
   }
+
+  // Ensure UNIQUE constraint on pool_meals is dropped (multi-food support)
+  try {
+    const result = await pool.query(`
+      SELECT con.conname
+      FROM pg_constraint con
+      JOIN pg_class rel ON rel.oid = con.conrelid
+      JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+      WHERE rel.relname = 'pool_meals'
+        AND con.contype = 'u'
+        AND nsp.nspname = 'public'
+    `);
+    for (const row of result.rows) {
+      await pool.query(`ALTER TABLE pool_meals DROP CONSTRAINT "${row.conname}"`);
+      console.log(`Dropped UNIQUE constraint: ${row.conname}`);
+    }
+  } catch (err) {
+    // No constraint to drop or already dropped — safe to ignore
+    if (err.code !== '42704') {
+      console.error('Constraint cleanup note:', err.message);
+    }
+  }
 }
 
 // Auto-seed admin if no users exist
