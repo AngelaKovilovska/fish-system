@@ -26,6 +26,7 @@ export default function MealForm() {
   const [isEdit, setIsEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [poolMeasurements, setPoolMeasurements] = useState([]);
+  const [fishInventory, setFishInventory] = useState([]);
   const [aiRec, setAiRec] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
@@ -55,9 +56,10 @@ export default function MealForm() {
     setPoolsData(POOL_NUMBERS.map(n => ({ pool_number: n, foods: [emptyFood()] })));
 
     try {
-      const [mealsData, measurementsData, aiData, lastValues] = await Promise.all([
+      const [mealsData, measurementsData, fishInvData, aiData, lastValues] = await Promise.all([
         api.getMeals(date),
         api.getPoolMeasurements(),
+        api.getPoolFishInventory().catch(() => ({ inventory: [] })),
         api.getAIRecommendations().catch(() => null),
         api.getLastMealValues(mealType).catch(() => ({ pools: [], lastDate: null })),
       ]);
@@ -91,6 +93,7 @@ export default function MealForm() {
       }
       // Fields stay empty for new meals — user can click button to load last values
       setPoolMeasurements(measurementsData.measurements || []);
+      setFishInventory(fishInvData.inventory || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -246,6 +249,7 @@ export default function MealForm() {
 
   const poolData = poolsData.find(p => p.pool_number === activePool) || { foods: [emptyFood()] };
   const measurement = poolMeasurements.find(m => m.pool_number === activePool);
+  const poolInv = fishInventory.find(fi => fi.pool_number === activePool);
 
   const isPoolIncomplete = (num) => {
     const p = poolsData.find(pd => pd.pool_number === num);
@@ -349,13 +353,19 @@ export default function MealForm() {
             )}
           </div>
 
-          {/* Pool measurement info */}
-          {measurement && (
-            <div className="info-box flex items-start gap-2 text-xs">
-              <Info size={14} className="flex-shrink-0 mt-0.5" />
-              <span>Последно мерење: <strong>{measurement.fish_count}</strong> риби, <strong>{measurement.avg_weight_gr} gr</strong></span>
-            </div>
-          )}
+          {/* Pool fish count info */}
+          {(poolInv || measurement) && (() => {
+            const count = poolInv?.current_count ?? measurement?.fish_count ?? 0;
+            const weight = parseFloat(measurement?.avg_weight_gr) || 0;
+            return (
+              <div className="info-box flex items-start gap-2 text-xs">
+                <Fish size={14} className="flex-shrink-0 mt-0.5" />
+                <span>Актуелен број на риби: <strong>{count}</strong>
+                  {weight > 0 ? <> · <strong>{weight} gr</strong>/риба</> : ''}
+                </span>
+              </div>
+            );
+          })()}
 
           {/* AI Recommendation Info Bar */}
           {(() => {
