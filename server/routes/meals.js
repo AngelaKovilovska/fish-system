@@ -277,8 +277,15 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json({ message: 'Оброкот е зачуван', mealIds: insertedIds });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Save meal error:', err);
-    res.status(500).json({ error: 'Серверска грешка при зачувување' });
+    console.error('Save meal error:', err.message, err.detail || '', err.constraint || '');
+    // Provide more specific error for unique constraint violations
+    if (err.code === '23505') {
+      res.status(409).json({
+        error: 'Дупликат запис — миграцијата 011 не е применета. Рестартирајте го серверот за да се примени.',
+      });
+    } else {
+      res.status(500).json({ error: 'Серверска грешка при зачувување' });
+    }
   } finally {
     client.release();
   }
