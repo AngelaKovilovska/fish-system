@@ -85,8 +85,7 @@ const FEED_PRODUCTS = {
     protein: { '3.0': 42, '4.5': 42, '6.0': 42 },
     fat: 13,
     type: 'floating',
-    isRAS: false,
-    description: 'Растење — полу-интензивен систем (не е RAS-специфична)',
+    description: 'Растење — полу-интензивен систем',
   },
   'Repro': {
     sizes: ['6.0', '9.0'],
@@ -177,40 +176,18 @@ function getTempAdjustment(temperature) {
 }
 
 /**
- * Determine which feed product best matches the weight.
- *
- * RAS-optimized logic: Special Pro is the preferred RAS product for fish >132g.
- * Grower-13 EF is NOT RAS-specific but may be recommended to deplete existing stock.
- *
- * @param {number} avgWeight - Average fish weight in grams
- * @param {Object} options - { growerStockKg: number } — remaining Grower-13 EF stock in kg
- * @returns {Object} { name, sizeMm, stockNote? }
+ * Determine which feed product best matches the weight
  */
-function getRecommendedFeedProduct(avgWeight, options = {}) {
+function getRecommendedFeedProduct(avgWeight) {
   if (avgWeight < 10) {
     return { name: 'Advance', sizeMm: avgWeight < 1 ? '0.2-0.3' : avgWeight < 3 ? '0.5-0.8' : '1.5' };
   }
   if (avgWeight < 13) return { name: 'Advance', sizeMm: '1.5' };
   if (avgWeight < 35) return { name: 'Pre Grower-15 EF', sizeMm: '2.0' };
   if (avgWeight < 132) return { name: 'Special Pro', sizeMm: '3.0' };
-
-  // For fish >132g: prefer Special Pro (RAS), but use Grower-13 EF if stock exists
-  const growerStock = parseFloat(options.growerStockKg) || 0;
-  const useGrower = growerStock > 0;
-
-  if (useGrower) {
-    // Deplete existing Grower-13 EF stock first
-    const sizeMm = avgWeight < 200 ? '3.0' : avgWeight < 400 ? '4.5' : '6.0';
-    return {
-      name: 'Grower-13 EF',
-      sizeMm,
-      stockNote: `Се троши постоечка залиха (${Math.round(growerStock * 10) / 10} kg). По потрошување → Special Pro (RAS).`,
-    };
-  }
-
-  // RAS-optimized: Special Pro (available in 3.0mm and 4.5mm)
-  const sizeMm = avgWeight < 200 ? '3.0' : '4.5';
-  return { name: 'Special Pro', sizeMm };
+  if (avgWeight < 200) return { name: 'Grower-13 EF', sizeMm: '3.0' };
+  if (avgWeight < 400) return { name: 'Grower-13 EF', sizeMm: '4.5' };
+  return { name: 'Grower-13 EF', sizeMm: '6.0' };
 }
 
 /**
@@ -219,7 +196,7 @@ function getRecommendedFeedProduct(avgWeight, options = {}) {
  * @param {number} fishCount - Number of fish in pool
  * @param {number} avgWeight - Average weight in grams
  * @param {number|null} temperature - Water temperature in °C
- * @param {Object} options - Additional options { currentFoodType, growerStockKg }
+ * @param {Object} options - Additional options { currentFoodType }
  * @returns {Object} Feeding recommendation
  */
 function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, options = {}) {
@@ -232,7 +209,7 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
 
   const interpolated = interpolateFeedRate(avgWeight);
   const tempAdj = getTempAdjustment(temperature);
-  const feedProduct = getRecommendedFeedProduct(avgWeight, { growerStockKg: options.growerStockKg });
+  const feedProduct = getRecommendedFeedProduct(avgWeight);
   const mealsPerDay = getMealsPerDay(avgWeight);
 
   // Biomass calculation
@@ -312,7 +289,6 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
       foodTypeWarning,
       transitionNote,
       criticalWarning,
-      stockNote: feedProduct.stockNote || null,
     },
   };
 }
@@ -322,10 +298,9 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
  *
  * @param {Array} pools - Array of { pool_number, current_count, avg_weight_gr, food_type }
  * @param {number|null} temperature - Current water temperature
- * @param {Object} options - { growerStockKg: number }
  * @returns {Object} All pool recommendations + summary
  */
-function calculateAllRecommendations(pools, temperature = null, options = {}) {
+function calculateAllRecommendations(pools, temperature = null) {
   const recommendations = {};
   let totalDailyFoodKg = 0;
   let totalBiomassKg = 0;
@@ -339,7 +314,7 @@ function calculateAllRecommendations(pools, temperature = null, options = {}) {
       count,
       weight,
       temperature,
-      { currentFoodType: pool.food_type, growerStockKg: options.growerStockKg }
+      { currentFoodType: pool.food_type }
     );
 
     recommendations[pool.pool_number] = {
@@ -431,10 +406,14 @@ const FCR_BY_PRODUCT = {
 };
 
 // ─── Map AI food type name → stock inventory food type name ───
+const AI_TO_STOCK_MAP = {
+  'Advance':            'Advance (1.5mm)',
+  'Pre Grower-15 EF':  'Pregrower-15 (2mm)',
+  'Special Pro':        'SpecialPro EF (3mm)',
+};
+
 function mapToStockFoodType(aiProductName, feedSizeMm) {
-  if (aiProductName === 'Advance') return 'Advance (1.5mm)';
-  if (aiProductName === 'Pre Grower-15 EF') return 'Pregrower-15 (2mm)';
-  if (aiProductName === 'Special Pro') return 'SpecialPro EF (3mm)';
+  if (AI_TO_STOCK_MAP[aiProductName]) return AI_TO_STOCK_MAP[aiProductName];
   // Grower-13 EF has multiple sizes in stock
   if (aiProductName === 'Grower-13 EF') {
     if (feedSizeMm && feedSizeMm.includes('6')) return 'Grower-13EF (6mm)';

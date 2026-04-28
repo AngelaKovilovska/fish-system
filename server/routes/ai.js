@@ -101,14 +101,6 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       AND dr.date < CURRENT_DATE
     `);
 
-    // 7. Get total Grower-13 EF stock (all sizes) to decide RAS recommendation
-    const growerStockRes = await pool.query(`
-      SELECT COALESCE(SUM(quantity_kg), 0) as total_kg
-      FROM food_inventory
-      WHERE food_type LIKE '%Grower-13%' OR food_type LIKE '%Grower_13%'
-    `);
-    const growerStockKg = parseFloat(growerStockRes.rows[0]?.total_kg) || 0;
-
     // ─── Build lookup maps ───
     const measurementMap = {};
     measurementsRes.rows.forEach(m => {
@@ -185,7 +177,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     });
 
     // Use the latest temperature for TODAY's feeding (not the historical average)
-    const result = calculateAllRecommendations(pools, latestTemperature, { growerStockKg });
+    const result = calculateAllRecommendations(pools, latestTemperature);
 
     // ─── Enrich each pool's response with projection metadata + comparison ───
     for (const [pn, rec] of Object.entries(result.pools)) {
@@ -313,15 +305,7 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
     // Use projected weight if available, otherwise fall back to raw W0
     const effectiveWeight = projection.W_now ?? W0;
 
-    // Get Grower-13 EF stock for RAS recommendation logic
-    const growerStockRes = await pool.query(`
-      SELECT COALESCE(SUM(quantity_kg), 0) as total_kg
-      FROM food_inventory
-      WHERE food_type LIKE '%Grower-13%' OR food_type LIKE '%Grower_13%'
-    `);
-    const growerStockKg = parseFloat(growerStockRes.rows[0]?.total_kg) || 0;
-
-    const recommendation = calculatePoolRecommendation(fishCount, effectiveWeight, latestTemperature, { growerStockKg });
+    const recommendation = calculatePoolRecommendation(fishCount, effectiveWeight, latestTemperature);
 
     // Get today's actual feeding
     const mealsRes = await pool.query(

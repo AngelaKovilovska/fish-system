@@ -407,11 +407,6 @@ export default function MealForm() {
                     <Zap size={10} /> Транзиција
                   </p>
                 )}
-                {poolAi.warnings?.stockNote && (
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                    <Info size={10} /> {poolAi.warnings.stockNote}
-                  </p>
-                )}
               </div>
             );
           })()}
