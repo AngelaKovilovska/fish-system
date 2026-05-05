@@ -178,10 +178,11 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
     // 2. Water control
     if (water_control) {
       await client.query(
-        `INSERT INTO water_control (daily_record_id, temperature, ph, total_alkalinity, nitrates, nitrites, hardness, total_chlorine, ammonium)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO water_control (daily_record_id, temperature, ph, total_alkalinity, nitrates, nitrites, hardness, total_chlorine, ammonium, water_exchange_m3)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [recordId, water_control.temperature, water_control.ph, water_control.total_alkalinity,
-         water_control.nitrates, water_control.nitrites, water_control.hardness, water_control.total_chlorine, water_control.ammonium]
+         water_control.nitrates, water_control.nitrites, water_control.hardness, water_control.total_chlorine, water_control.ammonium,
+         water_control.water_exchange_m3 || null]
       );
     }
 
@@ -343,10 +344,11 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
     // Re-insert water control
     if (water_control) {
       await client.query(
-        `INSERT INTO water_control (daily_record_id, temperature, ph, total_alkalinity, nitrates, nitrites, hardness, total_chlorine, ammonium)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO water_control (daily_record_id, temperature, ph, total_alkalinity, nitrates, nitrites, hardness, total_chlorine, ammonium, water_exchange_m3)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [id, water_control.temperature, water_control.ph, water_control.total_alkalinity,
-         water_control.nitrates, water_control.nitrites, water_control.hardness, water_control.total_chlorine, water_control.ammonium]
+         water_control.nitrates, water_control.nitrites, water_control.hardness, water_control.total_chlorine, water_control.ammonium,
+         water_control.water_exchange_m3 || null]
       );
     }
 

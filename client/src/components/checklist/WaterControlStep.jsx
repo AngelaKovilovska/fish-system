@@ -1,5 +1,5 @@
 import { PARAMETER_LABELS } from '../../lib/constants';
-import { AlertTriangle, Droplets, Thermometer, Beaker, FlaskConical, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Droplets, Thermometer, Beaker, FlaskConical, ShieldAlert, Waves } from 'lucide-react';
 
 const FIELD_ICONS = {
   temperature: Thermometer,
@@ -105,6 +105,28 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
             </div>
           );
         })}
+
+        {/* Water exchange - optional, separate from monitored parameters */}
+        <div className="rounded-[var(--r-lg)] p-3.5 bg-[var(--surface)] mt-4 border border-dashed border-[var(--border)]">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2"
+              style={{ fontFamily: 'Sora, sans-serif' }}>
+              <Waves size={14} className="text-[var(--primary)]" />
+              Замена на вода
+              <span className="text-[var(--text-muted)] font-normal text-xs">(m³)</span>
+            </label>
+            <span className="pill pill-blue text-[10px]">опционално</span>
+          </div>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            value={data.water_exchange_m3 ?? ''}
+            onChange={(e) => handleChange('water_exchange_m3', e.target.value)}
+            className="input-metric"
+            placeholder="Внеси количина ако имало замена"
+          />
+        </div>
       </div>
     </div>
   );
