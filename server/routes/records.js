@@ -280,7 +280,11 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Create record error:', err);
-    res.status(500).json({ error: 'Серверска грешка при зачувување' });
+    if (err.code === '23505') {
+      res.status(409).json({ error: 'Веќе постои запис за овој датум. Едитирајте го постоечкиот.' });
+    } else {
+      res.status(500).json({ error: `Серверска грешка при зачувување: ${err.message}` });
+    }
   } finally {
     client.release();
   }

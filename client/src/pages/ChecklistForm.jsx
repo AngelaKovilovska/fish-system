@@ -27,7 +27,7 @@ export default function ChecklistForm() {
   const [poolMeasurements, setPoolMeasurements] = useState([]);
   const [fishInventory, setFishInventory] = useState([]);
   const [stepErrors, setStepErrors] = useState({});
-  const [duplicateRecord, setDuplicateRecord] = useState(null); // existing today's record
+  const [duplicateRecord, setDuplicateRecord] = useState(null); // existing record for selected date
   const feedingRef = useRef(null);
 
   const today = new Date().toISOString().split('T')[0];
@@ -47,17 +47,20 @@ export default function ChecklistForm() {
     api.getPoolFishInventory().then(d => setFishInventory(d.inventory)).catch(console.error);
   }, []);
 
-  // Check if today's record already exists (only for new records, not edits)
+  // Check if a record already exists for the selected date (not just today)
   useEffect(() => {
     if (isEdit) return;
-    api.getRecords({ from: today, to: today, limit: 1 })
+    const checkDate = formData.date;
+    if (!checkDate) return;
+    setDuplicateRecord(null);
+    api.getRecords({ from: checkDate, to: checkDate, limit: 1 })
       .then(d => {
         if (d.records.length > 0) {
           setDuplicateRecord(d.records[0]);
         }
       })
       .catch(console.error);
-  }, [isEdit, today]);
+  }, [isEdit, formData.date]);
 
   useEffect(() => {
     if (!editId) return;
@@ -187,10 +190,10 @@ export default function ChecklistForm() {
           </div>
           <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2"
             style={{ fontFamily: 'Sora, sans-serif' }}>
-            Чеклистата за денес е пополнета
+            Чеклистата е веќе пополнета
           </h2>
           <p className="text-sm text-[var(--text-secondary)] mb-1">
-            Веќе постои запис за <strong>{(() => { const d = new Date(today + 'T12:00:00'); return `${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`; })()}</strong>
+            Веќе постои запис за <strong>{(() => { const d = new Date(formData.date + 'T12:00:00'); return `${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`; })()}</strong>
           </p>
           {duplicateRecord.checked_by_name && (
             <p className="text-xs text-[var(--text-muted)] mb-6">
@@ -207,6 +210,12 @@ export default function ChecklistForm() {
               <Pencil size={16} />
               Едитирај го постоечкиот запис
             </button>
+            <div className="mt-2">
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Или избери друг датум:</label>
+              <input type="date" value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="input-base" />
+            </div>
             <button
               onClick={() => navigate('/')}
               className="btn-secondary w-full py-2.5 text-sm">
