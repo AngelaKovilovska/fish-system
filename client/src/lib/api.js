@@ -97,7 +97,7 @@ export const api = {
   },
   getMealsStatus: (date) => request(`/meals/status?date=${date}`),
   getMeals: (date) => request(`/meals?date=${date}`),
-  getLastMealValues: (meal_type) => request(`/meals/last-values?meal_type=${meal_type}`),
+  getLastMealValues: () => request('/meals/last-values'),
   saveMeal: (data) => request('/meals', { method: 'POST', body: JSON.stringify(data) }),
   deleteMeal: (date, meal_type) => request('/meals', { method: 'DELETE', body: JSON.stringify({ date, meal_type }) }),
 

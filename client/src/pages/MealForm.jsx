@@ -61,7 +61,7 @@ export default function MealForm() {
         api.getPoolMeasurements(),
         api.getPoolFishInventory().catch(() => ({ inventory: [] })),
         api.getAIRecommendations().catch(() => null),
-        api.getLastMealValues(mealType).catch(() => ({ pools: [], lastDate: null })),
+        api.getLastMealValues().catch(() => ({ pools: [], lastDate: null })),
       ]);
 
       setAiRec(aiData);

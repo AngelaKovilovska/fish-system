@@ -69,33 +69,30 @@ router.get('/history', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/meals/last-values?meal_type=breakfast - get last entered values per pool for a meal type
+// GET /api/meals/last-values - get last entered values per pool from the most recent meal (any type)
 router.get('/last-values', authMiddleware, async (req, res) => {
   try {
-    const { meal_type } = req.query;
-    if (!meal_type || !VALID_MEAL_TYPES.includes(meal_type)) {
-      return res.status(400).json({ error: 'Невалиден тип на оброк' });
-    }
-
-    const lastDate = await pool.query(
-      `SELECT date FROM pool_meals
-       WHERE meal_type = $1 AND food_type IS NOT NULL AND food_quantity_gr > 0
-       ORDER BY date DESC LIMIT 1`,
-      [meal_type]
+    // Find the most recent meal entry (any type) with actual data
+    const lastEntry = await pool.query(
+      `SELECT date, meal_type FROM pool_meals
+       WHERE food_type IS NOT NULL AND food_quantity_gr > 0
+       ORDER BY date DESC, CASE meal_type WHEN 'dinner' THEN 3 WHEN 'lunch' THEN 2 WHEN 'breakfast' THEN 1 END DESC
+       LIMIT 1`
     );
 
-    if (lastDate.rows.length === 0) {
+    if (lastEntry.rows.length === 0) {
       return res.json({ pools: [], lastDate: null });
     }
 
-    const date = lastDate.rows[0].date;
+    const date = lastEntry.rows[0].date;
+    const mealType = lastEntry.rows[0].meal_type;
 
     const result = await pool.query(
       `SELECT pool_number, food_type, food_quantity_gr
        FROM pool_meals
        WHERE date = $1 AND meal_type = $2
        ORDER BY pool_number, id`,
-      [date, meal_type]
+      [date, mealType]
     );
 
     // Group by pool_number → foods array (supports multi-food per pool)
