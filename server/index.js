@@ -102,19 +102,20 @@ if (IS_PROD) {
 
 // Run migrations on startup
 async function runMigrations() {
-  try {
-    const migrationsDir = path.join(__dirname, 'db', 'migrations');
-    const files = fs.readdirSync(migrationsDir).sort();
+  const migrationsDir = path.join(__dirname, 'db', 'migrations');
+  const files = fs.readdirSync(migrationsDir).sort();
 
-    for (const file of files) {
-      if (file.endsWith('.sql')) {
+  for (const file of files) {
+    if (file.endsWith('.sql')) {
+      try {
         const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
         await pool.query(sql);
         console.log(`Migration applied: ${file}`);
+      } catch (err) {
+        // Log but continue — migrations must be idempotent
+        console.error(`Migration ${file} note:`, err.message);
       }
     }
-  } catch (err) {
-    console.error('Migration error:', err);
   }
 
   // Ensure UNIQUE constraint on pool_meals is dropped (multi-food support)

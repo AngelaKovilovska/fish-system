@@ -3,9 +3,16 @@
 -- Add: total_alkalinity, total_chlorine, ammonium
 -- Keep: temperature, ph, nitrates, nitrites, hardness
 
--- Rename columns in water_control table
-ALTER TABLE water_control RENAME COLUMN dissolved_oxygen TO total_alkalinity;
-ALTER TABLE water_control RENAME COLUMN tds TO total_chlorine;
+-- Rename columns in water_control table (idempotent — skip if already renamed)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'water_control' AND column_name = 'dissolved_oxygen') THEN
+    ALTER TABLE water_control RENAME COLUMN dissolved_oxygen TO total_alkalinity;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'water_control' AND column_name = 'tds') THEN
+    ALTER TABLE water_control RENAME COLUMN tds TO total_chlorine;
+  END IF;
+END $$;
 ALTER TABLE water_control ADD COLUMN IF NOT EXISTS ammonium DECIMAL;
 
 -- Update parameter_norms: remove old, insert new
