@@ -148,17 +148,14 @@ function interpolateFeedRate(weight) {
 }
 
 /**
- * Температурен фактор за раст.
- * Под оптимум (26-28°C), растот е побавен. Над 31°C — стрес.
- * Фиксиран бугот: ако температурата е надвор од сите опсези (на пр. >50°C),
- * враќаме factor=0 наместо 1.0 (екстремните услови НЕ се оптимални).
+ * Температурен фактор за раст — делегира на feedingRecommendation.getTempAdjustment()
+ * која користи линеарна интерполација (без тврди скокови на границите).
  */
 function getTemperatureFactor(temperature) {
   if (temperature == null) return { factor: 1.0, note: 'Температура непозната — се користи оптимум' };
-  const adj = TEMP_ADJUSTMENTS.find(a => temperature >= a.minTemp && temperature < a.maxTemp);
-  if (adj) return { factor: adj.factor, note: adj.note };
-  // Надвор од сите опсези — екстремни услови, не се хранат
-  return { factor: 0, note: `Екстремна температура (${temperature}°C) — надвор од опсег` };
+  // Import getTempAdjustment from feedingRecommendation to use the same smooth curve
+  const { getTempAdjustment } = require('./feedingRecommendation');
+  return getTempAdjustment(temperature);
 }
 
 /**

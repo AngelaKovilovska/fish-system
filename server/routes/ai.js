@@ -48,13 +48,22 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       ORDER BY pool_number, measured_at DESC
     `);
 
-    // 3. Get latest water temperature (used as fallback if no historical average)
+    // 3. Get temperature: 3-day moving average for stable recommendations,
+    //    plus latest reading for display purposes
     const waterRes = await pool.query(`
       SELECT wc.temperature
       FROM water_control wc
       JOIN daily_records dr ON wc.daily_record_id = dr.id
       ORDER BY dr.date DESC
       LIMIT 1
+    `);
+
+    const tempAvg3Res = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp, COUNT(*) as readings
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= CURRENT_DATE - INTERVAL '3 days'
+        AND wc.temperature IS NOT NULL
     `);
 
     // 4. Get today's actual feeding (partial if early in the day)
@@ -121,6 +130,12 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       ? parseFloat(waterRes.rows[0].temperature)
       : null;
 
+    // 3-day moving average for feeding recommendations (smooth, no daily jumps)
+    const temp3DayAvg = tempAvg3Res.rows[0]?.avg_temp != null
+      ? parseFloat(tempAvg3Res.rows[0].avg_temp)
+      : latestTemperature;
+
+    // For growth projection, use the longer historical average
     const avgTemperature = avgTempRes.rows[0]?.avg_temp != null
       ? parseFloat(avgTempRes.rows[0].avg_temp)
       : latestTemperature;
@@ -176,8 +191,9 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       };
     });
 
-    // Use the latest temperature for TODAY's feeding (not the historical average)
-    const result = calculateAllRecommendations(pools, latestTemperature);
+    // Use 3-day average temperature for stable daily recommendations
+    // (latest reading shown on UI, but calculation uses moving average to avoid daily jumps)
+    const result = calculateAllRecommendations(pools, temp3DayAvg);
 
     // ─── Enrich each pool's response with projection metadata + comparison ───
     for (const [pn, rec] of Object.entries(result.pools)) {
@@ -211,8 +227,12 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     result.summary.projectionInfo = {
       avgTemperatureUsed: avgTemperature != null ? Math.round(avgTemperature * 10) / 10 : null,
       latestTemperatureUsed: latestTemperature,
+      feedingTemperatureUsed: temp3DayAvg != null ? Math.round(temp3DayAvg * 10) / 10 : null,
       projectedPoolCount: Object.values(projectionByPool).filter(p => p.isProjected).length,
     };
+
+    // Keep latest temperature in summary for UI display (thermometer icon)
+    result.summary.temperature = latestTemperature != null ? Math.round(latestTemperature * 10) / 10 : null;
 
     res.json(result);
   } catch (err) {
@@ -247,11 +267,19 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
       [poolNumber]
     );
 
-    // Get latest temperature
+    // Get latest temperature + 3-day average for stable recommendations
     const waterRes = await pool.query(`
       SELECT wc.temperature FROM water_control wc
       JOIN daily_records dr ON wc.daily_record_id = dr.id
       ORDER BY dr.date DESC LIMIT 1
+    `);
+
+    const tempAvg3Res = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= CURRENT_DATE - INTERVAL '3 days'
+        AND wc.temperature IS NOT NULL
     `);
 
     // NEW: Total feed given after last measurement (complete days only)
@@ -280,6 +308,10 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
     const latestTemperature = waterRes.rows[0]?.temperature != null
       ? parseFloat(waterRes.rows[0].temperature)
       : null;
+    // 3-day moving average for stable feeding recommendation
+    const temp3DayAvg = tempAvg3Res.rows[0]?.avg_temp != null
+      ? parseFloat(tempAvg3Res.rows[0].avg_temp)
+      : latestTemperature;
     const avgTemperature = avgTempRes.rows[0]?.avg_temp != null
       ? parseFloat(avgTempRes.rows[0].avg_temp)
       : latestTemperature;
@@ -305,7 +337,7 @@ router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
     // Use projected weight if available, otherwise fall back to raw W0
     const effectiveWeight = projection.W_now ?? W0;
 
-    const recommendation = calculatePoolRecommendation(fishCount, effectiveWeight, latestTemperature);
+    const recommendation = calculatePoolRecommendation(fishCount, effectiveWeight, temp3DayAvg);
 
     // Get today's actual feeding
     const mealsRes = await pool.query(

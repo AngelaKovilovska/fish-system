@@ -98,6 +98,7 @@ const FEED_PRODUCTS = {
 
 // ─── Temperature adjustment factors ───
 // Optimal range: 26-28°C per Coppens specification
+// Used as reference points for linear interpolation (no hard jumps)
 const TEMP_ADJUSTMENTS = [
   { minTemp: 0,  maxTemp: 18, factor: 0.0,  note: 'Премногу ладно — не хранете' },
   { minTemp: 18, maxTemp: 20, factor: 0.40, note: 'Многу ладна вода — намалете 60%' },
@@ -109,6 +110,24 @@ const TEMP_ADJUSTMENTS = [
   { minTemp: 31, maxTemp: 33, factor: 0.65, note: 'Претопло — намалете 35%' },
   { minTemp: 33, maxTemp: 36, factor: 0.40, note: 'Критично топло — намалете 60%' },
   { minTemp: 36, maxTemp: 50, factor: 0.0,  note: 'Екстремно топло — не хранете' },
+];
+
+// ─── Interpolation anchor points for smooth temperature curve ───
+// Linear interpolation between these points eliminates hard jumps at boundaries
+// e.g. 25.9°C → 26.1°C no longer causes a 15% swing
+const TEMP_CURVE_POINTS = [
+  { temp: 0,  factor: 0.0 },
+  { temp: 18, factor: 0.0 },
+  { temp: 20, factor: 0.40 },
+  { temp: 22, factor: 0.55 },
+  { temp: 24, factor: 0.70 },
+  { temp: 26, factor: 1.00 },
+  { temp: 28, factor: 1.00 },
+  { temp: 29, factor: 0.85 },
+  { temp: 31, factor: 0.65 },
+  { temp: 33, factor: 0.40 },
+  { temp: 36, factor: 0.0 },
+  { temp: 50, factor: 0.0 },
 ];
 
 // ─── Meals per day — FIXED at 3 for all pools ───
@@ -167,12 +186,39 @@ function interpolateFeedRate(weight) {
 }
 
 /**
- * Get temperature adjustment factor
+ * Get temperature adjustment factor using LINEAR INTERPOLATION.
+ * Eliminates hard jumps at boundary temperatures (e.g. 25.9 vs 26.1°C).
+ * Uses TEMP_CURVE_POINTS for smooth transitions.
  */
 function getTempAdjustment(temperature) {
   if (temperature == null) return { factor: 1.0, note: 'Нема податок за температура — се користи оптимална вредност' };
-  const adj = TEMP_ADJUSTMENTS.find(a => temperature >= a.minTemp && temperature < a.maxTemp);
-  return adj || { factor: 1.0, note: 'Непозната температура' };
+
+  // Clamp to curve range
+  const t = Math.max(TEMP_CURVE_POINTS[0].temp, Math.min(temperature, TEMP_CURVE_POINTS[TEMP_CURVE_POINTS.length - 1].temp));
+
+  // Find bracketing points and interpolate
+  let factor = 0;
+  for (let i = 0; i < TEMP_CURVE_POINTS.length - 1; i++) {
+    const lo = TEMP_CURVE_POINTS[i];
+    const hi = TEMP_CURVE_POINTS[i + 1];
+    if (t >= lo.temp && t <= hi.temp) {
+      const ratio = hi.temp === lo.temp ? 0 : (t - lo.temp) / (hi.temp - lo.temp);
+      factor = lo.factor + ratio * (hi.factor - lo.factor);
+      break;
+    }
+  }
+
+  factor = Math.round(factor * 1000) / 1000; // avoid floating point noise
+
+  // Generate human-readable note
+  let note;
+  if (factor === 0) note = `Температура ${temperature}°C — не хранете`;
+  else if (factor >= 0.95) note = 'Оптимална температура (26-28°C)';
+  else if (factor >= 0.85) note = `Температура ${temperature}°C — мало намалување (${Math.round((1 - factor) * 100)}%)`;
+  else if (factor >= 0.60) note = `Температура ${temperature}°C — намалете ${Math.round((1 - factor) * 100)}%`;
+  else note = `Температура ${temperature}°C — критично, намалете ${Math.round((1 - factor) * 100)}%`;
+
+  return { factor, note };
 }
 
 /**
@@ -608,6 +654,8 @@ module.exports = {
   GROWOUT_TABLE,
   FEED_PRODUCTS,
   TEMP_ADJUSTMENTS,
+  TEMP_CURVE_POINTS,
+  getTempAdjustment,
   calculatePoolRecommendation,
   calculateAllRecommendations,
   compareWithActual,
