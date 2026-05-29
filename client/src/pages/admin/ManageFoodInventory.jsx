@@ -221,7 +221,7 @@ export default function ManageFoodInventory() {
         </p>
       </div>
 
-      {/* Current stock table */}
+      {/* Current stock table with breakdown */}
       <div className="card mb-4 animate-in">
         <h3 className="section-title text-sm mb-3 flex items-center gap-2">
           <Package size={15} className="text-[var(--primary)]" />
@@ -232,23 +232,28 @@ export default function ManageFoodInventory() {
             <thead>
               <tr>
                 <th>Тип храна</th>
-                <th className="text-right">Залиха (kg)</th>
+                <th className="text-right">Набавено</th>
+                <th className="text-right">Потрошено</th>
+                <th className="text-right">Остаток</th>
                 <th className="text-right">Залиха до</th>
-                <th className="text-right">Ажурирано</th>
               </tr>
             </thead>
             <tbody>
               {inventory.map(item => {
                 const stockKg = parseFloat(item.quantity_kg);
+                const purchased = parseFloat(item.total_purchased_kg || 0);
+                const consumed = parseFloat(item.total_consumed_kg || 0);
                 const p = projMap[item.food_type];
                 const daysLeft = p?.daysLeft;
                 const endDate = p?.depletionDate;
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
+                    <td className="text-right text-[var(--success)]">{purchased.toFixed(2)}</td>
+                    <td className="text-right text-[var(--danger)]">{consumed.toFixed(2)}</td>
                     <td className="text-right">
                       <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                        {stockKg.toFixed(2)}
+                        {stockKg.toFixed(2)} kg
                       </span>
                     </td>
                     <td className="text-right">
@@ -261,39 +266,44 @@ export default function ManageFoodInventory() {
                         <span className="text-[10px] text-[var(--text-muted)] italic">Не се троши</span>
                       )}
                     </td>
-                    <td className="text-right text-[var(--text-muted)]">
-                      {new Date(item.updated_at).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short' })}
-                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        {/* Mobile list */}
+        {/* Mobile list with breakdown */}
         <div className="lg:hidden space-y-2">
           {inventory.map(item => {
             const stockKg = parseFloat(item.quantity_kg);
+            const purchased = parseFloat(item.total_purchased_kg || 0);
+            const consumed = parseFloat(item.total_consumed_kg || 0);
             const p = projMap[item.food_type];
             const daysLeft = p?.daysLeft;
-            const endDate = p?.endDate;
+            const endDate = p?.depletionDate;
             return (
               <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex justify-between items-center text-xs mb-1">
                   <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-                  <div className="flex items-center gap-3">
-                    <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                      {stockKg.toFixed(2)} kg
+                  <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                    {stockKg.toFixed(2)} kg
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)]">
+                  <span>
+                    <span className="text-[var(--success)]">+{purchased.toFixed(1)}</span>
+                    {' / '}
+                    <span className="text-[var(--danger)]">-{consumed.toFixed(1)}</span>
+                    {' kg'}
+                  </span>
+                  {daysLeft != null && daysLeft >= 0 ? (
+                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                      <Timer size={10} />
+                      {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
                     </span>
-                    {daysLeft != null && daysLeft >= 0 ? (
-                      <span className={`inline-flex items-center gap-1 font-bold text-[10px] ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
-                        <Timer size={10} />
-                        {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
-                      </span>
-                    ) : (
-                      <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
-                    )}
-                  </div>
+                  ) : (
+                    <span className="text-[9px] italic">Не се троши</span>
+                  )}
                 </div>
               </div>
             );
