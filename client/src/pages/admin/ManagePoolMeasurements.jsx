@@ -81,18 +81,12 @@ export default function ManagePoolMeasurements() {
   const filledCount = POOL_NUMBERS.filter(n => poolHasData(n)).length;
 
   const handleSaveAll = async () => {
-    const toSave = POOL_NUMBERS
-      .filter(n => poolHasData(n))
-      .map(n => ({
-        pool_number: n,
-        fish_count: poolData[n].fishCount,
-        avg_weight_gr: poolData[n].avgWeight,
-      }));
-
-    if (toSave.length === 0) {
-      setMessage('Внесете мерење за барем еден базен');
-      return;
-    }
+    // Send ALL pools — pools without entered data are saved as 0/0 (empty pool)
+    const toSave = POOL_NUMBERS.map(n => ({
+      pool_number: n,
+      fish_count: poolData[n].fishCount !== '' ? poolData[n].fishCount : 0,
+      avg_weight_gr: poolData[n].avgWeight !== '' ? poolData[n].avgWeight : 0,
+    }));
 
     setSaving(true); setMessage('');
     try {
@@ -100,7 +94,9 @@ export default function ManagePoolMeasurements() {
         measurements: toSave,
         measured_at: measuredDate,
       });
-      setMessage(`Зачувани мерења за ${result.count} базен${result.count > 1 ? 'и' : ''}!`);
+      const withFish = POOL_NUMBERS.filter(n => poolHasData(n)).length;
+      const empty = POOL_NUMBERS.length - withFish;
+      setMessage(`Зачувано! ${withFish} базен${withFish !== 1 ? 'и' : ''} со риби, ${empty} празн${empty !== 1 ? 'и' : 'о'}`);
       // Reset form
       const reset = {};
       POOL_NUMBERS.forEach(n => { reset[n] = { fishCount: '', avgWeight: '' }; });
@@ -247,19 +243,18 @@ export default function ManagePoolMeasurements() {
 
       {/* Save all button */}
       <div className="card mb-3 animate-in-delay-1">
-        {filledCount > 0 && (
-          <p className="text-xs text-[var(--text-secondary)] mb-2 text-center" style={{ fontFamily: 'Sora, sans-serif' }}>
-            Внесени мерења за <span className="font-bold text-[var(--primary)]">{filledCount}</span> базен{filledCount > 1 ? 'и' : ''}
-          </p>
-        )}
+        <p className="text-xs text-[var(--text-secondary)] mb-2 text-center" style={{ fontFamily: 'Sora, sans-serif' }}>
+          <span className="font-bold text-[var(--primary)]">{filledCount}</span> базен{filledCount !== 1 ? 'и' : ''} со риби,{' '}
+          <span className="font-bold text-[var(--text-muted)]">{POOL_NUMBERS.length - filledCount}</span> празн{(POOL_NUMBERS.length - filledCount) !== 1 ? 'и' : 'о'}
+        </p>
 
         {message && (
-          <p className={`text-xs mb-2 font-medium text-center ${message.includes('Зачувани') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+          <p className={`text-xs mb-2 font-medium text-center ${message.includes('Зачувано') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
             {message}
           </p>
         )}
 
-        <button onClick={handleSaveAll} disabled={saving || filledCount === 0}
+        <button onClick={handleSaveAll} disabled={saving}
           className="btn-primary w-full py-3">
           {saving ? (
             <span className="flex items-center gap-2">
@@ -336,20 +331,11 @@ export default function ManagePoolMeasurements() {
                 <span className="text-[var(--text-muted)] font-medium">
                   {hasNew ? (
                     <span className="text-[var(--success)]">
-                      {poolData[num].fishCount || '–'} риби / {poolData[num].avgWeight || '–'} gr
+                      {poolData[num].fishCount} риби / {poolData[num].avgWeight} gr
                       <span className="text-[10px] ml-1 font-semibold">(ново)</span>
                     </span>
-                  ) : inv && inv.current_count > 0 ? (
-                    <>
-                      <span className="text-[var(--success)] font-bold">{inv.current_count}</span> риби
-                      {m ? <> / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr</> : ''}
-                    </>
-                  ) : m ? (
-                    <>
-                      <span className="text-[var(--text-primary)] font-bold">{m.fish_count}</span> риби / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr
-                    </>
                   ) : (
-                    <span className="italic text-[10px]">Празен базен</span>
+                    <span className="italic text-[10px]">Празен базен (0 риби)</span>
                   )}
                 </span>
               </button>

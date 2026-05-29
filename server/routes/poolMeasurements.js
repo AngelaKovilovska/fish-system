@@ -94,7 +94,7 @@ router.post('/batch', authMiddleware, adminOnly, async (req, res) => {
         if (!poolNum || poolNum < 1 || poolNum > 8) continue;
         const fishCount = parseInt(m.fish_count) || 0;
         const avgWeight = parseFloat(m.avg_weight_gr) || 0;
-        if (fishCount === 0 && avgWeight === 0) continue; // skip empty pools
+        // Save even 0/0 — records that the pool is empty after sorting
 
         const result = await client.query(
           'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
