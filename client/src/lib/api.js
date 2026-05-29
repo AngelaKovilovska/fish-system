@@ -88,6 +88,7 @@ export const api = {
   getPoolMeasurements: () => request('/pool-measurements'),
   getPoolMeasurementHistory: (poolNumber) => request(`/pool-measurements/history/${poolNumber}`),
   createPoolMeasurement: (data) => request('/pool-measurements', { method: 'POST', body: JSON.stringify(data) }),
+  createPoolMeasurementBatch: (data) => request('/pool-measurements/batch', { method: 'POST', body: JSON.stringify(data) }),
   deletePoolMeasurement: (id) => request(`/pool-measurements/${id}`, { method: 'DELETE' }),
 
   // Meals (per-meal feeding)

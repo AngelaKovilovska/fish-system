@@ -76,6 +76,55 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// POST /api/pool-measurements/batch - save measurements for multiple pools at once (admin only)
+router.post('/batch', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { measurements, measured_at } = req.body;
+    if (!measurements || !Array.isArray(measurements) || measurements.length === 0) {
+      return res.status(400).json({ error: 'Нема мерења за зачувување' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const saved = [];
+
+      for (const m of measurements) {
+        const poolNum = parseInt(m.pool_number);
+        if (!poolNum || poolNum < 1 || poolNum > 8) continue;
+        const fishCount = parseInt(m.fish_count) || 0;
+        const avgWeight = parseFloat(m.avg_weight_gr) || 0;
+        if (fishCount === 0 && avgWeight === 0) continue; // skip empty pools
+
+        const result = await client.query(
+          'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+          [poolNum, fishCount, avgWeight, req.user.id, measured_at || new Date()]
+        );
+
+        await client.query(
+          `INSERT INTO pool_fish_inventory (pool_number, current_count, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (pool_number) DO UPDATE SET current_count = $2, updated_at = NOW()`,
+          [poolNum, fishCount]
+        );
+
+        saved.push(result.rows[0]);
+      }
+
+      await client.query('COMMIT');
+      res.status(201).json({ measurements: saved, count: saved.length });
+    } catch (innerErr) {
+      await client.query('ROLLBACK');
+      throw innerErr;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Batch pool measurement error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // DELETE /api/pool-measurements/:id - delete a measurement (admin only)
 router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {

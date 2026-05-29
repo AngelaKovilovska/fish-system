@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
-import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function ManagePoolMeasurements() {
   const [measurements, setMeasurements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activePool, setActivePool] = useState(1);
-  const [fishCount, setFishCount] = useState('');
-  const [avgWeight, setAvgWeight] = useState('');
+  const [activePool, setActivePool] = useState(POOL_NUMBERS[0]);
   const [measuredDate, setMeasuredDate] = useState(todayStr());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -19,6 +17,17 @@ export default function ManagePoolMeasurements() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [fishInventory, setFishInventory] = useState([]);
+
+  // Per-pool form data: { 1: { fishCount: '', avgWeight: '' }, 2: { ... }, ... }
+  const [poolData, setPoolData] = useState(() => {
+    const initial = {};
+    POOL_NUMBERS.forEach(n => { initial[n] = { fishCount: '', avgWeight: '' }; });
+    return initial;
+  });
+
+  const updatePoolField = (poolNum, field, value) => {
+    setPoolData(prev => ({ ...prev, [poolNum]: { ...prev[poolNum], [field]: value } }));
+  };
 
   const load = async () => {
     try {
@@ -60,19 +69,43 @@ export default function ManagePoolMeasurements() {
   };
 
   const getMeasurement = (poolNum) => measurements.find(m => m.pool_number === poolNum);
+  const getInventory = (poolNum) => fishInventory.find(inv => inv.pool_number === poolNum);
 
-  const handleSave = async () => {
-    if (!fishCount && !avgWeight) { setMessage('Внесете барем една вредност'); return; }
+  // Check if a pool has any data entered
+  const poolHasData = (poolNum) => {
+    const d = poolData[poolNum];
+    return d && (d.fishCount !== '' || d.avgWeight !== '');
+  };
+
+  // Count how many pools have data
+  const filledCount = POOL_NUMBERS.filter(n => poolHasData(n)).length;
+
+  const handleSaveAll = async () => {
+    const toSave = POOL_NUMBERS
+      .filter(n => poolHasData(n))
+      .map(n => ({
+        pool_number: n,
+        fish_count: poolData[n].fishCount,
+        avg_weight_gr: poolData[n].avgWeight,
+      }));
+
+    if (toSave.length === 0) {
+      setMessage('Внесете мерење за барем еден базен');
+      return;
+    }
+
     setSaving(true); setMessage('');
     try {
-      await api.createPoolMeasurement({
-        pool_number: activePool,
-        fish_count: fishCount || 0,
-        avg_weight_gr: avgWeight || 0,
+      const result = await api.createPoolMeasurementBatch({
+        measurements: toSave,
         measured_at: measuredDate,
       });
-      setMessage('Мерењето е зачувано!');
-      setFishCount(''); setAvgWeight(''); setMeasuredDate(todayStr());
+      setMessage(`Зачувани мерења за ${result.count} базен${result.count > 1 ? 'и' : ''}!`);
+      // Reset form
+      const reset = {};
+      POOL_NUMBERS.forEach(n => { reset[n] = { fishCount: '', avgWeight: '' }; });
+      setPoolData(reset);
+      setMeasuredDate(todayStr());
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
@@ -87,33 +120,50 @@ export default function ManagePoolMeasurements() {
   );
 
   const currentMeasurement = getMeasurement(activePool);
-  const getInventory = (poolNum) => fishInventory.find(inv => inv.pool_number === poolNum);
   const currentInventory = getInventory(activePool);
+  const currentData = poolData[activePool];
 
   return (
     <div className="max-w-lg mx-auto">
       <div className="mb-5 animate-in">
         <h1 className="page-title mb-1">Мерења по базен</h1>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-          Внесете број на риби и просечна тежина. Се користи автоматски во чеклистата.
+          Внесете број на риби и просечна тежина. Зачувајте сè одеднаш на крајот.
         </p>
       </div>
 
+      {/* Date picker — shared for all pools */}
+      <div className="card mb-3 animate-in">
+        <div className="flex items-center gap-2.5 mb-2">
+          <Calendar size={15} className="text-[var(--primary)]" />
+          <label className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
+        </div>
+        <input type="date" value={measuredDate}
+          onChange={(e) => setMeasuredDate(e.target.value)}
+          className="input-base" />
+      </div>
+
       {/* Pool tabs */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 animate-in">
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 animate-in">
         {POOL_NUMBERS.map(num => {
-          const m = getMeasurement(num);
+          const hasData = poolHasData(num);
+          const isActive = activePool === num;
           return (
             <button key={num} type="button"
               onClick={() => { setActivePool(num); setMessage(''); setShowHistory(false); setHistory([]); }}
-              className={activePool === num ? 'chip-active' : m ? 'chip-inactive !border-[rgba(34,197,94,0.2)] !text-[var(--success)]' : 'chip-inactive'}>
+              className={`relative ${isActive ? 'chip-active' : hasData ? 'chip-inactive !border-[rgba(34,197,94,0.3)] !text-[var(--success)] !bg-[rgba(34,197,94,0.06)]' : 'chip-inactive'}`}>
               Б{num}
+              {hasData && !isActive && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[var(--success)] rounded-full flex items-center justify-center">
+                  <Check size={8} className="text-white" strokeWidth={3} />
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Current measurement info */}
+      {/* Active pool form */}
       <div className="card mb-3 animate-in-delay-1">
         <div className="flex items-center gap-2.5 mb-3">
           <div className="icon-box w-8 h-8"
@@ -123,6 +173,7 @@ export default function ManagePoolMeasurements() {
           <h3 className="section-title text-sm">Базен бр. {activePool}</h3>
         </div>
 
+        {/* Current measurement info */}
         {currentMeasurement ? (
           <div className="info-box mb-4">
             <p className="font-semibold mb-2 flex items-center gap-1.5 text-xs">
@@ -153,7 +204,7 @@ export default function ManagePoolMeasurements() {
         )}
 
         {/* Current live fish count */}
-        {currentInventory && (
+        {currentInventory && currentInventory.current_count > 0 && (
           <div className="mb-4 rounded-xl p-3"
             style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03))', border: '1px solid rgba(34,197,94,0.2)' }}>
             <div className="flex items-center justify-between">
@@ -176,48 +227,53 @@ export default function ManagePoolMeasurements() {
           </div>
         )}
 
+        {/* Input fields for this pool */}
         <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>Ново мерење:</p>
-        <div className="mb-3">
-          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
-          <input type="date" value={measuredDate}
-            onChange={(e) => setMeasuredDate(e.target.value)}
-            className="input-base" />
-        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на риби</label>
-            <input type="number" value={fishCount}
-              onChange={(e) => setFishCount(e.target.value)}
+            <input type="number" value={currentData.fishCount}
+              onChange={(e) => updatePoolField(activePool, 'fishCount', e.target.value)}
               className="input-base" placeholder="нпр. 500" />
           </div>
           <div>
             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Тежина (gr)</label>
-            <input type="number" step="any" value={avgWeight}
-              onChange={(e) => setAvgWeight(e.target.value)}
+            <input type="number" step="any" value={currentData.avgWeight}
+              onChange={(e) => updatePoolField(activePool, 'avgWeight', e.target.value)}
               className="input-base" placeholder="нпр. 150" />
           </div>
         </div>
+      </div>
+
+      {/* Save all button */}
+      <div className="card mb-3 animate-in-delay-1">
+        {filledCount > 0 && (
+          <p className="text-xs text-[var(--text-secondary)] mb-2 text-center" style={{ fontFamily: 'Sora, sans-serif' }}>
+            Внесени мерења за <span className="font-bold text-[var(--primary)]">{filledCount}</span> базен{filledCount > 1 ? 'и' : ''}
+          </p>
+        )}
 
         {message && (
-          <p className={`text-xs mt-3 font-medium ${message.includes('зачувано') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+          <p className={`text-xs mb-2 font-medium text-center ${message.includes('Зачувани') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
             {message}
           </p>
         )}
 
-        <button onClick={handleSave} disabled={saving} className="btn-primary w-full py-2.5 mt-3">
+        <button onClick={handleSaveAll} disabled={saving || filledCount === 0}
+          className="btn-primary w-full py-3">
           {saving ? (
             <span className="flex items-center gap-2">
               <div className="wave-loader"><span /><span /><span /><span /></div>
               Се зачувува...
             </span>
           ) : (
-            <><Save size={15} /> Зачувај мерење</>
+            <><Save size={16} /> Зачувај сите мерења</>
           )}
         </button>
       </div>
 
       {/* Measurement history */}
-      <div className="card mb-3 animate-in-delay-1">
+      <div className="card mb-3 animate-in-delay-2">
         <button type="button" onClick={toggleHistory}
           className="flex items-center justify-between w-full text-left">
           <div className="flex items-center gap-2.5">
@@ -225,7 +281,7 @@ export default function ManagePoolMeasurements() {
               style={{ background: 'linear-gradient(135deg, var(--text-muted), var(--text-secondary))' }}>
               <History size={15} />
             </div>
-            <h3 className="section-title text-sm">Историја на мерења — Б{activePool}</h3>
+            <h3 className="section-title text-sm">Историја — Б{activePool}</h3>
           </div>
           {showHistory ? <ChevronUp size={16} className="text-[var(--text-muted)]" /> : <ChevronDown size={16} className="text-[var(--text-muted)]" />}
         </button>
@@ -268,14 +324,22 @@ export default function ManagePoolMeasurements() {
           {POOL_NUMBERS.map(num => {
             const m = getMeasurement(num);
             const inv = getInventory(num);
+            const hasNew = poolHasData(num);
             return (
-              <div key={num} className={`flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] transition-all ${
-                activePool === num ? 'bg-[var(--primary-muted)] border border-[rgba(37,99,235,0.12)]' : 'border border-transparent hover:bg-[var(--bg)]'
-              }`}>
+              <button key={num} type="button"
+                onClick={() => { setActivePool(num); setMessage(''); setShowHistory(false); setHistory([]); }}
+                className={`w-full flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] transition-all text-left ${
+                  activePool === num ? 'bg-[var(--primary-muted)] border border-[rgba(37,99,235,0.12)]' : 'border border-transparent hover:bg-[var(--bg)]'
+                }`}>
                 <span className={`font-semibold ${activePool === num ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}
                   style={{ fontFamily: 'Sora, sans-serif' }}>Базен {num}</span>
                 <span className="text-[var(--text-muted)] font-medium">
-                  {inv && inv.current_count > 0 ? (
+                  {hasNew ? (
+                    <span className="text-[var(--success)]">
+                      {poolData[num].fishCount || '–'} риби / {poolData[num].avgWeight || '–'} gr
+                      <span className="text-[10px] ml-1 font-semibold">(ново)</span>
+                    </span>
+                  ) : inv && inv.current_count > 0 ? (
                     <>
                       <span className="text-[var(--success)] font-bold">{inv.current_count}</span> риби
                       {m ? <> / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr</> : ''}
@@ -285,10 +349,10 @@ export default function ManagePoolMeasurements() {
                       <span className="text-[var(--text-primary)] font-bold">{m.fish_count}</span> риби / <span className="text-[var(--text-primary)] font-bold">{m.avg_weight_gr}</span> gr
                     </>
                   ) : (
-                    <span className="italic text-[10px]">Нема мерење</span>
+                    <span className="italic text-[10px]">Празен базен</span>
                   )}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
