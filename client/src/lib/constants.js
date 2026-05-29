@@ -27,7 +27,7 @@ export const FISH_VISUAL_LABELS = {
   no_dead: 'Нема угинати',
 };
 
-export const POOL_NUMBERS = [1, 2, 3, 4, 5, 6];
+export const POOL_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export const FOOD_TYPES = [
   'Advance (1.5mm)',

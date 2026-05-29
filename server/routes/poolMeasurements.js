@@ -41,7 +41,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { pool_number, fish_count, avg_weight_gr, measured_at } = req.body;
 
-    if (!pool_number || pool_number < 1 || pool_number > 6) {
+    if (!pool_number || pool_number < 1 || pool_number > 8) {
       return res.status(400).json({ error: 'Невалиден број на базен' });
     }
 
