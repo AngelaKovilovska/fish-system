@@ -46,6 +46,64 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/food-inventory/debug - detailed breakdown for verification
+router.get('/debug', authMiddleware, async (req, res) => {
+  try {
+    // All purchases grouped by food_type with dates
+    const purchases = await pool.query(`
+      SELECT food_type,
+        SUM(change_kg)::numeric(10,2) as total_kg,
+        COUNT(*) as entries,
+        MIN(purchased_at) as first_purchase,
+        MAX(purchased_at) as last_purchase
+      FROM food_inventory_log
+      WHERE reason = 'purchase'
+      GROUP BY food_type
+      ORDER BY food_type
+    `);
+
+    // All consumption from pool_meals grouped by food_type with dates
+    const consumption = await pool.query(`
+      SELECT food_type,
+        (SUM(food_quantity_gr) / 1000.0)::numeric(10,2) as total_kg,
+        COUNT(*) as entries,
+        MIN(date) as first_meal,
+        MAX(date) as last_meal,
+        COUNT(DISTINCT date) as active_days
+      FROM pool_meals
+      WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+      GROUP BY food_type
+      ORDER BY food_type
+    `);
+
+    // Also check if legacy pool_feeding has any data
+    const legacyCount = await pool.query(`
+      SELECT COUNT(*) as total,
+        COUNT(DISTINCT food_type) as food_types
+      FROM pool_feeding
+      WHERE food_quantity_gr > 0 AND food_type IS NOT NULL
+    `);
+
+    // Current food_inventory.quantity_kg (live-updated field, NOT the recalculated one)
+    const liveStock = await pool.query(`
+      SELECT food_type, quantity_kg::numeric(10,2) as live_qty
+      FROM food_inventory
+      ORDER BY food_type
+    `);
+
+    res.json({
+      purchases: purchases.rows,
+      consumption: consumption.rows,
+      liveInventoryField: liveStock.rows,
+      legacyPoolFeeding: legacyCount.rows[0],
+      note: 'stock = purchases.total_kg - consumption.total_kg за секој food_type',
+    });
+  } catch (err) {
+    console.error('Debug food inventory error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // POST /api/food-inventory/purchase - add purchased food (admin only)
 // Supports both single item { food_type, quantity_kg, purchase_date, supplier, document_number }
 // and multi-item { items: [{ food_type, quantity_kg }], purchase_date, supplier, document_number }
