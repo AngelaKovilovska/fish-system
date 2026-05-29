@@ -254,4 +254,134 @@ router.get('/log', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/food-inventory/projection - project when each food type runs out based on actual meal consumption
+router.get('/projection', authMiddleware, async (req, res) => {
+  try {
+    const periodDays = parseInt(req.query.days) || 14;
+
+    // 1. Current stock (same calculation as GET /)
+    const stockResult = await pool.query(`
+      SELECT
+        fi.food_type,
+        GREATEST(0,
+          COALESCE(p.purchased_kg, 0) -
+          COALESCE(c.consumed_kg, 0)
+        )::numeric(10,2) as current_stock_kg
+      FROM food_inventory fi
+      LEFT JOIN (
+        SELECT food_type, SUM(change_kg) as purchased_kg
+        FROM food_inventory_log WHERE reason = 'purchase'
+        GROUP BY food_type
+      ) p ON p.food_type = fi.food_type
+      LEFT JOIN (
+        SELECT food_type, SUM(consumed_gr) / 1000.0 as consumed_kg
+        FROM (
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_meals
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT pf.food_type, pf.food_quantity_gr
+          FROM pool_feeding pf
+          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+            AND NOT EXISTS (
+              SELECT 1 FROM pool_meals pm
+              JOIN daily_records dr ON pf.daily_record_id = dr.id
+              WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+            )
+        ) all_fed
+        GROUP BY food_type
+      ) c ON c.food_type = fi.food_type
+    `);
+
+    // 2. Actual consumption from pool_meals over the last N days
+    const consumptionResult = await pool.query(`
+      SELECT
+        food_type,
+        SUM(food_quantity_gr) / 1000.0 as total_consumed_kg,
+        COUNT(DISTINCT date) as active_days,
+        MIN(date) as first_date,
+        MAX(date) as last_date
+      FROM pool_meals
+      WHERE food_quantity_gr > 0
+        AND food_type IS NOT NULL AND food_type != ''
+        AND date >= CURRENT_DATE - $1::int
+      GROUP BY food_type
+    `, [periodDays]);
+
+    // Build consumption lookup
+    const consumptionMap = {};
+    for (const row of consumptionResult.rows) {
+      consumptionMap[row.food_type] = {
+        totalConsumedKg: parseFloat(row.total_consumed_kg),
+        activeDays: parseInt(row.active_days),
+        firstDate: row.first_date,
+        lastDate: row.last_date,
+      };
+    }
+
+    // 3. Build projections
+    const today = new Date();
+    const projections = stockResult.rows.map(item => {
+      const currentStockKg = parseFloat(item.current_stock_kg);
+      const consumption = consumptionMap[item.food_type];
+
+      if (!consumption || consumption.activeDays === 0) {
+        return {
+          food_type: item.food_type,
+          currentStockKg,
+          avgDailyConsumptionKg: 0,
+          daysLeft: null,
+          depletionDate: null,
+          status: currentStockKg > 0 ? 'unused' : 'empty',
+          activeDaysUsed: 0,
+          periodDays,
+        };
+      }
+
+      const avgDailyKg = consumption.totalConsumedKg / consumption.activeDays;
+      const daysLeft = avgDailyKg > 0 ? Math.floor(currentStockKg / avgDailyKg) : null;
+
+      let depletionDate = null;
+      if (daysLeft !== null) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + daysLeft);
+        depletionDate = d.toISOString().split('T')[0];
+      }
+
+      let status = 'ok';
+      if (daysLeft !== null) {
+        if (daysLeft <= 0) status = 'depleted';
+        else if (daysLeft <= 7) status = 'critical';
+        else if (daysLeft <= 14) status = 'warning';
+      }
+
+      return {
+        food_type: item.food_type,
+        currentStockKg,
+        avgDailyConsumptionKg: Math.round(avgDailyKg * 1000) / 1000,
+        daysLeft,
+        depletionDate,
+        status,
+        activeDaysUsed: consumption.activeDays,
+        periodDays,
+      };
+    });
+
+    // Sort: most urgent first (depleted, critical, warning, ok, unused)
+    const statusOrder = { depleted: 0, critical: 1, warning: 2, ok: 3, unused: 4, empty: 5 };
+    projections.sort((a, b) => {
+      const oa = statusOrder[a.status] ?? 9;
+      const ob = statusOrder[b.status] ?? 9;
+      if (oa !== ob) return oa - ob;
+      if (a.daysLeft !== null && b.daysLeft !== null) return a.daysLeft - b.daysLeft;
+      return 0;
+    });
+
+    res.json({ projections, generatedAt: today.toISOString() });
+  } catch (err) {
+    console.error('Food projection error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 module.exports = router;

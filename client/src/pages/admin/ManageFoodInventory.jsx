@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, Brain, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search } from 'lucide-react';
 
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -66,7 +66,7 @@ export default function ManageFoodInventory() {
       const [invData, logData, projData] = await Promise.all([
         api.getFoodInventory(),
         api.getFoodInventoryLog(fetchDays),
-        api.getStockProjection().catch(() => null),
+        api.getFoodProjection(14).catch(() => null),
       ]);
       setInventory(invData.inventory);
       setLog(logData.log);
@@ -75,7 +75,13 @@ export default function ManageFoodInventory() {
     finally { setLoading(false); }
   };
 
-  const proj = stockProjection?.projections || {};
+  // Build projection lookup by food_type
+  const projMap = {};
+  if (stockProjection?.projections) {
+    for (const p of stockProjection.projections) {
+      projMap[p.food_type] = p;
+    }
+  }
 
   useEffect(() => { load(); }, [logDays, showFilters]);
 
@@ -234,9 +240,9 @@ export default function ManageFoodInventory() {
             <tbody>
               {inventory.map(item => {
                 const stockKg = parseFloat(item.quantity_kg);
-                const p = proj[item.food_type];
+                const p = projMap[item.food_type];
                 const daysLeft = p?.daysLeft;
-                const endDate = p?.endDate;
+                const endDate = p?.depletionDate;
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
@@ -268,7 +274,7 @@ export default function ManageFoodInventory() {
         <div className="lg:hidden space-y-2">
           {inventory.map(item => {
             const stockKg = parseFloat(item.quantity_kg);
-            const p = proj[item.food_type];
+            const p = projMap[item.food_type];
             const daysLeft = p?.daysLeft;
             const endDate = p?.endDate;
             return (
@@ -295,18 +301,14 @@ export default function ManageFoodInventory() {
         </div>
       </div>
 
-      {/* AI Stock Duration Summary */}
-      {stockProjection && Object.keys(proj).length > 0 && (() => {
-        const stockItems = Object.entries(proj)
-          .filter(([, p]) => p.daysLeft != null && p.dailyConsumptionStartKg > 0)
-          .map(([foodType, p]) => ({ foodType, ...p }))
-          .sort((a, b) => (a.daysLeft || 0) - (b.daysLeft || 0));
+      {/* Stock Projection based on actual consumption */}
+      {stockProjection?.projections?.length > 0 && (() => {
+        const active = stockProjection.projections.filter(p => p.daysLeft !== null);
+        if (active.length === 0) return null;
 
-        if (stockItems.length === 0) return null;
-
-        const soonest = stockItems[0];
-        const critical = stockItems.filter(s => s.daysLeft <= 7);
-        const warning = stockItems.filter(s => s.daysLeft > 7 && s.daysLeft <= 21);
+        const critical = active.filter(p => p.status === 'critical' || p.status === 'depleted');
+        const warning = active.filter(p => p.status === 'warning');
+        const soonest = active[0]; // already sorted by urgency from server
 
         return (
           <div className="card mb-4 animate-in-delay-1"
@@ -323,20 +325,20 @@ export default function ManageFoodInventory() {
                   : '1px solid rgba(34,197,94,0.2)',
             }}>
             <div className="flex items-center gap-2 mb-2">
-              <Brain size={15} style={{ color: '#7c3aed' }} />
-              <h3 className="section-title text-sm !mb-0">AI проценка на залихи</h3>
+              <TrendingDown size={15} className="text-[var(--primary)]" />
+              <h3 className="section-title text-sm !mb-0">Проекција на залихи</h3>
             </div>
             <p className="text-xs text-[var(--text-secondary)] mb-3">
-              Динамичка проекција — ја зема предвид зголемената потрошувачка од раст на рибите
+              Врз база на реална потрошувачка од оброците (последни {soonest.periodDays} дена)
             </p>
 
             {critical.length > 0 && (
               <div className="flex items-start gap-2 text-xs p-2 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 mb-2">
                 <AlertTriangle size={14} className="text-[var(--danger)] flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[var(--danger)]">Критично!</strong>
+                  <strong className="text-[var(--danger)]">{critical.some(s => s.status === 'depleted') ? 'Завршена залиха!' : 'Критично!'}</strong>
                   <span className="text-[var(--text-secondary)]"> {critical.map(s =>
-                    `${s.foodType} (${s.daysLeft <= 0 ? 'завршена' : s.endDate ? `до ${formatDateShortMK(s.endDate)}` : `${s.daysLeft} дена`})`
+                    `${s.food_type} (${s.daysLeft <= 0 ? 'завршена' : s.depletionDate ? `до ${formatDateShortMK(s.depletionDate)}` : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
               </div>
@@ -348,21 +350,54 @@ export default function ManageFoodInventory() {
                 <div>
                   <strong className="text-[var(--warning)]">Набавете наскоро:</strong>
                   <span className="text-[var(--text-secondary)]"> {warning.map(s =>
-                    `${s.foodType} (до ${s.endDate ? formatDateShortMK(s.endDate) : `${s.daysLeft} дена`})`
+                    `${s.food_type} (до ${s.depletionDate ? formatDateShortMK(s.depletionDate) : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
               </div>
             )}
 
-            <div className="text-xs text-[var(--text-muted)] mt-1">
-              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+            {/* Per-food detail */}
+            <div className="space-y-1.5 mt-3">
+              {active.map(p => {
+                const pct = p.daysLeft !== null && p.daysLeft > 0 ? Math.min(100, (p.daysLeft / 30) * 100) : 0;
+                const barColor = p.status === 'depleted' || p.status === 'critical'
+                  ? 'var(--danger)'
+                  : p.status === 'warning' ? 'var(--warning)' : 'var(--success)';
+                return (
+                  <div key={p.food_type} className="p-2 rounded-[var(--r-sm)] bg-[var(--bg)]">
+                    <div className="flex justify-between items-center text-xs mb-1">
+                      <span className="font-medium text-[var(--text-secondary)]">{p.food_type}</span>
+                      <span className="font-bold" style={{ color: barColor }}>
+                        {p.daysLeft <= 0
+                          ? 'Завршена!'
+                          : p.depletionDate
+                            ? `до ${formatDateShortMK(p.depletionDate)} (${p.daysLeft} д.)`
+                            : `${p.daysLeft} дена`
+                        }
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: barColor }} />
+                    </div>
+                    <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
+                      <span>{p.currentStockKg} kg залиха</span>
+                      <span>{p.avgDailyConsumptionKg} kg/ден</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-xs text-[var(--text-muted)] mt-3 pt-2 border-t border-[var(--border)]">
+              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 14 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
                 {soonest.daysLeft <= 0
                   ? 'ИТНО — залихата е завршена'
-                  : soonest.endDate
-                    ? `до ${formatDateShortMK(soonest.endDate)}`
-                    : `за ${soonest.daysLeft}+ дена`
+                  : soonest.depletionDate
+                    ? `до ${formatDateShortMK(soonest.depletionDate)}`
+                    : `за ${soonest.daysLeft} дена`
                 }
-              </strong> ({soonest.foodType})
+              </strong> ({soonest.food_type})
             </div>
           </div>
         );

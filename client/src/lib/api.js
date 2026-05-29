@@ -108,6 +108,7 @@ export const api = {
   updateFoodPurchase: (id, data) => request(`/food-inventory/purchase/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteFoodPurchase: (id) => request(`/food-inventory/purchase/${id}`, { method: 'DELETE' }),
   getFoodInventoryLog: (days) => request(`/food-inventory/log?days=${days || 3}`),
+  getFoodProjection: (days) => request(`/food-inventory/projection?days=${days || 14}`),
 
   // AI Feeding Recommendations
   getAIRecommendations: () => request('/ai/recommendations'),
