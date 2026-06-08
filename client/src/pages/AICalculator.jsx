@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Brain, Fish, Thermometer, Calculator, ChevronLeft, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3 } from 'lucide-react';
+import { Brain, Fish, Thermometer, Calculator, ChevronLeft, ChevronDown, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3 } from 'lucide-react';
 
 /* ── Macedonian formatting ── */
 const MK_MONTHS = [
@@ -22,6 +22,7 @@ export default function AICalculator() {
   const [waterPrediction, setWaterPrediction] = useState(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
   const [predictionError, setPredictionError] = useState(null);
+  const [expandedRec, setExpandedRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [calcLoading, setCalcLoading] = useState(false);
 
@@ -675,65 +676,80 @@ export default function AICalculator() {
                 </div>
               )}
 
-              {/* Recommendations — action plan */}
-              {waterPrediction.recommendations?.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                    Што да направите
-                  </p>
-                  {waterPrediction.recommendations.map((r, i) => {
-                    const urgencyConfig = {
-                      critical: { bg: 'rgba(239,68,68,0.08)', border: 'var(--danger)', label: 'ИТНО', labelBg: 'rgba(239,68,68,0.2)' },
-                      high: { bg: 'rgba(245,158,11,0.08)', border: 'var(--warning)', label: 'ВАЖНО', labelBg: 'rgba(245,158,11,0.2)' },
-                      medium: { bg: 'rgba(59,130,246,0.06)', border: 'var(--primary)', label: 'ПРЕПОРАКА', labelBg: 'rgba(59,130,246,0.15)' },
-                      info: { bg: 'transparent', border: 'var(--border)', label: '', labelBg: 'transparent' },
-                    };
-                    const uc = urgencyConfig[r.urgency] || urgencyConfig.info;
-                    const steps = r.steps || (r.action ? [r.action] : []);
+              {/* Recommendations — expandable action cards */}
+              {waterPrediction.recommendations?.length > 0 && (() => {
+                const urgencyConfig = {
+                  critical: { border: 'var(--danger)', label: 'ИТНО', dot: '#ef4444' },
+                  high: { border: 'var(--warning)', label: 'ВАЖНО', dot: '#f59e0b' },
+                  medium: { border: 'var(--primary)', label: 'ПРЕПОРАКА', dot: '#3b82f6' },
+                  info: { border: 'var(--border)', label: '', dot: '#94a3b8' },
+                };
 
-                    return (
-                      <div key={i} className="rounded-[var(--r-md)] overflow-hidden" style={{ border: `1px solid ${uc.border}`, background: uc.bg }}>
-                        {/* Header */}
-                        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: `1px solid ${uc.border}`, background: uc.labelBg }}>
-                          {uc.label && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: uc.border, color: '#fff' }}>
-                              {uc.label}
-                            </span>
-                          )}
-                          <p className="text-[13px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                            {r.title}
-                          </p>
-                        </div>
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      Што да направите
+                    </p>
+                    {waterPrediction.recommendations.map((r, i) => {
+                      const uc = urgencyConfig[r.urgency] || urgencyConfig.info;
+                      const steps = r.steps || (r.action ? [r.action] : []);
+                      const isExpanded = expandedRec === i;
 
-                        {/* Steps */}
-                        {steps.length > 0 && (
-                          <div className="px-4 py-3 space-y-3">
-                            {steps.map((step, si) => (
-                              <div key={si} className="flex gap-3 items-start">
-                                <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold" style={{
-                                  background: uc.labelBg,
-                                  color: uc.border,
-                                  border: `1.5px solid ${uc.border}`,
-                                }}>
-                                  {si + 1}
-                                </div>
-                                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed pt-0.5">{step}</p>
+                      return (
+                        <div key={i}
+                          className="card !p-0 overflow-hidden transition-all duration-200"
+                          style={{ borderLeft: `3px solid ${uc.border}` }}>
+
+                          {/* Collapsed: summary row — click to expand */}
+                          <button
+                            onClick={() => setExpandedRec(isExpanded ? null : i)}
+                            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--surface-hover)] transition-colors"
+                          >
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: uc.dot }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{r.summary || r.title}</p>
+                            </div>
+                            <ChevronDown size={16} className={`text-[var(--text-muted)] flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {/* Expanded: detailed steps */}
+                          {isExpanded && (
+                            <div className="border-t border-[var(--border)]">
+                              {/* Title */}
+                              <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+                                {uc.label && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: uc.border, color: '#fff' }}>
+                                    {uc.label}
+                                  </span>
+                                )}
+                                <p className="text-[12px] font-bold text-[var(--text-primary)]">{r.title}</p>
                               </div>
-                            ))}
-                          </div>
-                        )}
 
-                        {/* Source */}
-                        <div className="px-4 py-2" style={{ borderTop: `1px solid ${uc.border}`, opacity: 0.6 }}>
-                          <p className="text-[10px] text-[var(--text-muted)]">
-                            Извор: {r.source}
-                          </p>
+                              {/* Steps */}
+                              <div className="px-4 py-2 space-y-2.5">
+                                {steps.map((step, si) => (
+                                  <div key={si} className="flex gap-2.5 items-start">
+                                    <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
+                                      style={{ background: `${uc.dot}22`, color: uc.dot, border: `1.5px solid ${uc.dot}` }}>
+                                      {si + 1}
+                                    </span>
+                                    <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{step}</p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Source */}
+                              <div className="px-4 py-2 border-t border-[var(--border)]">
+                                <p className="text-[9px] text-[var(--text-muted)] opacity-60">Извор: {r.source}</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Parameter details */}
               <div className="space-y-2">
