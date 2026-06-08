@@ -148,12 +148,12 @@ async function seedAdmin() {
     if (parseInt(existing.rows[0].count) > 0) return;
 
     const bcrypt = require('bcryptjs');
-    const email = 'kovilovski@t.mk';
-    const hashedPassword = await bcrypt.hash(']5s1X1_3(a', 12);
+    const email = process.env.ADMIN_EMAIL || 'admin@clario.mk';
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 12);
 
     await pool.query(
       'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',
-      [email, hashedPassword, 'Горан Ковиловски', 'admin']
+      [email, hashedPassword, process.env.ADMIN_NAME || 'Admin', 'admin']
     );
     console.log('Admin user created: ' + email);
   } catch (err) {

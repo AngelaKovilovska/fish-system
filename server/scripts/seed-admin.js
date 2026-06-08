@@ -15,13 +15,13 @@ async function seedAdmin() {
       process.exit(0);
     }
 
-    const email = 'kovilovski@t.mk';
-    const password = ']5s1X1_3(a';
+    const email = process.env.ADMIN_EMAIL || 'admin@clario.mk';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
     const hashedPassword = await bcrypt.hash(password, 12);
 
     await pool.query(
       'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',
-      [email, hashedPassword, 'Горан Ковиловски', 'admin']
+      [email, hashedPassword, process.env.ADMIN_NAME || 'Admin', 'admin']
     );
 
     console.log('Admin created: ' + email);
