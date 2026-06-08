@@ -688,12 +688,41 @@ export default function AICalculator() {
                       medium: { bg: 'rgba(59,130,246,0.04)', border: 'var(--primary)' },
                       info: { bg: 'transparent', border: 'var(--border)' },
                     };
+                    const urgencyLabels = {
+                      critical: 'ИТНО',
+                      high: 'Важно',
+                      medium: 'Препорака',
+                    };
                     const uc = urgencyColors[r.urgency] || urgencyColors.info;
                     return (
                       <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${uc.border}`, background: uc.bg }}>
-                        {r.title && <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{r.title}</p>}
-                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{r.action}</p>
-                        <p className="text-[9px] text-[var(--text-muted)] mt-1.5">{r.source}</p>
+                        <div className="flex items-start gap-2 mb-1.5">
+                          {r.title && <p className="text-xs font-semibold text-[var(--text-primary)] flex-1">{r.title}</p>}
+                          {urgencyLabels[r.urgency] && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{
+                              background: r.urgency === 'critical' ? 'rgba(239,68,68,0.15)' : r.urgency === 'high' ? 'rgba(245,158,11,0.15)' : 'rgba(59,130,246,0.1)',
+                              color: uc.border,
+                            }}>
+                              {urgencyLabels[r.urgency]}
+                            </span>
+                          )}
+                        </div>
+                        {/* Step-by-step instructions */}
+                        {r.steps && r.steps.length > 0 ? (
+                          <div className="space-y-1.5 mt-1">
+                            {r.steps.map((step, si) => (
+                              <div key={si} className="flex gap-2">
+                                <span className="text-[10px] font-bold text-[var(--text-muted)] mt-px flex-shrink-0 w-4 text-right">{si + 1}.</span>
+                                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{step}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : r.action ? (
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{r.action}</p>
+                        ) : null}
+                        <p className="text-[9px] text-[var(--text-muted)] mt-2 pt-1.5 border-t border-[var(--border)]" style={{ opacity: 0.7 }}>
+                          📖 {r.source}
+                        </p>
                       </div>
                     );
                   })}
