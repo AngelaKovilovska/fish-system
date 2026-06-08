@@ -675,54 +675,60 @@ export default function AICalculator() {
                 </div>
               )}
 
-              {/* Recommendations */}
+              {/* Recommendations — action plan */}
               {waterPrediction.recommendations?.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                     Што да направите
                   </p>
                   {waterPrediction.recommendations.map((r, i) => {
-                    const urgencyColors = {
-                      critical: { bg: 'rgba(239,68,68,0.06)', border: 'var(--danger)' },
-                      high: { bg: 'rgba(245,158,11,0.06)', border: 'var(--warning)' },
-                      medium: { bg: 'rgba(59,130,246,0.04)', border: 'var(--primary)' },
-                      info: { bg: 'transparent', border: 'var(--border)' },
+                    const urgencyConfig = {
+                      critical: { bg: 'rgba(239,68,68,0.08)', border: 'var(--danger)', label: 'ИТНО', labelBg: 'rgba(239,68,68,0.2)' },
+                      high: { bg: 'rgba(245,158,11,0.08)', border: 'var(--warning)', label: 'ВАЖНО', labelBg: 'rgba(245,158,11,0.2)' },
+                      medium: { bg: 'rgba(59,130,246,0.06)', border: 'var(--primary)', label: 'ПРЕПОРАКА', labelBg: 'rgba(59,130,246,0.15)' },
+                      info: { bg: 'transparent', border: 'var(--border)', label: '', labelBg: 'transparent' },
                     };
-                    const urgencyLabels = {
-                      critical: 'ИТНО',
-                      high: 'Важно',
-                      medium: 'Препорака',
-                    };
-                    const uc = urgencyColors[r.urgency] || urgencyColors.info;
+                    const uc = urgencyConfig[r.urgency] || urgencyConfig.info;
+                    const steps = r.steps || (r.action ? [r.action] : []);
+
                     return (
-                      <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${uc.border}`, background: uc.bg }}>
-                        <div className="flex items-start gap-2 mb-1.5">
-                          {r.title && <p className="text-xs font-semibold text-[var(--text-primary)] flex-1">{r.title}</p>}
-                          {urgencyLabels[r.urgency] && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{
-                              background: r.urgency === 'critical' ? 'rgba(239,68,68,0.15)' : r.urgency === 'high' ? 'rgba(245,158,11,0.15)' : 'rgba(59,130,246,0.1)',
-                              color: uc.border,
-                            }}>
-                              {urgencyLabels[r.urgency]}
+                      <div key={i} className="rounded-[var(--r-md)] overflow-hidden" style={{ border: `1px solid ${uc.border}`, background: uc.bg }}>
+                        {/* Header */}
+                        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: `1px solid ${uc.border}`, background: uc.labelBg }}>
+                          {uc.label && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: uc.border, color: '#fff' }}>
+                              {uc.label}
                             </span>
                           )}
+                          <p className="text-[13px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                            {r.title}
+                          </p>
                         </div>
-                        {/* Step-by-step instructions */}
-                        {r.steps && r.steps.length > 0 ? (
-                          <div className="space-y-1.5 mt-1">
-                            {r.steps.map((step, si) => (
-                              <div key={si} className="flex gap-2">
-                                <span className="text-[10px] font-bold text-[var(--text-muted)] mt-px flex-shrink-0 w-4 text-right">{si + 1}.</span>
-                                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{step}</p>
+
+                        {/* Steps */}
+                        {steps.length > 0 && (
+                          <div className="px-4 py-3 space-y-3">
+                            {steps.map((step, si) => (
+                              <div key={si} className="flex gap-3 items-start">
+                                <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold" style={{
+                                  background: uc.labelBg,
+                                  color: uc.border,
+                                  border: `1.5px solid ${uc.border}`,
+                                }}>
+                                  {si + 1}
+                                </div>
+                                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed pt-0.5">{step}</p>
                               </div>
                             ))}
                           </div>
-                        ) : r.action ? (
-                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{r.action}</p>
-                        ) : null}
-                        <p className="text-[9px] text-[var(--text-muted)] mt-2 pt-1.5 border-t border-[var(--border)]" style={{ opacity: 0.7 }}>
-                          📖 {r.source}
-                        </p>
+                        )}
+
+                        {/* Source */}
+                        <div className="px-4 py-2" style={{ borderTop: `1px solid ${uc.border}`, opacity: 0.6 }}>
+                          <p className="text-[10px] text-[var(--text-muted)]">
+                            Извор: {r.source}
+                          </p>
+                        </div>
                       </div>
                     );
                   })}
