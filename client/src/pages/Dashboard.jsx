@@ -83,6 +83,13 @@ export default function Dashboard() {
     } catch (err) { console.error(err); }
   };
 
+  const handleAcknowledgeAll = async () => {
+    try {
+      await api.acknowledgeAllAlerts();
+      setAlerts([]);
+    } catch (err) { console.error(err); }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -242,12 +249,19 @@ export default function Dashboard() {
       {/* ── Active Alarms ── */}
       {alerts.length > 0 && (
         <div className="animate-in-delay-2 space-y-2">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="section-title flex items-center gap-2 text-sm">
-              <AlertTriangle size={15} className="text-[var(--danger)]" />
-              Активни аларми
-            </h2>
-            <span className="pill pill-danger">{alerts.length}</span>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <h2 className="section-title flex items-center gap-2 text-sm">
+                <AlertTriangle size={15} className="text-[var(--danger)]" />
+                Активни аларми
+              </h2>
+              <span className="pill pill-danger">{alerts.length}</span>
+            </div>
+            <button onClick={handleAcknowledgeAll}
+              className="text-[11px] font-medium text-[var(--primary)] hover:underline flex items-center gap-1">
+              <CheckCircle size={12} />
+              Обележи ги сите
+            </button>
           </div>
 
           <div className="space-y-1.5">

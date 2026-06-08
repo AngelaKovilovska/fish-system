@@ -62,6 +62,7 @@ export const api = {
     return request(`/alerts?${query}`);
   },
   acknowledgeAlert: (id) => request(`/alerts/${id}/acknowledge`, { method: 'PUT' }),
+  acknowledgeAllAlerts: () => request('/alerts/acknowledge-all', { method: 'PUT' }),
 
   // Reports
   sendDailyReport: (recordId) => request(`/reports/daily/${recordId}`, { method: 'POST' }),

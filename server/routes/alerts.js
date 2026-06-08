@@ -43,6 +43,20 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/alerts/acknowledge-all — mark all unacknowledged alerts as read
+// MUST be before /:id route so Express doesn't match "acknowledge-all" as :id
+router.put('/acknowledge-all', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE alerts SET acknowledged = true WHERE acknowledged = false RETURNING id'
+    );
+    res.json({ acknowledged: result.rowCount });
+  } catch (err) {
+    console.error('Acknowledge all alerts error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // PUT /api/alerts/:id/acknowledge
 router.put('/:id/acknowledge', authMiddleware, async (req, res) => {
   try {
