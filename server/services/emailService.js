@@ -66,4 +66,47 @@ async function sendReportEmail({ to, subject, html, attachments }) {
   }
 }
 
-module.exports = { sendReportEmail };
+async function testConnection() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT) || 465;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  const config = {
+    host: host || 'NOT SET',
+    port,
+    user: user || 'NOT SET',
+    passLength: pass ? pass.length : 0,
+    passPreview: pass ? pass.substring(0, 4) + '...' : 'NOT SET',
+    secure: port === 465,
+  };
+
+  if (!host || !user || !pass) {
+    return { ok: false, step: 'config', error: 'Missing env vars', config };
+  }
+
+  try {
+    const testTransporter = nodemailer.createTransport({
+      host, port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+    });
+
+    await testTransporter.verify();
+    return { ok: true, step: 'verify', message: 'SMTP connection successful', config };
+  } catch (err) {
+    return {
+      ok: false,
+      step: 'verify',
+      error: err.message,
+      code: err.code,
+      responseCode: err.responseCode,
+      config,
+    };
+  }
+}
+
+module.exports = { sendReportEmail, testConnection };

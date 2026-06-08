@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
-const { sendReportEmail } = require('../services/emailService');
+const { sendReportEmail, testConnection } = require('../services/emailService');
 const {
   getDailyReportData, getFoodConsumptionData, getFoodPurchaseData,
   getMeasurementDates, getAvgWeightData, getAlertsReportData,
@@ -9,6 +9,12 @@ const {
 } = require('../services/reportService');
 
 const router = express.Router();
+
+// GET /api/reports/test-email — test SMTP connection
+router.get('/test-email', authMiddleware, async (req, res) => {
+  const result = await testConnection();
+  res.json(result);
+});
 
 // ── Helper: sanitize values before injecting into HTML ──
 function escapeHtml(str) {
