@@ -2,17 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, Brain, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, BarChart3, ChevronDown, MoreHorizontal } from 'lucide-react';
 import FishBackground from './FishBackground';
 
-// ─── 4 main sections: Дома, Внес, Извештаи, AI ───
+// ─── 4 main sections: Дома, Внес, Извештаи, Проекции ───
 const sidebarSections = [
   {
     items: [
       { path: '/', label: 'Дома', icon: Home },
       { path: '/entry', label: 'Внес', icon: PenSquare },
       { path: '/reports', label: 'Извештаи', icon: FileBarChart },
-      { path: '/ai-calculator', label: 'AI', icon: Brain },
+      { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
     ],
   },
 ];
@@ -30,7 +30,7 @@ const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/reports', label: 'Извештаи', icon: FileBarChart },
-  { path: '/ai-calculator', label: 'AI', icon: Brain },
+  { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
 ];
 
 const mobileMoreItems = [];
