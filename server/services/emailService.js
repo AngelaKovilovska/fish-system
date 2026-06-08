@@ -21,9 +21,10 @@ function getTransporter() {
     secure: port === 465,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000,  // 10 sec to connect
-    greetingTimeout: 10000,    // 10 sec for SMTP greeting
-    socketTimeout: 15000,      // 15 sec for socket inactivity
+    family: 4,                 // Force IPv4 (Railway lacks IPv6)
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   return transporter;
@@ -91,6 +92,7 @@ async function testConnection() {
       secure: port === 465,
       auth: { user, pass },
       tls: { rejectUnauthorized: false },
+      family: 4,
       connectionTimeout: 15000,
       greetingTimeout: 15000,
     });
