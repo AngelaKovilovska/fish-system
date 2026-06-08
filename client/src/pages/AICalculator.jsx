@@ -552,6 +552,109 @@ export default function AICalculator() {
                 </div>
               )}
 
+              {/* ── Predictions ── */}
+              {(() => {
+                const predictions = [];
+                Object.values(waterPrediction.parameters || {}).forEach(param => {
+                  if (param.noData || !param.trend) return;
+                  const { trend, currentValue, label, unit, norm } = param;
+
+                  // Will cross norm within 7 days
+                  if (trend.crossing && trend.crossing.daysUntil > 0 && trend.crossing.daysUntil <= 7 && !trend.crossing.alreadyExceeded) {
+                    const predictedVal = Math.round((currentValue + trend.slope * trend.crossing.daysUntil) * 100) / 100;
+                    predictions.push({
+                      type: 'crossing',
+                      label, unit, currentValue, predictedVal,
+                      daysUntil: trend.crossing.daysUntil,
+                      direction: trend.crossing.direction,
+                      boundaryValue: trend.crossing.boundaryValue,
+                      slope: trend.slope,
+                      severity: trend.crossing.daysUntil <= 2 ? 'critical' : 'warning',
+                    });
+                  }
+
+                  // Already exceeded — getting better or worse?
+                  if (trend.crossing?.alreadyExceeded && trend.isSignificant) {
+                    const isWorse = (trend.crossing.direction === 'high' && trend.slope > 0)
+                      || (trend.crossing.direction === 'low' && trend.slope < 0);
+                    const pred3d = Math.round((currentValue + trend.slope * 3) * 100) / 100;
+                    predictions.push({
+                      type: 'exceeded',
+                      label, unit, currentValue, predictedVal: pred3d,
+                      boundaryValue: trend.crossing.boundaryValue,
+                      slope: trend.slope,
+                      isWorse,
+                      severity: isWorse ? 'critical' : 'info',
+                    });
+                  }
+                });
+
+                // Sort: critical first, then by daysUntil
+                predictions.sort((a, b) => {
+                  const s = { critical: 0, warning: 1, info: 2 };
+                  return (s[a.severity] ?? 9) - (s[b.severity] ?? 9);
+                });
+
+                if (predictions.length === 0) return null;
+
+                return (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      Предвидувања (следни 7 дена)
+                    </p>
+                    {predictions.map((p, i) => {
+                      const isCrit = p.severity === 'critical';
+                      const isInfo = p.severity === 'info';
+                      const borderColor = isCrit ? 'var(--danger)' : isInfo ? 'var(--success)' : 'var(--warning)';
+                      const bgColor = isCrit ? 'rgba(239,68,68,0.05)' : isInfo ? 'rgba(34,197,94,0.05)' : 'rgba(245,158,11,0.05)';
+
+                      if (p.type === 'crossing') {
+                        return (
+                          <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${borderColor}`, background: bgColor }}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Clock size={13} className={isCrit ? 'text-[var(--danger)]' : 'text-[var(--warning)]'} />
+                              <span className="text-xs font-semibold text-[var(--text-primary)]">{p.label}</span>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${isCrit ? 'bg-red-100 dark:bg-red-900/30 text-[var(--danger)]' : 'bg-amber-100 dark:bg-amber-900/30 text-[var(--warning)]'}`}>
+                                за {p.daysUntil} ден{p.daysUntil > 1 ? 'а' : ''}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                              {p.direction === 'high' ? 'Ќе ја надмине' : 'Ќе падне под'} нормата ({p.boundaryValue}{p.unit}).
+                              {' '}Моментално: <span className="font-semibold">{p.currentValue}{p.unit}</span> → предвидено: <span className="font-semibold text-[var(--text-primary)]">{p.predictedVal}{p.unit}</span>
+                            </p>
+                            <p className="text-[9px] text-[var(--text-muted)] mt-1">
+                              Тренд: {p.slope > 0 ? '+' : ''}{p.slope}{p.unit}/ден
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      // exceeded — getting better or worse
+                      return (
+                        <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${borderColor}`, background: bgColor }}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            {p.isWorse
+                              ? <TrendingUp size={13} className="text-[var(--danger)]" />
+                              : <TrendingDown size={13} className="text-[var(--success)]" />}
+                            <span className="text-xs font-semibold text-[var(--text-primary)]">{p.label}</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${p.isWorse ? 'bg-red-100 dark:bg-red-900/30 text-[var(--danger)]' : 'bg-green-100 dark:bg-green-900/30 text-[var(--success)]'}`}>
+                              {p.isWorse ? 'се влошува' : 'се подобрува'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                            Надвор од норма ({p.boundaryValue}{p.unit}).
+                            {' '}Моментално: <span className="font-semibold text-[var(--danger)]">{p.currentValue}{p.unit}</span> → за 3 дена: <span className={`font-semibold ${p.isWorse ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>{p.predictedVal}{p.unit}</span>
+                          </p>
+                          <p className="text-[9px] text-[var(--text-muted)] mt-1">
+                            Тренд: {p.slope > 0 ? '+' : ''}{p.slope}{p.unit}/ден
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
               {/* Causal Chains */}
               {waterPrediction.causalChains?.length > 0 && (
                 <div className="space-y-1.5">
