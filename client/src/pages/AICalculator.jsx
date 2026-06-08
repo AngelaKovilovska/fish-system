@@ -21,6 +21,7 @@ export default function AICalculator() {
   const [waterData, setWaterData] = useState(null);
   const [waterPrediction, setWaterPrediction] = useState(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
+  const [predictionError, setPredictionError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [calcLoading, setCalcLoading] = useState(false);
 
@@ -43,9 +44,10 @@ export default function AICalculator() {
   useEffect(() => {
     if (tab === 'water' && !waterPrediction && !predictionLoading) {
       setPredictionLoading(true);
+      setPredictionError(null);
       api.getWaterPrediction()
         .then(d => setWaterPrediction(d))
-        .catch(() => {})
+        .catch(err => setPredictionError(err.message || 'Грешка при вчитување'))
         .finally(() => setPredictionLoading(false));
     }
   }, [tab]);
@@ -439,6 +441,18 @@ export default function AICalculator() {
             <div className="card !p-5 text-center">
               <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
               <p className="text-xs text-[var(--text-muted)]">Анализирам водни параметри...</p>
+            </div>
+          )}
+
+          {predictionError && !predictionLoading && (
+            <div className="card !p-5 text-center">
+              <AlertTriangle size={32} className="mx-auto text-[var(--danger)] mb-2" />
+              <p className="text-sm text-[var(--text-primary)] mb-1">Грешка при анализа</p>
+              <p className="text-[11px] text-[var(--text-muted)] mb-3">{predictionError}</p>
+              <button onClick={() => { setWaterPrediction(null); setPredictionError(null); }}
+                className="text-xs font-semibold text-[var(--primary)] hover:underline">
+                Обиди се повторно
+              </button>
             </div>
           )}
 

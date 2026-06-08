@@ -358,6 +358,7 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   const alk = getVal('total_alkalinity');
   const nh4 = getVal('ammonium');
   const no2 = getVal('nitrites');
+  const no3 = getVal('nitrates');
 
   // pH падна под 6.5 — ИТНО
   if (ph !== null && ph < 6.5) {
