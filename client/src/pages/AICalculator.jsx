@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Brain, Fish, Thermometer, Calculator, ChevronLeft, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { Brain, Fish, Thermometer, Calculator, ChevronLeft, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3 } from 'lucide-react';
 
 /* ── Macedonian formatting ── */
 const MK_MONTHS = [
@@ -19,6 +19,8 @@ export default function AICalculator() {
   const [tab, setTab] = useState('pools'); // 'pools' | 'calculator' | 'water'
   const [aiData, setAiData] = useState(null);
   const [waterData, setWaterData] = useState(null);
+  const [waterPrediction, setWaterPrediction] = useState(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [calcLoading, setCalcLoading] = useState(false);
 
@@ -36,6 +38,17 @@ export default function AICalculator() {
       api.getWaterAnalysis().then(d => setWaterData(d)).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
+
+  // Load water prediction when water tab is opened
+  useEffect(() => {
+    if (tab === 'water' && !waterPrediction && !predictionLoading) {
+      setPredictionLoading(true);
+      api.getWaterPrediction()
+        .then(d => setWaterPrediction(d))
+        .catch(() => {})
+        .finally(() => setPredictionLoading(false));
+    }
+  }, [tab]);
 
   const handleCalculate = async () => {
     const count = parseInt(calcInputs.fishCount);
@@ -74,11 +87,11 @@ export default function AICalculator() {
         <Link to="/" className="btn-ghost !p-2"><ChevronLeft size={18} /></Link>
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Brain size={20} className="text-purple-500" />
-            AI Препорака
+            <BarChart3 size={20} className="text-purple-500" />
+            Проекции
           </h1>
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-            Базирано на Coppens 2025-2026 табела за африкански сом
+            Препораки за хранење и предвидување на параметри
           </p>
         </div>
       </div>
@@ -535,13 +548,198 @@ export default function AICalculator() {
               </div>
             </>
           )}
+
+          {/* ── Water Prediction (Random Forest) ── */}
+          {predictionLoading && (
+            <div className="card !p-5 text-center">
+              <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
+              <p className="text-xs text-[var(--text-muted)]">Моделот тренира од историските податоци...</p>
+            </div>
+          )}
+
+          {waterPrediction && !predictionLoading && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mt-2">
+                <Activity size={14} className="text-purple-500" />
+                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  Предвидување (Random Forest · {waterPrediction.modelInfo?.trainingDays || '?'} дена)
+                </p>
+              </div>
+
+              {/* Prediction warnings */}
+              {waterPrediction.warnings?.length > 0 && (
+                <div className="space-y-1.5">
+                  {waterPrediction.warnings.map((w, i) => (
+                    <div key={i} className="card !p-3 flex items-start gap-2.5"
+                      style={{
+                        borderLeft: `3px solid ${w.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'}`,
+                        background: w.severity === 'critical'
+                          ? 'linear-gradient(135deg, rgba(239,68,68,0.05), transparent)'
+                          : 'linear-gradient(135deg, rgba(245,158,11,0.05), transparent)',
+                      }}>
+                      <Clock size={14} className={w.severity === 'critical' ? 'text-[var(--danger)] mt-0.5' : 'text-[var(--warning)] mt-0.5'} />
+                      <div>
+                        <p className="text-xs font-medium text-[var(--text-primary)]">{w.message}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          Предвидено за {w.daysUntil} ден{w.daysUntil > 1 ? 'а' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {waterPrediction.warnings?.length === 0 && (
+                <div className="card !p-3 flex items-center gap-2.5"
+                  style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.05), transparent)', borderLeft: '3px solid var(--success)' }}>
+                  <CheckCircle size={14} className="text-[var(--success)]" />
+                  <p className="text-xs text-[var(--text-primary)]">Сите параметри ќе останат во норма следните 7 дена</p>
+                </div>
+              )}
+
+              {/* Per-parameter predictions */}
+              {Object.values(waterPrediction.predictions || {}).map(pred => {
+                if (pred.insufficient) {
+                  return (
+                    <div key={pred.parameter} className="card !p-3 opacity-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[var(--text-muted)]">{pred.label}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">{pred.message}</span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Build sparkline points from recent + predicted
+                const allValues = [
+                  ...(pred.recent || []).map(r => r.value),
+                  ...pred.predicted,
+                ];
+                const minV = Math.min(...allValues.filter(v => v > 0));
+                const maxV = Math.max(...allValues);
+                const range = maxV - minV || 1;
+                const sparkH = 32;
+                const sparkW = 140;
+                const recentLen = pred.recent?.length || 0;
+                const totalPts = allValues.length;
+                const step = sparkW / Math.max(1, totalPts - 1);
+
+                const recentPath = pred.recent?.map((r, i) => {
+                  const x = i * step;
+                  const y = sparkH - ((r.value - minV) / range) * (sparkH - 4) - 2;
+                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+                }).join(' ') || '';
+
+                const predPath = pred.predicted.map((v, i) => {
+                  const x = (recentLen - 1 + i) * step;
+                  const y = sparkH - ((v - minV) / range) * (sparkH - 4) - 2;
+                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+                }).join(' ');
+
+                // Norm band
+                let normY1 = null, normY2 = null;
+                if (pred.norm) {
+                  if (pred.norm.max !== null) normY1 = sparkH - ((pred.norm.max - minV) / range) * (sparkH - 4) - 2;
+                  if (pred.norm.min !== null) normY2 = sparkH - ((pred.norm.min - minV) / range) * (sparkH - 4) - 2;
+                }
+
+                const lastPredicted = pred.predicted[pred.predicted.length - 1];
+                const trendUp = lastPredicted > pred.current;
+                const trendDown = lastPredicted < pred.current;
+                const PredTrendIcon = trendUp ? TrendingUp : trendDown ? TrendingDown : Minus;
+
+                return (
+                  <div key={pred.parameter} className="card !p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-[var(--text-primary)]">{pred.label}</span>
+                        {pred.willExceedNorm && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-red-50 dark:bg-red-900/20 text-[var(--danger)]">
+                            ↑ надвор за {pred.daysUntilExceeded}д
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <PredTrendIcon size={11} className={
+                          trendUp ? 'text-red-400' : trendDown ? 'text-blue-400' : 'text-[var(--text-muted)]'
+                        } />
+                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                          {pred.current}{pred.unit}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)]">→</span>
+                        <span className={`text-xs font-bold ${pred.willExceedNorm ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>
+                          {lastPredicted}{pred.unit}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Sparkline */}
+                    <div className="flex items-center gap-3">
+                      <svg width={sparkW} height={sparkH} className="flex-shrink-0">
+                        {/* Norm band */}
+                        {normY1 !== null && normY2 !== null && (
+                          <rect x="0" y={Math.min(normY1, normY2)} width={sparkW}
+                            height={Math.abs(normY2 - normY1)}
+                            fill="rgba(34,197,94,0.1)" rx="2" />
+                        )}
+                        {/* Recent (solid) */}
+                        {recentPath && (
+                          <path d={recentPath} fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" />
+                        )}
+                        {/* Predicted (dashed) */}
+                        <path d={predPath} fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3,2" strokeLinecap="round" />
+                        {/* Divider line */}
+                        {recentLen > 0 && (
+                          <line x1={(recentLen - 1) * step} y1="0" x2={(recentLen - 1) * step} y2={sparkH}
+                            stroke="var(--text-muted)" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.4" />
+                        )}
+                      </svg>
+                      <div className="text-[9px] text-[var(--text-muted)] leading-tight flex-1">
+                        <div className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-0.5 bg-[var(--primary)] rounded" /> историски
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-0.5 rounded" style={{ background: '#8b5cf6', opacity: 0.7 }} /> предвидени
+                        </div>
+                        {pred.norm && (
+                          <div className="flex items-center gap-1">
+                            <span className="inline-block w-3 h-2 rounded-sm" style={{ background: 'rgba(34,197,94,0.2)' }} /> норма
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Accuracy + top feature */}
+                    <div className="flex items-center justify-between mt-1.5 text-[9px] text-[var(--text-muted)]">
+                      <span>
+                        Точност: R²={pred.accuracy?.r2} · MAE={pred.accuracy?.mae}{pred.unit}
+                      </span>
+                      {pred.featureImportance?.[0] && (
+                        <span>
+                          Главен фактор: {pred.featureImportance[0].name} ({Math.round(pred.featureImportance[0].importance * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Model info */}
+              {waterPrediction.modelInfo && (
+                <div className="text-center text-[9px] text-[var(--text-muted)] py-1">
+                  {waterPrediction.modelInfo.algorithm} · {waterPrediction.modelInfo.trees} дрвја ·
+                  {waterPrediction.modelInfo.features} features · {waterPrediction.modelInfo.trainingDays} дена тренинг
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {/* Footer note */}
       <div className="text-center py-4">
         <p className="text-[10px] text-[var(--text-muted)]">
-          * Препораките се базирани на Alltech Coppens 2025-2026 табела за африкански сом (Clarias gariepinus)
+          * Храна: Coppens 2025-2026. Вода: Random Forest тренирано на ваши историски податоци.
         </p>
       </div>
     </div>

@@ -117,4 +117,5 @@ export const api = {
   getWaterAnalysis: () => request('/ai/water-analysis'),
   getFeedingTable: () => request('/ai/feeding-table'),
   getStockProjection: () => request('/ai/stock-projection'),
+  getWaterPrediction: () => request('/ai/water-prediction'),
 };

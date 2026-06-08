@@ -15,5 +15,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
+  },
+  "dependencies": {
+    "ml-matrix": "^6.12.2",
+    "ml-random-forest": "^2.1.0"
   }
 }
