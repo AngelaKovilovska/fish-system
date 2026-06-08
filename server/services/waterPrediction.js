@@ -364,8 +364,9 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (ph !== null && ph < 6.5) {
     recommendations.push({
       urgency: 'critical',
-      action: 'Додајте натриум бикарбонат (NaHCO₃). Намалете хранење за 50%. Проверете биофилтер — нитрификацијата е инхибирана под pH 6.5.',
-      source: 'Hagopian & Riley (1998), Loyless & Malone (1997)',
+      title: 'pH е критично низок',
+      action: 'Додајте сода бикарбона во водата постепено. Намалете го хранењето на половина. Проверете го биофилтерот.',
+      source: 'Hagopian & Riley (1998)',
     });
   }
 
@@ -373,8 +374,9 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (trends.ph && trends.ph.slope < -0.05 && ph !== null && ph < 7.2 && ph >= 6.5) {
     recommendations.push({
       urgency: 'medium',
-      action: `Измерете алкалитет. Ако е под 100 mg/L, додавајте NaHCO₃ постепено до целна вредност 100-200 mg/L. pH паѓа со ${Math.abs(trends.ph.slope).toFixed(3)}/ден.`,
-      source: 'Loyless & Malone (1997), Timmons & Ebeling (2013)',
+      title: 'pH постепено паѓа',
+      action: 'Измерете го алкалитетот. Ако е под 100, додавајте сода бикарбона малку по малку.',
+      source: 'Loyless & Malone (1997)',
     });
   }
 
@@ -382,13 +384,15 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (nh4 !== null && nh4 > 2.0) {
     recommendations.push({
       urgency: 'critical',
-      action: 'СТОПИРАЈТЕ хранење 24-48 часа. Зголемете аерација. Направете парцијална замена на вода (25-50%). Мониторирајте на секои 3-4 часа.',
-      source: 'Timmons & Ebeling (2013), UF/IFAS Extension',
+      title: 'Амонијак е многу висок',
+      action: 'Стопирајте хранење 24-48 часа. Засилете аерација. Заменете 25-50% од водата. Мерете на секои 3-4 часа.',
+      source: 'Timmons & Ebeling (2013)',
     });
   } else if (nh4 !== null && nh4 > 1.0) {
     recommendations.push({
       urgency: 'high',
-      action: 'Намалете хранење за 50%. Зголемете аерација. Проверете биофилтер. Следете го амонијакот утре наутро.',
+      title: 'Амонијак е зголемен',
+      action: 'Намалете го хранењето на половина. Засилете аерација. Проверете го биофилтерот. Измерете утре наутро.',
       source: 'Timmons & Ebeling (2013)',
     });
   }
@@ -397,8 +401,9 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (nh3Result && nh3Result.nh3 > NH3_SAFE_LIMIT && ph !== null) {
     recommendations.push({
       urgency: 'critical',
-      action: `NH₃ токсичност: ${nh3Result.nh3} mg/L (при pH ${ph}, ${temp}°C). Стопирајте хранење. Додајте свежа вода за разредување. НЕ намалувајте pH хемиски — тоа предизвикува дополнителен стрес.`,
-      source: 'Emerson et al. (1975), Schram et al. (2010)',
+      title: 'Токсичен амонијак — опасност за рибите',
+      action: 'Стопирајте хранење веднаш. Додајте свежа вода за разредување. Не менувајте го pH хемиски — тоа прави уште полошо.',
+      source: 'Emerson et al. (1975)',
     });
   }
 
@@ -406,8 +411,9 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (no2 !== null && no2 > 0.5) {
     recommendations.push({
       urgency: no2 > 1.0 ? 'critical' : 'high',
-      action: `Додајте NaCl 0.1-0.3 g/L (целен Cl⁻:NO₂⁻ сооднос минимум 10:1). Не зголемувајте хранење. Проверете биофилтер — фаза 2 на нитрификацијата е забавена.`,
-      source: 'SRAC 462, Tomasso et al. (1979, 1980)',
+      title: 'Нитрити се високи — додајте сол',
+      action: 'Ставете нејодирана сол во водата (0.1-0.3 грами на литар). Не зголемувајте го хранењето. Проверете го биофилтерот.',
+      source: 'SRAC 462',
     });
   }
 
@@ -415,7 +421,8 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (no3 !== null && no3 > 150) {
     recommendations.push({
       urgency: 'medium',
-      action: 'Зголемете парцијална замена на вода на 10-20% дневно. Целна вредност: под 100 mg/L.',
+      title: 'Нитрати се натрупуваат',
+      action: 'Зголемете ја замената на вода на 10-20% дневно додека не паднат под 100.',
       source: 'Schram et al. (2014)',
     });
   }
@@ -424,7 +431,8 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (temp !== null && temp < 24) {
     recommendations.push({
       urgency: temp < 18 ? 'critical' : 'medium',
-      action: `Температурата (${temp}°C) е под оптимумот. Проверете термо пумпа. Намалете хранење пропорционално — метаболизмот е забавен.`,
+      title: `Водата е ладна (${temp}°C)`,
+      action: 'Проверете ја термо пумпата. Намалете го хранењето — рибите јадат помалку кога е ладно.',
       source: 'Britz & Hecht (1987)',
     });
   }
@@ -433,8 +441,9 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
   if (temp !== null && temp > 32) {
     recommendations.push({
       urgency: temp > 33 ? 'critical' : 'high',
-      action: `Температурата (${temp}°C) е во стрес зона. Зголемете аерација (потопла вода = помалку O₂). Намалете хранење. Проверете дали термо пумпата е правилно поставена (оптимум 26-28°C).`,
-      source: 'Prokešová et al. (2015), Britz & Hecht (1987)',
+      title: `Водата е претопла (${temp}°C)`,
+      action: 'Засилете аерација — топлата вода има помалку кислород. Намалете хранење. Проверете ја термо пумпата (оптимум 26-28°C).',
+      source: 'Prokešová et al. (2015)',
     });
   }
 
@@ -443,17 +452,19 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
     const overPct = Math.round((feedingData.feedVsRecommended - 1) * 100);
     recommendations.push({
       urgency: feedingData.feedVsRecommended > 1.5 ? 'high' : 'medium',
-      action: `Хранењето е ${overPct}% над препорачаното. Намалете на препорачана количина. Ризик: NH₄ пик за 4-6 часа, можна каскада NO₂ → pH за 3-7 дена.`,
-      source: 'Ott et al. (2025), Timmons & Ebeling (2013)',
+      title: `Хранење ${overPct}% повеќе од потребното`,
+      action: 'Намалете го хранењето на препорачана количина. Вишокот храна го загадува биофилтерот и после 3-7 дена може да расте амонијак и нитрити.',
+      source: 'Timmons & Ebeling (2013)',
     });
   }
 
   // Алкалитет низок
-  if (alk !== null && alk < 80 && !recommendations.some(r => r.action.includes('бикарбонат'))) {
+  if (alk !== null && alk < 80 && !recommendations.some(r => r.action.includes('бикарбона'))) {
     recommendations.push({
       urgency: alk < 50 ? 'high' : 'medium',
-      action: `Алкалитетот (${alk} mg/L) е под препорачаното (100-200 mg/L). Додавајте NaHCO₃ постепено. Нитрификацијата троши ~7.14g CaCO₃ по gram NH₄-N.`,
-      source: 'Loyless & Malone (1997), Timmons & Ebeling (2013)',
+      title: `Низок алкалитет (${alk} mg/L)`,
+      action: 'Додавајте сода бикарбона постепено. Целна вредност: 100-200. Без доволно алкалитет pH ќе почне да паѓа.',
+      source: 'Loyless & Malone (1997)',
     });
   }
 

@@ -679,20 +679,21 @@ export default function AICalculator() {
               {waterPrediction.recommendations?.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                    Препораки
+                    Што да направите
                   </p>
                   {waterPrediction.recommendations.map((r, i) => {
                     const urgencyColors = {
-                      critical: { bg: 'rgba(239,68,68,0.06)', border: 'var(--danger)', icon: '🔴' },
-                      high: { bg: 'rgba(245,158,11,0.06)', border: 'var(--warning)', icon: '🟡' },
-                      medium: { bg: 'rgba(59,130,246,0.04)', border: 'var(--primary)', icon: '🔵' },
-                      info: { bg: 'transparent', border: 'var(--border)', icon: 'ℹ️' },
+                      critical: { bg: 'rgba(239,68,68,0.06)', border: 'var(--danger)' },
+                      high: { bg: 'rgba(245,158,11,0.06)', border: 'var(--warning)' },
+                      medium: { bg: 'rgba(59,130,246,0.04)', border: 'var(--primary)' },
+                      info: { bg: 'transparent', border: 'var(--border)' },
                     };
                     const uc = urgencyColors[r.urgency] || urgencyColors.info;
                     return (
                       <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${uc.border}`, background: uc.bg }}>
-                        <p className="text-xs text-[var(--text-primary)] leading-relaxed">{r.action}</p>
-                        <p className="text-[9px] text-[var(--text-muted)] mt-1">{r.source}</p>
+                        {r.title && <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{r.title}</p>}
+                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{r.action}</p>
+                        <p className="text-[9px] text-[var(--text-muted)] mt-1.5">{r.source}</p>
                       </div>
                     );
                   })}
