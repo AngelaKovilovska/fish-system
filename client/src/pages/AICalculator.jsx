@@ -435,108 +435,206 @@ export default function AICalculator() {
       {/* ═══════ WATER TAB ═══════ */}
       {tab === 'water' && (
         <div className="space-y-4 animate-in-delay-1">
-          {!waterData || !waterData.hasData ? (
+          {predictionLoading && (
+            <div className="card !p-5 text-center">
+              <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
+              <p className="text-xs text-[var(--text-muted)]">Анализирам водни параметри...</p>
+            </div>
+          )}
+
+          {waterPrediction && !predictionLoading && !waterPrediction.hasData && (
             <div className="card !p-5 text-center">
               <Droplets size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-              <p className="text-sm text-[var(--text-muted)]">Нема податоци за анализа на вода</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-1">Потребни се внесени чеклисти за анализа</p>
+              <p className="text-sm text-[var(--text-muted)]">{waterPrediction.message || 'Нема податоци'}</p>
             </div>
-          ) : (
+          )}
+
+          {waterPrediction && waterPrediction.hasData && (
             <>
-              {/* Anomaly summary */}
+              {/* Status summary */}
               <div className="card !p-4">
-                {waterData.hasAnomalies ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-900/20">
-                      <AlertTriangle size={20} className="text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                        Детектирани аномалии
-                      </p>
-                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                        {waterData.criticalCount > 0 && <span className="text-[var(--danger)] font-medium">{waterData.criticalCount} критични</span>}
-                        {waterData.criticalCount > 0 && waterData.warningCount > 0 && ' · '}
-                        {waterData.warningCount > 0 && <span className="text-[var(--warning)] font-medium">{waterData.warningCount} предупредувања</span>}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
+                {waterPrediction.isStable ? (
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50 dark:bg-green-900/20">
                       <CheckCircle size={20} className="text-[var(--success)]" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                        Сите параметри се во норма
-                      </p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Сите параметри се стабилни</p>
                       <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                        Последна анализа: {formatDateMK(waterData.date)}
+                        {waterPrediction.summary.analyzedParameters} параметри · {waterPrediction.summary.daysOfData} дена податоци · {formatDateMK(waterPrediction.date)}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-900/20">
+                      <AlertTriangle size={20} className="text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Детектирани проблеми</p>
+                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                        {waterPrediction.summary.alreadyExceeded > 0 && <span className="text-[var(--danger)] font-medium">{waterPrediction.summary.alreadyExceeded} надвор од норма</span>}
+                        {waterPrediction.summary.alreadyExceeded > 0 && waterPrediction.summary.trendWarnings > 0 && ' · '}
+                        {waterPrediction.summary.trendWarnings > 0 && <span className="text-[var(--warning)] font-medium">{waterPrediction.summary.trendWarnings} тренд предупредувања</span>}
+                        {waterPrediction.summary.causalChainCount > 0 && <span className="text-purple-500 font-medium"> · {waterPrediction.summary.causalChainCount} каузални ланци</span>}
                       </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Anomaly list */}
-              {waterData.anomalies?.length > 0 && (
-                <div className="space-y-2">
-                  {waterData.anomalies.map((a, i) => (
-                    <div key={i} className="card !p-3 flex items-center gap-3"
-                      style={{ borderLeft: `3px solid ${a.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'}` }}>
-                      <AlertTriangle size={14}
-                        className={a.severity === 'critical' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'} />
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-[var(--text-primary)]">{a.message}</p>
-                        {a.zScore != null && (
-                          <p className="text-[10px] text-[var(--text-muted)]">Z-score: {a.zScore}</p>
-                        )}
+              {/* NH₃ Toxicity Calculator */}
+              {waterPrediction.nh3 && (
+                <div className="card !p-4" style={{
+                  borderLeft: `3px solid ${waterPrediction.nh3.isSafe ? 'var(--success)' : 'var(--danger)'}`,
+                  background: waterPrediction.nh3.isSafe ? undefined : 'linear-gradient(135deg, rgba(239,68,68,0.04), transparent)',
+                }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity size={14} className="text-purple-500" />
+                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      NH₃ Калкулатор (Emerson et al., 1975)
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-[10px] text-[var(--text-muted)]">Измерен NH₄⁺</p>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">{waterPrediction.nh3.tan} mg/L</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[var(--text-muted)]">Токсичен NH₃</p>
+                      <p className={`text-sm font-bold ${waterPrediction.nh3.isSafe ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                        {waterPrediction.nh3.nh3} mg/L
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[var(--text-muted)]">NH₃ фракција</p>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">{(waterPrediction.nh3.fraction * 100).toFixed(2)}%</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">
+                    При pH {waterPrediction.nh3.ph} и {waterPrediction.nh3.temperature}°C · Безбедна граница: {waterPrediction.nh3.safeLimit} mg/L
+                  </p>
+                </div>
+              )}
+
+              {/* Warnings */}
+              {waterPrediction.warnings?.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    Предупредувања
+                  </p>
+                  {waterPrediction.warnings.map((w, i) => (
+                    <div key={i} className="card !p-3 flex items-start gap-2.5"
+                      style={{
+                        borderLeft: `3px solid ${w.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'}`,
+                        background: w.severity === 'critical'
+                          ? 'linear-gradient(135deg, rgba(239,68,68,0.05), transparent)'
+                          : 'linear-gradient(135deg, rgba(245,158,11,0.05), transparent)',
+                      }}>
+                      <AlertTriangle size={14} className={`${w.severity === 'critical' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'} mt-0.5 flex-shrink-0`} />
+                      <p className="text-xs font-medium text-[var(--text-primary)]">{w.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Causal Chains */}
+              {waterPrediction.causalChains?.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    Каузални ланци
+                  </p>
+                  {waterPrediction.causalChains.map((c, i) => (
+                    <div key={i} className="card !p-3"
+                      style={{ borderLeft: `3px solid ${c.severity === 'critical' ? 'var(--danger)' : '#8b5cf6'}` }}>
+                      <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{c.title}</p>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{c.message}</p>
+                      <div className="flex items-center justify-between mt-1.5 text-[9px] text-[var(--text-muted)]">
+                        <span>Временски рамки: {c.timeframe}</span>
+                        <span>{c.source}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Parameter status grid */}
+              {/* Recommendations */}
+              {waterPrediction.recommendations?.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    Препораки
+                  </p>
+                  {waterPrediction.recommendations.map((r, i) => {
+                    const urgencyColors = {
+                      critical: { bg: 'rgba(239,68,68,0.06)', border: 'var(--danger)', icon: '🔴' },
+                      high: { bg: 'rgba(245,158,11,0.06)', border: 'var(--warning)', icon: '🟡' },
+                      medium: { bg: 'rgba(59,130,246,0.04)', border: 'var(--primary)', icon: '🔵' },
+                      info: { bg: 'transparent', border: 'var(--border)', icon: 'ℹ️' },
+                    };
+                    const uc = urgencyColors[r.urgency] || urgencyColors.info;
+                    return (
+                      <div key={i} className="card !p-3" style={{ borderLeft: `3px solid ${uc.border}`, background: uc.bg }}>
+                        <p className="text-xs text-[var(--text-primary)] leading-relaxed">{r.action}</p>
+                        <p className="text-[9px] text-[var(--text-muted)] mt-1">{r.source}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Parameter details */}
               <div className="space-y-2">
                 <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                   Детална анализа
                 </p>
-                {Object.values(waterData.parameterStatus || {}).map(param => {
-                  const statusColor = param.rangeStatus === 'normal' ? 'var(--success)'
-                    : param.rangeStatus === 'high' ? 'var(--danger)'
-                    : 'var(--warning)';
+                {Object.values(waterPrediction.parameters || {}).filter(p => !p.noData).map(param => {
+                  const norm = param.norm;
+                  const isOutOfRange = norm && ((norm.max !== null && param.currentValue > norm.max) || (norm.min !== null && param.currentValue < norm.min));
+                  const statusColor = isOutOfRange ? 'var(--danger)' : 'var(--success)';
+                  const trend = param.trend;
 
-                  const TrendIcon = param.trend === 'rising' ? TrendingUp
-                    : param.trend === 'falling' ? TrendingDown
-                    : Minus;
+                  const TrendIcon = trend?.direction === 'rising' ? TrendingUp
+                    : trend?.direction === 'falling' ? TrendingDown : Minus;
 
                   return (
                     <div key={param.parameter} className="card !p-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ background: statusColor }} />
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor }} />
                           <span className="text-xs font-semibold text-[var(--text-primary)]">{param.label}</span>
+                          {param.spike && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${param.spike.severity === 'critical' ? 'bg-red-50 dark:bg-red-900/20 text-[var(--danger)]' : 'bg-amber-50 dark:bg-amber-900/20 text-[var(--warning)]'}`}>
+                              Z:{param.spike.zScore}
+                            </span>
+                          )}
+                          {trend?.crossing?.daysUntil > 0 && !trend.crossing.alreadyExceeded && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-amber-50 dark:bg-amber-900/20 text-[var(--warning)]">
+                              надвор за {trend.crossing.daysUntil}д
+                            </span>
+                          )}
+                          {trend?.crossing?.alreadyExceeded && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-red-50 dark:bg-red-900/20 text-[var(--danger)]">
+                              надвор од норма
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {param.trend && (
+                        <div className="flex items-center gap-1.5">
+                          {trend && (
                             <TrendIcon size={12} className={
-                              param.trend === 'rising' ? 'text-red-400'
-                              : param.trend === 'falling' ? 'text-blue-400'
+                              trend.direction === 'rising' ? 'text-red-400'
+                              : trend.direction === 'falling' ? 'text-blue-400'
                               : 'text-[var(--text-muted)]'
                             } />
                           )}
-                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                          <span className={`text-sm font-bold ${isOutOfRange ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
                             {param.currentValue}{param.unit}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-1.5 text-[10px] text-[var(--text-muted)]">
-                        <span>Опсег: {param.optimalRange.min} – {param.optimalRange.max}{param.unit}</span>
-                        {param.zScore != null && (
-                          <span className={Math.abs(param.zScore) > 2 ? 'text-[var(--danger)] font-medium' : ''}>
-                            Z: {param.zScore}
-                          </span>
+                        <span>{norm ? `Норма: ${norm.min ?? '–'} – ${norm.max ?? '–'}${param.unit}` : 'Нема норма'}</span>
+                        {trend?.isSignificant && (
+                          <span>{trend.slope > 0 ? '+' : ''}{trend.slope}/ден (R²={trend.r2})</span>
                         )}
                         {param.stats && (
                           <span>μ={param.stats.mean} σ={param.stats.stdDev}</span>
@@ -548,198 +646,13 @@ export default function AICalculator() {
               </div>
             </>
           )}
-
-          {/* ── Water Prediction (Random Forest) ── */}
-          {predictionLoading && (
-            <div className="card !p-5 text-center">
-              <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
-              <p className="text-xs text-[var(--text-muted)]">Моделот тренира од историските податоци...</p>
-            </div>
-          )}
-
-          {waterPrediction && !predictionLoading && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mt-2">
-                <Activity size={14} className="text-purple-500" />
-                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  Предвидување (Random Forest · {waterPrediction.modelInfo?.trainingDays || '?'} дена)
-                </p>
-              </div>
-
-              {/* Prediction warnings */}
-              {waterPrediction.warnings?.length > 0 && (
-                <div className="space-y-1.5">
-                  {waterPrediction.warnings.map((w, i) => (
-                    <div key={i} className="card !p-3 flex items-start gap-2.5"
-                      style={{
-                        borderLeft: `3px solid ${w.severity === 'critical' ? 'var(--danger)' : 'var(--warning)'}`,
-                        background: w.severity === 'critical'
-                          ? 'linear-gradient(135deg, rgba(239,68,68,0.05), transparent)'
-                          : 'linear-gradient(135deg, rgba(245,158,11,0.05), transparent)',
-                      }}>
-                      <Clock size={14} className={w.severity === 'critical' ? 'text-[var(--danger)] mt-0.5' : 'text-[var(--warning)] mt-0.5'} />
-                      <div>
-                        <p className="text-xs font-medium text-[var(--text-primary)]">{w.message}</p>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                          Предвидено за {w.daysUntil} ден{w.daysUntil > 1 ? 'а' : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {waterPrediction.warnings?.length === 0 && (
-                <div className="card !p-3 flex items-center gap-2.5"
-                  style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.05), transparent)', borderLeft: '3px solid var(--success)' }}>
-                  <CheckCircle size={14} className="text-[var(--success)]" />
-                  <p className="text-xs text-[var(--text-primary)]">Сите параметри ќе останат во норма следните 7 дена</p>
-                </div>
-              )}
-
-              {/* Per-parameter predictions */}
-              {Object.values(waterPrediction.predictions || {}).map(pred => {
-                if (pred.insufficient) {
-                  return (
-                    <div key={pred.parameter} className="card !p-3 opacity-50">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[var(--text-muted)]">{pred.label}</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{pred.message}</span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Build sparkline points from recent + predicted
-                const allValues = [
-                  ...(pred.recent || []).map(r => r.value),
-                  ...pred.predicted,
-                ];
-                const minV = Math.min(...allValues.filter(v => v > 0));
-                const maxV = Math.max(...allValues);
-                const range = maxV - minV || 1;
-                const sparkH = 32;
-                const sparkW = 140;
-                const recentLen = pred.recent?.length || 0;
-                const totalPts = allValues.length;
-                const step = sparkW / Math.max(1, totalPts - 1);
-
-                const recentPath = pred.recent?.map((r, i) => {
-                  const x = i * step;
-                  const y = sparkH - ((r.value - minV) / range) * (sparkH - 4) - 2;
-                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-                }).join(' ') || '';
-
-                const predPath = pred.predicted.map((v, i) => {
-                  const x = (recentLen - 1 + i) * step;
-                  const y = sparkH - ((v - minV) / range) * (sparkH - 4) - 2;
-                  return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-                }).join(' ');
-
-                // Norm band
-                let normY1 = null, normY2 = null;
-                if (pred.norm) {
-                  if (pred.norm.max !== null) normY1 = sparkH - ((pred.norm.max - minV) / range) * (sparkH - 4) - 2;
-                  if (pred.norm.min !== null) normY2 = sparkH - ((pred.norm.min - minV) / range) * (sparkH - 4) - 2;
-                }
-
-                const lastPredicted = pred.predicted[pred.predicted.length - 1];
-                const trendUp = lastPredicted > pred.current;
-                const trendDown = lastPredicted < pred.current;
-                const PredTrendIcon = trendUp ? TrendingUp : trendDown ? TrendingDown : Minus;
-
-                return (
-                  <div key={pred.parameter} className="card !p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-[var(--text-primary)]">{pred.label}</span>
-                        {pred.willExceedNorm && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-red-50 dark:bg-red-900/20 text-[var(--danger)]">
-                            ↑ надвор за {pred.daysUntilExceeded}д
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <PredTrendIcon size={11} className={
-                          trendUp ? 'text-red-400' : trendDown ? 'text-blue-400' : 'text-[var(--text-muted)]'
-                        } />
-                        <span className="text-sm font-bold text-[var(--text-primary)]">
-                          {pred.current}{pred.unit}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)]">→</span>
-                        <span className={`text-xs font-bold ${pred.willExceedNorm ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>
-                          {lastPredicted}{pred.unit}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Sparkline */}
-                    <div className="flex items-center gap-3">
-                      <svg width={sparkW} height={sparkH} className="flex-shrink-0">
-                        {/* Norm band */}
-                        {normY1 !== null && normY2 !== null && (
-                          <rect x="0" y={Math.min(normY1, normY2)} width={sparkW}
-                            height={Math.abs(normY2 - normY1)}
-                            fill="rgba(34,197,94,0.1)" rx="2" />
-                        )}
-                        {/* Recent (solid) */}
-                        {recentPath && (
-                          <path d={recentPath} fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" />
-                        )}
-                        {/* Predicted (dashed) */}
-                        <path d={predPath} fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="3,2" strokeLinecap="round" />
-                        {/* Divider line */}
-                        {recentLen > 0 && (
-                          <line x1={(recentLen - 1) * step} y1="0" x2={(recentLen - 1) * step} y2={sparkH}
-                            stroke="var(--text-muted)" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.4" />
-                        )}
-                      </svg>
-                      <div className="text-[9px] text-[var(--text-muted)] leading-tight flex-1">
-                        <div className="flex items-center gap-1">
-                          <span className="inline-block w-3 h-0.5 bg-[var(--primary)] rounded" /> историски
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="inline-block w-3 h-0.5 rounded" style={{ background: '#8b5cf6', opacity: 0.7 }} /> предвидени
-                        </div>
-                        {pred.norm && (
-                          <div className="flex items-center gap-1">
-                            <span className="inline-block w-3 h-2 rounded-sm" style={{ background: 'rgba(34,197,94,0.2)' }} /> норма
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Accuracy + top feature */}
-                    <div className="flex items-center justify-between mt-1.5 text-[9px] text-[var(--text-muted)]">
-                      <span>
-                        Точност: R²={pred.accuracy?.r2} · MAE={pred.accuracy?.mae}{pred.unit}
-                      </span>
-                      {pred.featureImportance?.[0] && (
-                        <span>
-                          Главен фактор: {pred.featureImportance[0].name} ({Math.round(pred.featureImportance[0].importance * 100)}%)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Model info */}
-              {waterPrediction.modelInfo && (
-                <div className="text-center text-[9px] text-[var(--text-muted)] py-1">
-                  {waterPrediction.modelInfo.algorithm} · {waterPrediction.modelInfo.trees} дрвја ·
-                  {waterPrediction.modelInfo.features} features · {waterPrediction.modelInfo.trainingDays} дена тренинг
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
       {/* Footer note */}
       <div className="text-center py-4">
         <p className="text-[10px] text-[var(--text-muted)]">
-          * Храна: Coppens 2025-2026. Вода: Random Forest тренирано на ваши историски податоци.
+          * Храна: Coppens 2025-2026. Вода: Rule-based анализа со научно верифицирани препораки.
         </p>
       </div>
     </div>

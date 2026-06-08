@@ -1,382 +1,680 @@
-const { RandomForestRegression } = require('ml-random-forest');
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * CLARIO — Water Parameter Prediction & Anomaly Detection
+ * Фаза 1: Rule-Based (Z-Score + Trend + Causal Chains + NH₃ Calc)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 5 компоненти:
+ *   1. NH₃ Toxicity Calculator (Emerson et al., 1975)
+ *   2. Z-Score Spike Detection
+ *   3. Trend Predictor (линеарна регресија + денови до аларм)
+ *   4. Causal Chain Engine (6 каузални ланци)
+ *   5. Recommendation Engine (научно верифицирани препораки)
+ *
+ * Извори:
+ *   - Emerson et al. (1975). J. Fish. Res. Board Can., 32(12), 2379-2383. DOI:10.1139/f75-274
+ *   - Hagopian & Riley (1998). Aquacultural Engineering, 18(4), 223-244
+ *   - Schram, Roques et al. (2010). Aquaculture, 306(1-4), 108-115
+ *   - Schram, Roques et al. (2014). Aquaculture Research, 45(9), 1499-1511
+ *   - Prokešová et al. (2015). J. Applied Ichthyology, 31, 18-29
+ *   - Britz & Hecht (1987). Aquaculture, 63, 205-214
+ *   - Durborow, Crosby & Brunson (1997). SRAC Publication No. 462
+ *   - Loyless & Malone (1997). Progressive Fish-Culturist, 59(3), 198-205
+ *   - Timmons & Ebeling (2013). Recirculating Aquaculture, 3rd Ed.
+ *   - Ott et al. (2025). Journal of Fish Biology. DOI:10.1111/jfb.70065
+ */
 
 const PARAMETERS = [
   'temperature', 'ph', 'total_alkalinity', 'hardness',
   'nitrates', 'nitrites', 'total_chlorine', 'ammonium',
 ];
 
-const PARAM_LABELS = {
-  temperature: 'Температура',
-  ph: 'pH',
-  total_alkalinity: 'Вкупна алкалност',
-  hardness: 'Тврдост',
-  nitrates: 'Нитрати (NO₃⁻)',
-  nitrites: 'Нитрити (NO₂⁻)',
-  total_chlorine: 'Вкупен хлор',
-  ammonium: 'Амониум (NH₄⁺)',
+const PARAM_META = {
+  temperature:      { label: 'Температура',           unit: '°C' },
+  ph:               { label: 'pH',                    unit: '' },
+  total_alkalinity: { label: 'Вкупна алкалност',      unit: 'mg/L' },
+  hardness:         { label: 'Тврдост',               unit: 'mg/L' },
+  nitrates:         { label: 'Нитрати (NO₃⁻)',        unit: 'mg/L' },
+  nitrites:         { label: 'Нитрити (NO₂⁻)',        unit: 'mg/L' },
+  total_chlorine:   { label: 'Вкупен хлор',           unit: 'mg/L' },
+  ammonium:         { label: 'Амониум (NH₄⁺/NH₃)',    unit: 'mg/L' },
 };
 
-const PARAM_UNITS = {
-  temperature: '°C', ph: '', total_alkalinity: 'mg/L', hardness: 'mg/L',
-  nitrates: 'mg/L', nitrites: 'mg/L', total_chlorine: 'mg/L', ammonium: 'mg/L',
-};
-
-const RF_CONFIG = {
-  nEstimators: 80,
-  maxDepth: 8,
-  treeOptions: { minNumSamples: 3 },
-  seed: 42,
-  useSampleBagging: true,
-};
-
-const LAG_DAYS = 7;
-const PREDICT_DAYS = 7;
-const MIN_TRAINING_DAYS = 14; // need at least 14 days to build features with 7-day lag
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 1: NH₃ Toxicity Calculator
+// Emerson et al. (1975), DOI: 10.1139/f75-274
+// ═══════════════════════════════════════════════════
 
 /**
- * Build feature vector for one day/parameter from historical data
+ * Пресметува концентрација на токсичен слободен амонијак (NH₃)
+ * @param {number} tan - Total Ammonia Nitrogen (измерен амониум) mg/L
+ * @param {number} ph - pH вредност
+ * @param {number} tempC - температура во °C
+ * @returns {{ nh3: number, fraction: number, pKa: number }}
  */
-function buildFeatures(history, dayIndex, paramIndex) {
-  const features = [];
-  const param = PARAMETERS[paramIndex];
-
-  // Lag features: value(t-1) to value(t-LAG_DAYS) for this parameter
-  for (let lag = 1; lag <= LAG_DAYS; lag++) {
-    const idx = dayIndex - lag;
-    features.push(idx >= 0 ? (parseFloat(history[idx][param]) || 0) : 0);
-  }
-
-  // 3-day and 7-day moving averages
-  let sum3 = 0, count3 = 0, sum7 = 0, count7 = 0;
-  for (let lag = 1; lag <= 7; lag++) {
-    const idx = dayIndex - lag;
-    if (idx >= 0) {
-      const val = parseFloat(history[idx][param]) || 0;
-      if (lag <= 3) { sum3 += val; count3++; }
-      sum7 += val; count7++;
-    }
-  }
-  features.push(count3 > 0 ? sum3 / count3 : 0); // avg_3d
-  features.push(count7 > 0 ? sum7 / count7 : 0); // avg_7d
-
-  // 3-day trend (slope): difference between day t-1 and t-3
-  const valT1 = dayIndex >= 1 ? (parseFloat(history[dayIndex - 1][param]) || 0) : 0;
-  const valT3 = dayIndex >= 3 ? (parseFloat(history[dayIndex - 3][param]) || 0) : 0;
-  features.push(valT1 - valT3); // trend_3d
-
-  // Day of week (0-6)
-  const date = new Date(history[dayIndex].date);
-  features.push(date.getDay());
-
-  // Cross-parameter features: yesterday's values for ALL parameters
-  for (const p of PARAMETERS) {
-    const idx = dayIndex - 1;
-    features.push(idx >= 0 ? (parseFloat(history[idx][p]) || 0) : 0);
-  }
-
-  return features;
-}
-
-/**
- * Build feature vector for prediction (using the latest data + any previous predictions)
- */
-function buildPredictionFeatures(history, predictions, dayOffset, paramIndex) {
-  const features = [];
-  const param = PARAMETERS[paramIndex];
-  const histLen = history.length;
-
-  // Helper: get value at dayOffset-lag (from predictions if in future, from history if in past)
-  function getValue(p, lag) {
-    const targetOffset = dayOffset - lag;
-    if (targetOffset >= 0 && predictions[p] && predictions[p][targetOffset] !== undefined) {
-      return predictions[p][targetOffset];
-    }
-    const histIdx = histLen - lag + dayOffset;
-    if (histIdx >= 0 && histIdx < histLen) {
-      return parseFloat(history[histIdx][p]) || 0;
-    }
-    return 0;
-  }
-
-  // Lag features
-  for (let lag = 1; lag <= LAG_DAYS; lag++) {
-    features.push(getValue(param, lag));
-  }
-
-  // 3-day and 7-day moving averages
-  let sum3 = 0, count3 = 0, sum7 = 0, count7 = 0;
-  for (let lag = 1; lag <= 7; lag++) {
-    const val = getValue(param, lag);
-    if (lag <= 3) { sum3 += val; count3++; }
-    sum7 += val; count7++;
-  }
-  features.push(count3 > 0 ? sum3 / count3 : 0);
-  features.push(count7 > 0 ? sum7 / count7 : 0);
-
-  // Trend
-  features.push(getValue(param, 1) - getValue(param, 3));
-
-  // Day of week
-  const lastDate = new Date(history[histLen - 1].date);
-  lastDate.setDate(lastDate.getDate() + dayOffset + 1);
-  features.push(lastDate.getDay());
-
-  // Cross-parameter yesterday values
-  for (const p of PARAMETERS) {
-    features.push(getValue(p, 1));
-  }
-
-  return features;
-}
-
-const FEATURE_NAMES = [
-  ...Array.from({ length: LAG_DAYS }, (_, i) => `lag_${i + 1}`),
-  'avg_3d', 'avg_7d', 'trend_3d', 'day_of_week',
-  ...PARAMETERS.map(p => `cross_${p}`),
-];
-
-/**
- * Train a Random Forest model for one parameter and predict next PREDICT_DAYS days
- */
-function trainAndPredict(history, paramIndex, norms, allPredictions) {
-  const param = PARAMETERS[paramIndex];
-  const values = history.map(h => parseFloat(h[param]) || 0);
-
-  // Filter out days with no data for this parameter
-  const validDays = values.filter(v => v !== 0).length;
-  if (validDays < MIN_TRAINING_DAYS) {
-    return {
-      parameter: param,
-      label: PARAM_LABELS[param],
-      unit: PARAM_UNITS[param],
-      current: values[values.length - 1],
-      predicted: [],
-      dates: [],
-      insufficient: true,
-      message: `Потребни се барем ${MIN_TRAINING_DAYS} дена податоци (имате ${validDays})`,
-    };
-  }
-
-  // Build training data
-  const X = [];
-  const y = [];
-  for (let i = LAG_DAYS; i < history.length; i++) {
-    const val = parseFloat(history[i][param]);
-    if (val === null || val === undefined || isNaN(val)) continue;
-    X.push(buildFeatures(history, i, paramIndex));
-    y.push(val);
-  }
-
-  if (X.length < 10) {
-    return {
-      parameter: param,
-      label: PARAM_LABELS[param],
-      unit: PARAM_UNITS[param],
-      current: values[values.length - 1],
-      predicted: [],
-      dates: [],
-      insufficient: true,
-      message: 'Недоволно валидни тренинг примероци',
-    };
-  }
-
-  // Train/test split: last 5 days for testing accuracy
-  const testSize = Math.min(5, Math.floor(X.length * 0.2));
-  const trainX = X.slice(0, X.length - testSize);
-  const trainY = y.slice(0, y.length - testSize);
-  const testX = X.slice(X.length - testSize);
-  const testY = y.slice(y.length - testSize);
-
-  // Train Random Forest
-  const rf = new RandomForestRegression(RF_CONFIG);
-  rf.train(trainX, trainY);
-
-  // Evaluate accuracy
-  let mae = 0, ss_res = 0, ss_tot = 0;
-  const meanY = testY.reduce((a, b) => a + b, 0) / testY.length;
-  if (testX.length > 0) {
-    const testPred = rf.predict(testX);
-    for (let i = 0; i < testY.length; i++) {
-      mae += Math.abs(testY[i] - testPred[i]);
-      ss_res += (testY[i] - testPred[i]) ** 2;
-      ss_tot += (testY[i] - meanY) ** 2;
-    }
-    mae /= testY.length;
-  }
-  const r2 = ss_tot > 0 ? Math.max(0, 1 - ss_res / ss_tot) : 0;
-
-  // Retrain on full data for production predictions
-  const rfFull = new RandomForestRegression(RF_CONFIG);
-  rfFull.train(X, y);
-
-  // Feature importance (from the RF model)
-  const importance = {};
-  // ml-random-forest doesn't expose feature importance directly,
-  // so we compute it by permutation: measure prediction change when each feature is shuffled
-  const basePred = rfFull.predict(X);
-  const baseError = basePred.reduce((s, p, i) => s + (p - y[i]) ** 2, 0);
-  for (let f = 0; f < FEATURE_NAMES.length; f++) {
-    const shuffled = X.map(row => [...row]);
-    // Shuffle feature f across all samples
-    const vals = shuffled.map(row => row[f]);
-    for (let i = vals.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [vals[i], vals[j]] = [vals[j], vals[i]];
-    }
-    shuffled.forEach((row, i) => { row[f] = vals[i]; });
-    const shuffPred = rfFull.predict(shuffled);
-    const shuffError = shuffPred.reduce((s, p, i) => s + (p - y[i]) ** 2, 0);
-    importance[FEATURE_NAMES[f]] = Math.max(0, shuffError - baseError);
-  }
-  // Normalize to sum=1
-  const totalImp = Object.values(importance).reduce((a, b) => a + b, 0);
-  if (totalImp > 0) {
-    for (const k of Object.keys(importance)) {
-      importance[k] = Math.round((importance[k] / totalImp) * 1000) / 1000;
-    }
-  }
-
-  // Predict next PREDICT_DAYS days (rolling)
-  const predicted = [];
-  const dates = [];
-  const lastDate = new Date(history[history.length - 1].date);
-
-  for (let d = 0; d < PREDICT_DAYS; d++) {
-    const feats = buildPredictionFeatures(history, allPredictions, d, paramIndex);
-    const pred = rfFull.predict([feats])[0];
-    // Clamp to reasonable range (no negative values for most params)
-    const clampedPred = param === 'temperature' ? pred : Math.max(0, pred);
-    predicted.push(Math.round(clampedPred * 1000) / 1000);
-    allPredictions[param] = allPredictions[param] || [];
-    allPredictions[param][d] = clampedPred;
-
-    const nextDate = new Date(lastDate);
-    nextDate.setDate(nextDate.getDate() + d + 1);
-    dates.push(nextDate.toISOString().split('T')[0]);
-  }
-
-  // Check norm threshold crossing
-  const norm = norms.find(n => n.parameter_name === param);
-  let willExceedNorm = false;
-  let daysUntilExceeded = null;
-  let exceedDirection = null;
-
-  if (norm) {
-    for (let i = 0; i < predicted.length; i++) {
-      if (norm.max_value !== null && predicted[i] > parseFloat(norm.max_value)) {
-        willExceedNorm = true;
-        daysUntilExceeded = i + 1;
-        exceedDirection = 'high';
-        break;
-      }
-      if (norm.min_value !== null && predicted[i] < parseFloat(norm.min_value)) {
-        willExceedNorm = true;
-        daysUntilExceeded = i + 1;
-        exceedDirection = 'low';
-        break;
-      }
-    }
-  }
-
-  // Top 5 most important features
-  const topFeatures = Object.entries(importance)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, value]) => ({ name, importance: value }));
-
+function calculateNH3(tan, ph, tempC) {
+  if (!tan || !ph || !tempC || tan <= 0) return { nh3: 0, fraction: 0, pKa: 0 };
+  const pKa = 0.09018 + (2729.92 / (tempC + 273.15));
+  const fraction = 1 / (Math.pow(10, pKa - ph) + 1);
+  const nh3 = tan * fraction;
   return {
-    parameter: param,
-    label: PARAM_LABELS[param],
-    unit: PARAM_UNITS[param],
-    current: values[values.length - 1],
-    predicted,
-    dates,
-    willExceedNorm,
-    daysUntilExceeded,
-    exceedDirection,
-    norm: norm ? {
-      min: norm.min_value !== null ? parseFloat(norm.min_value) : null,
-      max: norm.max_value !== null ? parseFloat(norm.max_value) : null,
-    } : null,
-    featureImportance: topFeatures,
-    accuracy: { mae: Math.round(mae * 1000) / 1000, r2: Math.round(r2 * 100) / 100 },
-    trainingSize: X.length,
-    // Last 7 days of actual values for chart
-    recent: values.slice(-7).map((v, i) => ({
-      date: history[history.length - 7 + i]?.date || null,
-      value: v,
-    })).filter(r => r.date),
+    nh3: Math.round(nh3 * 10000) / 10000,
+    fraction: Math.round(fraction * 10000) / 10000,
+    pKa: Math.round(pKa * 1000) / 1000,
+  };
+}
+
+// Безбедни граници за африкански сом:
+// Schram et al. (2010): EC10 за апетит = 1.24 mg NH₃-N/L, безбеден = 0.34 mg NH₃-N/L
+// Општо: 0.02-0.05 mg/L NH₃ (EPA, 2013)
+const NH3_SAFE_LIMIT = 0.05;     // mg/L — конзервативен праг за управување
+const NH3_WARNING_LIMIT = 0.02;  // mg/L — рано предупредување
+
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 2: Z-Score Spike Detection
+// Hagopian & Riley (1998), DOI: 10.1016/S0144-8609(98)00032-6
+// ═══════════════════════════════════════════════════
+
+const Z_WARNING = 2.0;   // 95% доверба
+const Z_CRITICAL = 3.0;  // 99.7% доверба
+const MIN_READINGS_ZSCORE = 7;
+
+function calcStats(values) {
+  if (!values || values.length === 0) return { mean: 0, stdDev: 0, median: 0 };
+  const n = values.length;
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  const sorted = [...values].sort((a, b) => a - b);
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  return {
+    mean: Math.round(mean * 1000) / 1000,
+    stdDev: Math.round(Math.sqrt(variance) * 1000) / 1000,
+    median: Math.round(median * 1000) / 1000,
+  };
+}
+
+function detectSpike(currentValue, historicalValues) {
+  if (historicalValues.length < MIN_READINGS_ZSCORE) return null;
+  const { mean, stdDev } = calcStats(historicalValues);
+  if (stdDev === 0) return null;
+  const z = (currentValue - mean) / stdDev;
+  const absZ = Math.abs(z);
+  if (absZ < Z_WARNING) return null;
+  return {
+    zScore: Math.round(z * 100) / 100,
+    severity: absZ >= Z_CRITICAL ? 'critical' : 'warning',
+    direction: z > 0 ? 'high' : 'low',
+    mean,
+    stdDev,
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 3: Trend Predictor
+// Линеарна регресија на последните N денови
+// ═══════════════════════════════════════════════════
+
+const MIN_READINGS_TREND = 5;
+
+/**
+ * Линеарна регресија: y = slope * x + intercept
+ * @param {number[]} values - вредности (хронолошки)
+ * @returns {{ slope: number, intercept: number, r2: number }}
+ */
+function linearRegression(values) {
+  const n = values.length;
+  if (n < 2) return { slope: 0, intercept: values[0] || 0, r2: 0 };
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += values[i];
+    sumXY += i * values[i];
+    sumX2 += i * i;
+  }
+  const denom = n * sumX2 - sumX * sumX;
+  if (denom === 0) return { slope: 0, intercept: values[0], r2: 0 };
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  // R²
+  const meanY = sumY / n;
+  let ssTot = 0, ssRes = 0;
+  for (let i = 0; i < n; i++) {
+    const predicted = slope * i + intercept;
+    ssTot += Math.pow(values[i] - meanY, 2);
+    ssRes += Math.pow(values[i] - predicted, 2);
+  }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+  return {
+    slope: Math.round(slope * 10000) / 10000,
+    intercept: Math.round(intercept * 1000) / 1000,
+    r2: Math.round(Math.max(0, r2) * 100) / 100,
   };
 }
 
 /**
- * Main entry point: predict all water parameters
+ * Предвиди за колку дена ќе ја пречекори нормата
+ * @returns {{ daysUntil: number|null, direction: 'high'|'low'|null, boundaryValue: number|null }}
  */
-async function predictWaterParameters(dbPool) {
-  // Fetch all historical water data
+function predictThresholdCrossing(currentValue, slope, norm) {
+  if (!norm || slope === 0) return { daysUntil: null, direction: null, boundaryValue: null };
+  let daysUntil = null;
+  let direction = null;
+  let boundaryValue = null;
+
+  // Веќе надвор од нормата?
+  const alreadyHigh = norm.max !== null && currentValue > norm.max;
+  const alreadyLow = norm.min !== null && currentValue < norm.min;
+  if (alreadyHigh || alreadyLow) {
+    return {
+      daysUntil: 0,
+      direction: alreadyHigh ? 'high' : 'low',
+      boundaryValue: alreadyHigh ? norm.max : norm.min,
+      alreadyExceeded: true,
+    };
+  }
+
+  // Растечки тренд → проверка на макс
+  if (slope > 0 && norm.max !== null) {
+    const days = (norm.max - currentValue) / slope;
+    if (days > 0 && days <= 30) {
+      daysUntil = Math.ceil(days);
+      direction = 'high';
+      boundaryValue = norm.max;
+    }
+  }
+  // Опаѓачки тренд → проверка на мин
+  if (slope < 0 && norm.min !== null) {
+    const days = (norm.min - currentValue) / slope;
+    if (days > 0 && days <= 30) {
+      if (daysUntil === null || Math.ceil(days) < daysUntil) {
+        daysUntil = Math.ceil(days);
+        direction = 'low';
+        boundaryValue = norm.min;
+      }
+    }
+  }
+  return { daysUntil, direction, boundaryValue, alreadyExceeded: false };
+}
+
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 4: Causal Chain Engine
+// Извори: Timmons & Ebeling (2013), Hagopian & Riley (1998),
+//         Schram et al. (2010), SRAC 462
+// ═══════════════════════════════════════════════════
+
+function evaluateCausalChains(current, trends, nh3Result, feedingData) {
+  const chains = [];
+
+  const getSlope = (param) => trends[param]?.slope || 0;
+  const getVal = (param) => current[param] != null ? parseFloat(current[param]) : null;
+
+  const ph = getVal('ph');
+  const temp = getVal('temperature');
+  const alk = getVal('total_alkalinity');
+  const nh4 = getVal('ammonium');
+  const no2 = getVal('nitrites');
+  const no3 = getVal('nitrates');
+  const phSlope = getSlope('ph');
+  const tempSlope = getSlope('temperature');
+  const nh4Slope = getSlope('ammonium');
+  const no2Slope = getSlope('nitrites');
+  const no3Slope = getSlope('nitrates');
+
+  // Ланец 1: pH паѓа → нитрити растат (2-3 дена lag)
+  // Hagopian & Riley (1998): нитрификација забавува под pH 6.5
+  if (phSlope < -0.03 && ph !== null && ph < 7.0) {
+    chains.push({
+      id: 'ph_drop_nitrite_rise',
+      severity: ph < 6.5 ? 'critical' : 'warning',
+      title: 'pH паѓа → ризик од пораст на нитрити',
+      message: `pH паѓа со ${Math.abs(phSlope).toFixed(3)}/ден (моментално ${ph}). Под pH 6.5 биофилтерот забавува и нитритите може да пораснат за 2-3 дена.`,
+      timeframe: '2-3 дена',
+      source: 'Hagopian & Riley (1998)',
+    });
+  }
+
+  // Ланец 2: Температура + pH растат → NH₃ токсичност
+  // Emerson et al. (1975): NH₃ фракција расте експоненцијално со pH и температура
+  if (nh3Result && nh3Result.nh3 > NH3_WARNING_LIMIT) {
+    const severityNH3 = nh3Result.nh3 > NH3_SAFE_LIMIT ? 'critical' : 'warning';
+    chains.push({
+      id: 'nh3_toxicity',
+      severity: severityNH3,
+      title: 'Токсичен амонијак (NH₃) е зголемен',
+      message: `При pH ${ph} и ${temp}°C, слободниот NH₃ = ${nh3Result.nh3} mg/L (${(nh3Result.fraction * 100).toFixed(2)}% од вкупниот). ${severityNH3 === 'critical' ? 'Над безбедната граница (0.05 mg/L)!' : 'Приближување кон безбедната граница.'}`,
+      timeframe: 'моментално',
+      source: 'Emerson et al. (1975), Schram et al. (2010)',
+    });
+  }
+
+  // Предикција: ако и pH и температура растат → NH₃ ќе расте
+  if (tempSlope > 0.1 && phSlope > 0.02 && nh4 !== null && nh4 > 0) {
+    // Предвиди NH₃ за 3 дена
+    const futureTemp = temp + tempSlope * 3;
+    const futurePh = ph + phSlope * 3;
+    const futureNH3 = calculateNH3(nh4, futurePh, futureTemp);
+    if (futureNH3.nh3 > NH3_WARNING_LIMIT && (!nh3Result || futureNH3.nh3 > nh3Result.nh3 * 1.3)) {
+      chains.push({
+        id: 'nh3_rising_prediction',
+        severity: futureNH3.nh3 > NH3_SAFE_LIMIT ? 'critical' : 'warning',
+        title: 'NH₃ ќе расте — температура и pH растат',
+        message: `Ако трендот продолжи (pH ${futurePh.toFixed(1)}, темп ${futureTemp.toFixed(1)}°C за 3 дена), NH₃ ќе достигне ${futureNH3.nh3} mg/L.`,
+        timeframe: '3 дена',
+        source: 'Emerson et al. (1975)',
+      });
+    }
+  }
+
+  // Ланец 3: Преголемо хранење → каскада (NH₄ → NO₂ → pH)
+  // Ott et al. (2025): NH₄ пик на ~6ч, Timmons & Ebeling (2013): каскада
+  if (feedingData && feedingData.feedVsRecommended > 1.2) {
+    const overPct = Math.round((feedingData.feedVsRecommended - 1) * 100);
+    chains.push({
+      id: 'overfeeding_cascade',
+      severity: feedingData.feedVsRecommended > 1.5 ? 'critical' : 'warning',
+      title: `Хранење ${overPct}% над препорачано → каскаден ефект`,
+      message: `Очекуван NH₄ пик за 4-6 часа, можен NO₂ пораст за 3-7 дена, pH пад за 2-5 дена.`,
+      timeframe: '4ч - 7 дена',
+      source: 'Ott et al. (2025), Timmons & Ebeling (2013)',
+    });
+  }
+
+  // Ланец 4: Температура паѓа → раст забавува
+  // Britz & Hecht (1987): оптимум 28-30°C, Q10 ефект
+  if (temp !== null && temp < 24) {
+    chains.push({
+      id: 'temp_drop_growth',
+      severity: temp < 18 ? 'critical' : 'warning',
+      title: 'Ниска температура — раст забавен',
+      message: `Температурата (${temp}°C) е под оптимумот (26-28°C). Рибите јадат помалку и растот забавува. Проверете ја термо пумпата.`,
+      timeframe: 'моментално',
+      source: 'Britz & Hecht (1987), Prokešová et al. (2015)',
+    });
+  }
+  if (tempSlope < -0.3 && temp !== null && temp < 27) {
+    chains.push({
+      id: 'temp_dropping_trend',
+      severity: 'warning',
+      title: 'Температурата паѓа континуирано',
+      message: `Температурата паѓа со ${Math.abs(tempSlope).toFixed(2)}°C/ден (моментално ${temp}°C). Намалете го хранењето пропорционално.`,
+      timeframe: 'следни денови',
+      source: 'Britz & Hecht (1987)',
+    });
+  }
+
+  // Температура над 32°C = стрес
+  // Prokešová et al. (2015): стрес зона 30.2-33.2°C
+  if (temp !== null && temp > 32) {
+    chains.push({
+      id: 'temp_too_high',
+      severity: temp > 33 ? 'critical' : 'warning',
+      title: 'Висока температура — термален стрес',
+      message: `Температурата (${temp}°C) е во стрес зоната (>32°C). Зголемете аерација, потопла вода држи помалку кислород.`,
+      timeframe: 'моментално',
+      source: 'Prokešová et al. (2015)',
+    });
+  }
+
+  // Ланец 5: Нитрати растат → потребна замена на вода
+  // Schram et al. (2014): раст намален на 140 mg/L NO₃-N
+  if (no3 !== null && no3 > 100 && no3Slope > 0) {
+    chains.push({
+      id: 'nitrate_accumulation',
+      severity: no3 > 150 ? 'critical' : 'warning',
+      title: 'Нитрати се акумулираат',
+      message: `Нитратите (${no3} mg/L) растат со ${no3Slope.toFixed(2)} mg/L/ден. Потребна е парцијална замена на вода.`,
+      timeframe: 'следни денови',
+      source: 'Schram et al. (2014)',
+    });
+  }
+
+  // Ланец 6: pH паѓа + алкалитет низок → биофилтер проблем
+  // Loyless & Malone (1997): алкалитет е клучен за pH стабилност
+  if (alk !== null && alk < 80 && phSlope < 0) {
+    chains.push({
+      id: 'low_alkalinity_ph_drop',
+      severity: alk < 50 ? 'critical' : 'warning',
+      title: 'Низок алкалитет + pH паѓа',
+      message: `Алкалитетот (${alk} mg/L) е под препорачаното (100-200 mg/L). pH паѓа бидејќи нема пуферски капацитет. Додајте натриум бикарбонат.`,
+      timeframe: 'моментално',
+      source: 'Loyless & Malone (1997), Timmons & Ebeling (2013)',
+    });
+  }
+
+  return chains;
+}
+
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 5: Recommendation Engine
+// Научно верифицирани препораки
+// ═══════════════════════════════════════════════════
+
+function generateRecommendations(current, trends, nh3Result, spikes, thresholdCrossings, chains, norms, feedingData) {
+  const recommendations = [];
+  const getVal = (p) => current[p] != null ? parseFloat(current[p]) : null;
+
+  const ph = getVal('ph');
+  const temp = getVal('temperature');
+  const alk = getVal('total_alkalinity');
+  const nh4 = getVal('ammonium');
+  const no2 = getVal('nitrites');
+
+  // pH падна под 6.5 — ИТНО
+  if (ph !== null && ph < 6.5) {
+    recommendations.push({
+      urgency: 'critical',
+      action: 'Додајте натриум бикарбонат (NaHCO₃). Намалете хранење за 50%. Проверете биофилтер — нитрификацијата е инхибирана под pH 6.5.',
+      source: 'Hagopian & Riley (1998), Loyless & Malone (1997)',
+    });
+  }
+
+  // pH паѓа — тренд
+  if (trends.ph && trends.ph.slope < -0.05 && ph !== null && ph < 7.2 && ph >= 6.5) {
+    recommendations.push({
+      urgency: 'medium',
+      action: `Измерете алкалитет. Ако е под 100 mg/L, додавајте NaHCO₃ постепено до целна вредност 100-200 mg/L. pH паѓа со ${Math.abs(trends.ph.slope).toFixed(3)}/ден.`,
+      source: 'Loyless & Malone (1997), Timmons & Ebeling (2013)',
+    });
+  }
+
+  // Амонијак висок — акутно
+  if (nh4 !== null && nh4 > 2.0) {
+    recommendations.push({
+      urgency: 'critical',
+      action: 'СТОПИРАЈТЕ хранење 24-48 часа. Зголемете аерација. Направете парцијална замена на вода (25-50%). Мониторирајте на секои 3-4 часа.',
+      source: 'Timmons & Ebeling (2013), UF/IFAS Extension',
+    });
+  } else if (nh4 !== null && nh4 > 1.0) {
+    recommendations.push({
+      urgency: 'high',
+      action: 'Намалете хранење за 50%. Зголемете аерација. Проверете биофилтер. Следете го амонијакот утре наутро.',
+      source: 'Timmons & Ebeling (2013)',
+    });
+  }
+
+  // NH₃ токсичност
+  if (nh3Result && nh3Result.nh3 > NH3_SAFE_LIMIT && ph !== null) {
+    recommendations.push({
+      urgency: 'critical',
+      action: `NH₃ токсичност: ${nh3Result.nh3} mg/L (при pH ${ph}, ${temp}°C). Стопирајте хранење. Додајте свежа вода за разредување. НЕ намалувајте pH хемиски — тоа предизвикува дополнителен стрес.`,
+      source: 'Emerson et al. (1975), Schram et al. (2010)',
+    });
+  }
+
+  // Нитрити високи
+  if (no2 !== null && no2 > 0.5) {
+    recommendations.push({
+      urgency: no2 > 1.0 ? 'critical' : 'high',
+      action: `Додајте NaCl 0.1-0.3 g/L (целен Cl⁻:NO₂⁻ сооднос минимум 10:1). Не зголемувајте хранење. Проверете биофилтер — фаза 2 на нитрификацијата е забавена.`,
+      source: 'SRAC 462, Tomasso et al. (1979, 1980)',
+    });
+  }
+
+  // Нитрати високи
+  if (no3 !== null && no3 > 150) {
+    recommendations.push({
+      urgency: 'medium',
+      action: 'Зголемете парцијална замена на вода на 10-20% дневно. Целна вредност: под 100 mg/L.',
+      source: 'Schram et al. (2014)',
+    });
+  }
+
+  // Температура ниска
+  if (temp !== null && temp < 24) {
+    recommendations.push({
+      urgency: temp < 18 ? 'critical' : 'medium',
+      action: `Температурата (${temp}°C) е под оптимумот. Проверете термо пумпа. Намалете хранење пропорционално — метаболизмот е забавен.`,
+      source: 'Britz & Hecht (1987)',
+    });
+  }
+
+  // Температура висока
+  if (temp !== null && temp > 32) {
+    recommendations.push({
+      urgency: temp > 33 ? 'critical' : 'high',
+      action: `Температурата (${temp}°C) е во стрес зона. Зголемете аерација (потопла вода = помалку O₂). Намалете хранење. Проверете дали термо пумпата е правилно поставена (оптимум 26-28°C).`,
+      source: 'Prokešová et al. (2015), Britz & Hecht (1987)',
+    });
+  }
+
+  // Преголемо хранење
+  if (feedingData && feedingData.feedVsRecommended > 1.2) {
+    const overPct = Math.round((feedingData.feedVsRecommended - 1) * 100);
+    recommendations.push({
+      urgency: feedingData.feedVsRecommended > 1.5 ? 'high' : 'medium',
+      action: `Хранењето е ${overPct}% над препорачаното. Намалете на препорачана количина. Ризик: NH₄ пик за 4-6 часа, можна каскада NO₂ → pH за 3-7 дена.`,
+      source: 'Ott et al. (2025), Timmons & Ebeling (2013)',
+    });
+  }
+
+  // Алкалитет низок
+  if (alk !== null && alk < 80 && !recommendations.some(r => r.action.includes('бикарбонат'))) {
+    recommendations.push({
+      urgency: alk < 50 ? 'high' : 'medium',
+      action: `Алкалитетот (${alk} mg/L) е под препорачаното (100-200 mg/L). Додавајте NaHCO₃ постепено. Нитрификацијата троши ~7.14g CaCO₃ по gram NH₄-N.`,
+      source: 'Loyless & Malone (1997), Timmons & Ebeling (2013)',
+    });
+  }
+
+  // Сортирај по итност
+  const urgencyOrder = { critical: 0, high: 1, medium: 2, info: 3 };
+  recommendations.sort((a, b) => (urgencyOrder[a.urgency] || 9) - (urgencyOrder[b.urgency] || 9));
+
+  return recommendations;
+}
+
+
+// ═══════════════════════════════════════════════════
+// ГЛАВНА ФУНКЦИЈА
+// ═══════════════════════════════════════════════════
+
+async function analyzeWaterPrediction(dbPool) {
+  // 1. Земи историски податоци (последни 30 дена)
   const historyResult = await dbPool.query(`
     SELECT dr.date,
       wc.temperature, wc.ph, wc.total_alkalinity, wc.hardness,
       wc.nitrates, wc.nitrites, wc.total_chlorine, wc.ammonium
     FROM water_control wc
     JOIN daily_records dr ON wc.daily_record_id = dr.id
-    WHERE wc.temperature IS NOT NULL
-    ORDER BY dr.date ASC
+    ORDER BY dr.date DESC
+    LIMIT 30
   `);
 
-  if (historyResult.rows.length < MIN_TRAINING_DAYS) {
-    return {
-      predictions: {},
-      warnings: [],
-      modelInfo: {
-        trainingDays: historyResult.rows.length,
-        error: `Потребни се барем ${MIN_TRAINING_DAYS} дена податоци`,
-      },
+  if (historyResult.rows.length === 0) {
+    return { hasData: false, message: 'Нема внесени чеклисти' };
+  }
+
+  // Хронолошки ред (најстар прв)
+  const history = historyResult.rows.reverse();
+  const latest = history[history.length - 1];
+  const latestDate = latest.date;
+
+  // 2. Земи норми
+  const normsResult = await dbPool.query('SELECT * FROM parameter_norms');
+  const norms = {};
+  for (const row of normsResult.rows) {
+    norms[row.parameter_name] = {
+      min: row.min_value !== null ? parseFloat(row.min_value) : null,
+      max: row.max_value !== null ? parseFloat(row.max_value) : null,
     };
   }
 
-  // Fetch norms
-  const normsResult = await dbPool.query('SELECT * FROM parameter_norms');
-  const norms = normsResult.rows;
+  // 3. Земи податоци за хранење (денешниот ден) за каузални ланци
+  let feedingData = null;
+  try {
+    const dateStr = typeof latestDate === 'string' ? latestDate.split('T')[0] : new Date(latestDate).toISOString().split('T')[0];
+    const feedResult = await dbPool.query(
+      `SELECT SUM(food_quantity_gr) as total_gr FROM pool_meals WHERE date = $1 AND food_quantity_gr > 0`,
+      [dateStr]
+    );
+    const totalFedGr = parseFloat(feedResult.rows[0]?.total_gr) || 0;
 
-  const history = historyResult.rows;
-  const predictions = {};
-  const allPredictions = {}; // shared across parameters for cross-correlation in rolling prediction
-  const warnings = [];
-
-  for (let i = 0; i < PARAMETERS.length; i++) {
-    const result = trainAndPredict(history, i, norms, allPredictions);
-    predictions[PARAMETERS[i]] = result;
-
-    if (result.willExceedNorm) {
-      const dir = result.exceedDirection === 'high' ? 'ќе ја надмине' : 'ќе падне под';
-      const normVal = result.exceedDirection === 'high' ? result.norm.max : result.norm.min;
-      warnings.push({
-        parameter: result.parameter,
-        label: result.label,
-        severity: result.daysUntilExceeded <= 2 ? 'critical' : 'warning',
-        daysUntil: result.daysUntilExceeded,
-        message: `${result.label} ${dir} нормата (${normVal}${result.unit ? ' ' + result.unit : ''}) за ${result.daysUntilExceeded} ден${result.daysUntilExceeded > 1 ? 'а' : ''}`,
-      });
+    // Земи AI препорака за споредба
+    const recResult = await dbPool.query(`
+      SELECT SUM(pfi.current_count) as total_fish
+      FROM pool_fish_inventory pfi
+      WHERE pfi.current_count > 0
+    `);
+    const totalFish = parseInt(recResult.rows[0]?.total_fish) || 0;
+    // Груба проценка: 2-4% BW/ден, просечно 3%
+    // Ова е приближна проценка — точната вредност доаѓа од AI модулот
+    if (totalFedGr > 0 && totalFish > 0) {
+      feedingData = {
+        totalFedKg: Math.round(totalFedGr / 10) / 100,
+        feedVsRecommended: null, // Ќе се пополни подоцна ако имаме AI препорака
+      };
     }
+  } catch (e) {
+    // Не е критично — продолжи без податоци за хранење
   }
 
-  // Sort warnings by urgency
-  warnings.sort((a, b) => a.daysUntil - b.daysUntil);
+  // 4. Анализа по параметар
+  const parameterAnalysis = {};
+  const allSpikes = [];
+  const allCrossings = [];
+  const trends = {};
+
+  for (const param of PARAMETERS) {
+    const currentValue = latest[param] != null ? parseFloat(latest[param]) : null;
+    if (currentValue === null || isNaN(currentValue)) {
+      parameterAnalysis[param] = { parameter: param, ...PARAM_META[param], noData: true };
+      continue;
+    }
+
+    // Историски вредности (без последната)
+    const historicalValues = history.slice(0, -1)
+      .map(h => parseFloat(h[param]))
+      .filter(v => !isNaN(v) && v !== null);
+
+    // Z-Score
+    const spike = detectSpike(currentValue, historicalValues);
+    if (spike) {
+      allSpikes.push({ parameter: param, ...PARAM_META[param], ...spike, currentValue });
+    }
+
+    // Тренд (последните 7-14 дена)
+    const allValues = history.map(h => parseFloat(h[param])).filter(v => !isNaN(v));
+    const trendValues = allValues.slice(-Math.min(14, allValues.length));
+    let trendResult = null;
+    if (trendValues.length >= MIN_READINGS_TREND) {
+      const regression = linearRegression(trendValues);
+      // Тренд е значаен само ако R² > 0.3
+      const isSignificant = regression.r2 > 0.3 && Math.abs(regression.slope) > 0.001;
+
+      // Предикција за пречекорување на нормата
+      const norm = norms[param];
+      const crossing = norm ? predictThresholdCrossing(currentValue, regression.slope, norm) : null;
+      if (crossing && crossing.daysUntil !== null) {
+        allCrossings.push({ parameter: param, ...PARAM_META[param], ...crossing, slope: regression.slope, currentValue });
+      }
+
+      trendResult = {
+        slope: regression.slope,
+        r2: regression.r2,
+        direction: regression.slope > 0.001 ? 'rising' : regression.slope < -0.001 ? 'falling' : 'stable',
+        isSignificant,
+        crossing,
+        daysAnalyzed: trendValues.length,
+      };
+      trends[param] = trendResult;
+    }
+
+    // Последните 7 вредности за визуализација
+    const recent = allValues.slice(-7);
+
+    parameterAnalysis[param] = {
+      parameter: param,
+      ...PARAM_META[param],
+      currentValue,
+      norm: norms[param] || null,
+      spike,
+      trend: trendResult,
+      recent,
+      stats: historicalValues.length >= MIN_READINGS_ZSCORE ? calcStats(historicalValues) : null,
+    };
+  }
+
+  // 5. NH₃ Calculator
+  const temp = latest.temperature != null ? parseFloat(latest.temperature) : null;
+  const ph = latest.ph != null ? parseFloat(latest.ph) : null;
+  const nh4 = latest.ammonium != null ? parseFloat(latest.ammonium) : null;
+  const nh3Result = (temp && ph && nh4) ? calculateNH3(nh4, ph, temp) : null;
+
+  // 6. Каузални ланци
+  const causalChains = evaluateCausalChains(latest, trends, nh3Result, feedingData);
+
+  // 7. Препораки
+  const recommendations = generateRecommendations(
+    latest, trends, nh3Result, allSpikes, allCrossings, causalChains, norms, feedingData
+  );
+
+  // 8. Сортирај предупредувања по итност
+  const warnings = [
+    ...allCrossings
+      .filter(c => c.daysUntil !== null && c.daysUntil <= 7 && !c.alreadyExceeded)
+      .map(c => ({
+        type: 'trend',
+        severity: c.daysUntil <= 2 ? 'critical' : 'warning',
+        parameter: c.parameter,
+        label: c.label,
+        message: `${c.label} ${c.direction === 'high' ? 'ќе ја надмине' : 'ќе падне под'} нормата (${c.boundaryValue}${c.unit}) за ${c.daysUntil} ден${c.daysUntil > 1 ? 'а' : ''}`,
+        daysUntil: c.daysUntil,
+      })),
+    ...allCrossings
+      .filter(c => c.alreadyExceeded)
+      .map(c => ({
+        type: 'exceeded',
+        severity: 'critical',
+        parameter: c.parameter,
+        label: c.label,
+        message: `${c.label} е ВЕЌЕ надвор од нормата (${c.currentValue}${c.unit}, норма: ${c.boundaryValue}${c.unit})`,
+        daysUntil: 0,
+      })),
+    ...allSpikes.map(s => ({
+      type: 'spike',
+      severity: s.severity,
+      parameter: s.parameter,
+      label: s.label,
+      message: `${s.label}: нагла промена (Z-score: ${s.zScore}). ${s.direction === 'high' ? 'Значително над' : 'Значително под'} просекот.`,
+      daysUntil: 0,
+    })),
+  ];
+  warnings.sort((a, b) => {
+    const sev = { critical: 0, warning: 1 };
+    return (sev[a.severity] || 9) - (sev[b.severity] || 9) || a.daysUntil - b.daysUntil;
+  });
+
+  // Дали сè е стабилно?
+  const isStable = warnings.length === 0 && causalChains.length === 0 && recommendations.length === 0;
 
   return {
-    predictions,
+    hasData: true,
+    date: latestDate,
+    isStable,
+    nh3: nh3Result ? {
+      ...nh3Result,
+      tan: nh4,
+      ph,
+      temperature: temp,
+      isSafe: nh3Result.nh3 <= NH3_SAFE_LIMIT,
+      safeLimit: NH3_SAFE_LIMIT,
+    } : null,
     warnings,
-    modelInfo: {
-      algorithm: 'Random Forest Regression',
-      trainingDays: history.length,
-      features: FEATURE_NAMES.length,
-      trees: RF_CONFIG.nEstimators,
-      maxDepth: RF_CONFIG.maxDepth,
-      predictDays: PREDICT_DAYS,
-      generatedAt: new Date().toISOString(),
+    causalChains,
+    recommendations,
+    parameters: parameterAnalysis,
+    summary: {
+      totalParameters: PARAMETERS.length,
+      analyzedParameters: Object.values(parameterAnalysis).filter(p => !p.noData).length,
+      spikeCount: allSpikes.length,
+      trendWarnings: allCrossings.filter(c => !c.alreadyExceeded && c.daysUntil <= 7).length,
+      alreadyExceeded: allCrossings.filter(c => c.alreadyExceeded).length,
+      causalChainCount: causalChains.length,
+      recommendationCount: recommendations.length,
+      daysOfData: history.length,
     },
+    analyzedAt: new Date().toISOString(),
   };
 }
 
-module.exports = { predictWaterParameters };
+module.exports = { analyzeWaterPrediction, calculateNH3 };

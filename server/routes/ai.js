@@ -22,7 +22,7 @@ const {
 } = require('../services/feedingRecommendation');
 const { projectCurrentWeight } = require('../services/growthPrediction');
 const { analyzeWaterParameters } = require('../services/waterAnomalyDetection');
-const { predictWaterParameters } = require('../services/waterPrediction');
+const { analyzeWaterPrediction } = require('../services/waterPrediction');
 
 const router = express.Router();
 
@@ -546,15 +546,15 @@ router.get('/stock-projection', authMiddleware, async (req, res) => {
 
 /**
  * GET /api/ai/water-prediction
- * Random Forest prediction of water parameters for the next 7 days
+ * Rule-based water analysis: Z-score + trends + causal chains + NH₃ calc + recommendations
  */
 router.get('/water-prediction', authMiddleware, async (req, res) => {
   try {
-    const result = await predictWaterParameters(pool);
+    const result = await analyzeWaterPrediction(pool);
     res.json(result);
   } catch (err) {
     console.error('Water prediction error:', err);
-    res.status(500).json({ error: 'Серверска грешка при предвидување' });
+    res.status(500).json({ error: 'Серверска грешка при анализа' });
   }
 });
 
