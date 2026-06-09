@@ -45,7 +45,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, full_name: user.full_name },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { algorithm: 'HS256', expiresIn: '7d' }
     );
 
     res.cookie('token', token, {
@@ -112,7 +112,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     }
 
     // Hash and update
-    const newHash = await bcrypt.hash(newPassword, 10);
+    const newHash = await bcrypt.hash(newPassword, 12);
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
 
     res.json({ message: 'Лозинката е успешно променета' });

@@ -46,7 +46,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ error: 'Email адресата веќе постои' });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const password_hash = await bcrypt.hash(password, 12);
     const result = await pool.query(
       'INSERT INTO users (email, full_name, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role, created_at',
       [email, full_name, password_hash, role || 'worker']

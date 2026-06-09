@@ -237,11 +237,11 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
           );
         }
 
-        // Deduct from food inventory
+        // Deduct from food inventory (prevent negative stock)
         if (pf.food_type && pf.food_quantity_gr > 0) {
           const changeKg = parseFloat(pf.food_quantity_gr) / 1000;
           await client.query(
-            `UPDATE food_inventory SET quantity_kg = quantity_kg - $1, updated_at = NOW() WHERE food_type = $2`,
+            `UPDATE food_inventory SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW() WHERE food_type = $2`,
             [changeKg, pf.food_type]
           );
           await client.query(
@@ -283,7 +283,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
     if (err.code === '23505') {
       res.status(409).json({ error: 'Веќе постои запис за овој датум. Едитирајте го постоечкиот.' });
     } else {
-      res.status(500).json({ error: `Серверска грешка при зачувување: ${err.message}` });
+      res.status(500).json({ error: 'Серверска грешка при зачувување' });
     }
   } finally {
     client.release();
@@ -410,11 +410,11 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
           );
         }
 
-        // Deduct from food inventory
+        // Deduct from food inventory (prevent negative stock)
         if (pf.food_type && qty > 0) {
           const changeKg = parseFloat(qty) / 1000;
           await client.query(
-            `UPDATE food_inventory SET quantity_kg = quantity_kg - $1, updated_at = NOW() WHERE food_type = $2`,
+            `UPDATE food_inventory SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW() WHERE food_type = $2`,
             [changeKg, pf.food_type]
           );
           await client.query(
@@ -468,7 +468,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // Rollback fish inventory before deleting (add back dead + sold)
     const feeding = await client.query(
-      'SELECT pool_number, dead_count, sold_count FROM pool_feeding WHERE daily_record_id = $1', [id]
+      'SELECT pool_number, dead_count, sold_count, food_type, food_quantity_gr FROM pool_feeding WHERE daily_record_id = $1', [id]
     );
     for (const pf of feeding.rows) {
       const totalRemoved = (parseInt(pf.dead_count) || 0) + (parseInt(pf.sold_count) || 0);
@@ -478,7 +478,20 @@ router.delete('/:id', authMiddleware, async (req, res) => {
           [totalRemoved, pf.pool_number]
         );
       }
+      // Rollback food inventory
+      if (pf.food_type && parseFloat(pf.food_quantity_gr) > 0) {
+        const rollbackKg = parseFloat(pf.food_quantity_gr) / 1000;
+        await client.query(
+          `UPDATE food_inventory SET quantity_kg = quantity_kg + $1, updated_at = NOW() WHERE food_type = $2`,
+          [rollbackKg, pf.food_type]
+        );
+      }
     }
+
+    // Remove consumption logs for this record
+    await client.query(
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id = $1`, [id]
+    );
 
     const result = await client.query('DELETE FROM daily_records WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {

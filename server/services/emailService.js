@@ -77,8 +77,7 @@ async function testConnection() {
     host: host || 'NOT SET',
     port,
     user: user || 'NOT SET',
-    passLength: pass ? pass.length : 0,
-    passPreview: pass ? pass.substring(0, 4) + '...' : 'NOT SET',
+    passSet: !!pass,
     secure: port === 465,
   };
 

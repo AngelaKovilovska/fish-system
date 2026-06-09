@@ -170,9 +170,31 @@ app.use((err, req, res, next) => {
 async function start() {
   await runMigrations();
   await seedAdmin();
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} [${IS_PROD ? 'production' : 'development'}]`);
   });
+
+  // Graceful shutdown — close server and DB pool on termination signals
+  const shutdown = async (signal) => {
+    console.log(`\n${signal} received — shutting down gracefully...`);
+    server.close(async () => {
+      try {
+        await pool.end();
+        console.log('Database pool closed.');
+      } catch (err) {
+        console.error('Error closing pool:', err.message);
+      }
+      process.exit(0);
+    });
+    // Force exit after 10 seconds if graceful shutdown stalls
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 start();

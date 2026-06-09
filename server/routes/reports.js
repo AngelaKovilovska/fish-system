@@ -10,10 +10,18 @@ const {
 
 const router = express.Router();
 
-// GET /api/reports/test-email — test SMTP connection
+// GET /api/reports/test-email — test SMTP connection (admin only)
 router.get('/test-email', authMiddleware, async (req, res) => {
-  const result = await testConnection();
-  res.json(result);
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Само админ може да тестира email' });
+    }
+    const result = await testConnection();
+    res.json(result);
+  } catch (err) {
+    console.error('Test email error:', err);
+    res.status(500).json({ error: 'Грешка при тестирање на email конекција' });
+  }
 });
 
 // ── Helper: sanitize values before injecting into HTML ──

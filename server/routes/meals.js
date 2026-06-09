@@ -250,7 +250,7 @@ router.post('/', authMiddleware, async (req, res) => {
         if (foodType && foodQty > 0) {
           const changeKg = foodQty / 1000;
           await client.query(
-            'UPDATE food_inventory SET quantity_kg = quantity_kg - $1, updated_at = NOW() WHERE food_type = $2',
+            'UPDATE food_inventory SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW() WHERE food_type = $2',
             [changeKg, foodType]
           );
           await client.query(

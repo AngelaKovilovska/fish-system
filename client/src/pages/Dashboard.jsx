@@ -60,11 +60,12 @@ export default function Dashboard() {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
   useEffect(() => {
+    // Compute today's date once at mount time — stable for the entire effect
     const today = new Date().toISOString().split('T')[0];
 
     Promise.all([
-      api.getAlerts({ acknowledged: 'false' }).then(d => setAlerts(d.alerts)),
-      api.getFoodInventory().then(d => setInventory(d.inventory)).catch(() => {}),
+      api.getAlerts({ acknowledged: 'false' }).then(d => setAlerts(d.alerts)).catch(() => setAlerts([])),
+      api.getFoodInventory().then(d => setInventory(d.inventory)).catch(() => setInventory([])),
       api.getRecords({ from: today, to: today, limit: 1 })
         .then(d => setTodayRecord(d.records.length > 0 ? d.records[0] : false))
         .catch(() => setTodayRecord(false)),

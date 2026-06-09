@@ -24,9 +24,19 @@ INSERT INTO parameter_norms (parameter_name, min_value, max_value, unit) VALUES
   ('ammonium', NULL, 0.05, 'mg/L')
 ON CONFLICT (parameter_name) DO NOTHING;
 
--- Update existing norms to match new specs
-UPDATE parameter_norms SET min_value = 26, max_value = 28 WHERE parameter_name = 'temperature';
-UPDATE parameter_norms SET min_value = 6.5, max_value = 7.5 WHERE parameter_name = 'ph';
-UPDATE parameter_norms SET min_value = NULL, max_value = 100 WHERE parameter_name = 'nitrates';
-UPDATE parameter_norms SET min_value = NULL, max_value = 0.5 WHERE parameter_name = 'nitrites';
-UPDATE parameter_norms SET min_value = 100, max_value = 300 WHERE parameter_name = 'hardness';
+-- Update existing norms to match new specs (only if they still have the original defaults)
+-- This prevents overwriting user-customized norms on every server restart
+DO $$
+BEGIN
+  -- Only update if the value hasn't been customized (matches original 001_initial.sql defaults)
+  UPDATE parameter_norms SET min_value = 26, max_value = 28
+    WHERE parameter_name = 'temperature' AND min_value = 24 AND max_value = 30;
+  UPDATE parameter_norms SET min_value = 6.5, max_value = 7.5
+    WHERE parameter_name = 'ph' AND min_value = 6.5 AND max_value = 8.5;
+  UPDATE parameter_norms SET min_value = NULL, max_value = 100
+    WHERE parameter_name = 'nitrates' AND max_value != 100;
+  UPDATE parameter_norms SET min_value = NULL, max_value = 0.5
+    WHERE parameter_name = 'nitrites' AND max_value != 0.5;
+  UPDATE parameter_norms SET min_value = 100, max_value = 300
+    WHERE parameter_name = 'hardness' AND max_value != 300;
+END $$;

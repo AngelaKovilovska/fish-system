@@ -22,18 +22,19 @@ export default function Login() {
   return (
     <div className="min-h-screen flex justify-center items-center px-5 py-8"
       style={{
-        background: 'linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)',
+        background: 'var(--bg)',
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}>
 
-      {/* ── White card container ── */}
+      {/* ── Card container ── */}
       <div className="w-full"
         style={{
           maxWidth: 420,
-          background: '#ffffff',
+          background: 'var(--surface)',
           borderRadius: 20,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
           padding: '50px 40px',
+          border: '1px solid var(--border)',
         }}>
 
         {/* ── Logo ── */}
@@ -48,12 +49,12 @@ export default function Login() {
         {/* ── Error display ── */}
         {error && (
           <div style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            background: 'var(--danger-muted, #fef2f2)',
+            border: '1px solid var(--danger)',
             borderRadius: 10,
             padding: '12px 16px',
             marginBottom: 20,
-            color: '#dc2626',
+            color: 'var(--danger)',
             fontSize: 13,
             fontWeight: 500,
             textAlign: 'center',
@@ -75,11 +76,11 @@ export default function Login() {
               style={{
                 width: '100%',
                 padding: '16px 18px',
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid var(--border)',
                 borderRadius: 10,
                 fontSize: 15,
-                color: '#1e293b',
-                background: '#ffffff',
+                color: 'var(--text-primary)',
+                background: 'var(--surface)',
                 outline: 'none',
                 transition: 'all 0.3s ease',
               }}
@@ -97,11 +98,11 @@ export default function Login() {
               style={{
                 width: '100%',
                 padding: '16px 48px 16px 18px',
-                border: '1.5px solid #e2e8f0',
+                border: '1.5px solid var(--border)',
                 borderRadius: 10,
                 fontSize: 15,
-                color: '#1e293b',
-                background: '#ffffff',
+                color: 'var(--text-primary)',
+                background: 'var(--surface)',
                 outline: 'none',
                 transition: 'all 0.3s ease',
               }}
@@ -118,7 +119,7 @@ export default function Login() {
                 border: 'none',
                 cursor: 'pointer',
                 padding: 4,
-                color: '#94a3b8',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -136,7 +137,7 @@ export default function Login() {
               padding: 16,
               border: 'none',
               borderRadius: 10,
-              background: '#1a548c',
+              background: 'var(--primary)',
               color: '#ffffff',
               fontSize: 16,
               fontWeight: 600,

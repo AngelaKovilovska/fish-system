@@ -249,8 +249,8 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
 router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
   try {
     const poolNumber = parseInt(req.params.poolNumber);
-    if (isNaN(poolNumber) || poolNumber < 1 || poolNumber > 6) {
-      return res.status(400).json({ error: 'Невалиден број на базен (1-6)' });
+    if (isNaN(poolNumber) || poolNumber < 1 || poolNumber > 8) {
+      return res.status(400).json({ error: 'Невалиден број на базен (1-8)' });
     }
 
     // Get inventory
