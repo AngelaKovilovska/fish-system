@@ -1,30 +1,53 @@
 import { POOL_NUMBERS } from '../../lib/constants';
-import { useState, useImperativeHandle, forwardRef } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Info, Fish, ShoppingCart, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
 
 const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasurements, fishInventory }, ref) {
   const [activePool, setActivePool] = useState(1);
 
+  // Helper: does a pool have fish?
+  const poolHasFish = (poolNum) => {
+    const inv = fishInventory?.find(fi => fi.pool_number === poolNum);
+    return inv && inv.current_count > 0;
+  };
+
+  // On first render (when fishInventory loads), jump to the first pool with fish
+  useEffect(() => {
+    if (fishInventory?.length > 0) {
+      const firstWithFish = POOL_NUMBERS.find(poolHasFish);
+      if (firstWithFish && !poolHasFish(activePool)) {
+        setActivePool(firstWithFish);
+      }
+    }
+  }, [fishInventory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Expose tryAdvancePool to parent so "Next" can cycle pools first
+  // Automatically skips pools with 0 fish
   useImperativeHandle(ref, () => ({
     tryAdvancePool() {
       const idx = POOL_NUMBERS.indexOf(activePool);
-      if (idx < POOL_NUMBERS.length - 1) {
-        setActivePool(POOL_NUMBERS[idx + 1]);
-        return true; // consumed — stay on this step
+      // Find next pool that has fish
+      for (let i = idx + 1; i < POOL_NUMBERS.length; i++) {
+        if (poolHasFish(POOL_NUMBERS[i])) {
+          setActivePool(POOL_NUMBERS[i]);
+          return true; // consumed — stay on this step
+        }
       }
-      return false; // last pool — let parent advance step
+      return false; // no more pools with fish — let parent advance step
     },
     tryGoBackPool() {
       const idx = POOL_NUMBERS.indexOf(activePool);
-      if (idx > 0) {
-        setActivePool(POOL_NUMBERS[idx - 1]);
-        return true;
+      // Find previous pool that has fish
+      for (let i = idx - 1; i >= 0; i--) {
+        if (poolHasFish(POOL_NUMBERS[i])) {
+          setActivePool(POOL_NUMBERS[i]);
+          return true;
+        }
       }
       return false;
     },
     activePool,
-  }), [activePool]);
+  }), [activePool, fishInventory]);
 
   const getMeasurement = (poolNum) => poolMeasurements?.find(m => m.pool_number === poolNum);
   const getInventory = (poolNum) => fishInventory?.find(inv => inv.pool_number === poolNum);
@@ -75,12 +98,15 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {POOL_NUMBERS.map(num => {
           const inv = getInventory(num);
+          const isEmpty = !inv || inv.current_count === 0;
           return (
             <button
               key={num}
               type="button"
               onClick={() => setActivePool(num)}
               className={activePool === num ? 'chip-active' : 'chip-inactive'}
+              style={isEmpty ? { opacity: 0.4, textDecoration: 'line-through' } : {}}
+              title={isEmpty ? 'Празен базен (0 риби)' : `${inv.current_count} риби`}
             >
               Б{num}
               {inv && inv.current_count > 0 && (
