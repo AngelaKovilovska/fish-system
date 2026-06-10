@@ -153,13 +153,10 @@ export default function ChecklistHistory() {
               </div>
             )}
 
-            {/* Stats inline */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <span className="text-[11px]"><span className="font-bold text-[var(--success)]">{monthStats.completed}</span> <span className="text-[var(--text-muted)]">✓</span></span>
-              <span className="text-[11px]"><span className="font-bold text-amber-500">{monthStats.partial}</span> <span className="text-[var(--text-muted)]">½</span></span>
-              <span className="text-[11px]"><span className="font-bold text-[var(--text-muted)]">{monthStats.missed}</span> <span className="text-[var(--text-muted)]">—</span></span>
-              <span className="text-[11px]"><span className="font-bold text-[var(--danger)]">{monthStats.alerts}</span> <span className="text-[var(--text-muted)]">⚠</span></span>
-            </div>
+            {/* Simple count */}
+            <span className="text-[11px] text-[var(--text-secondary)] flex-1 min-w-0">
+              Внесени <span className="font-bold text-[var(--text-primary)]">{monthStats.completed}</span> од {monthStats.lastDay} денови
+            </span>
 
             {/* Compact progress */}
             <div className="flex items-center gap-2 flex-shrink-0">
