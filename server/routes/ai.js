@@ -19,7 +19,13 @@ const {
   GROWOUT_TABLE,
   FEED_PRODUCTS,
 } = require('../services/feedingRecommendation');
-const { projectCurrentWeight } = require('../services/growthPrediction');
+const {
+  projectCurrentWeight,
+  calculateSGR,
+  getExpectedWeightFromCurve,
+  predictGrowth,
+  PHASE_FCR,
+} = require('../services/growthPrediction');
 const { analyzeWaterPrediction, analyzeWaterPredictionEnhanced } = require('../services/waterPrediction');
 const { generateWaterForecast } = require('../services/waterRandomForest');
 
@@ -526,5 +532,258 @@ router.get('/water-forecast', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Серверска грешка при ML предикција' });
   }
 });
+
+/**
+ * GET /api/ai/growth-history/:poolNumber
+ * Growth chart data: actual measurements, SGR projection, Coppens ideal curve.
+ * Optional query: ?from=YYYY-MM-DD (filter from a specific measurement date)
+ */
+router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
+  try {
+    const poolNumber = parseInt(req.params.poolNumber);
+    if (isNaN(poolNumber) || poolNumber < 1 || poolNumber > 8) {
+      return res.status(400).json({ error: 'Невалиден број на базен (1-8)' });
+    }
+
+    const fromDate = req.query.from || null;
+
+    // 1. Get ALL measurements for this pool (ordered chronologically)
+    const measRes = await pool.query(`
+      SELECT id, fish_count, avg_weight_gr, DATE(measured_at) as date,
+             measured_at
+      FROM pool_measurements
+      WHERE pool_number = $1
+        ${fromDate ? 'AND DATE(measured_at) >= $2' : ''}
+      ORDER BY measured_at ASC
+    `, fromDate ? [poolNumber, fromDate] : [poolNumber]);
+
+    if (measRes.rows.length === 0) {
+      return res.json({
+        poolNumber,
+        hasData: false,
+        message: 'Нема мерења за овој базен',
+        measurementDates: [],
+      });
+    }
+
+    // Also get ALL measurement dates (unfiltered) for the dropdown filter
+    const allDatesRes = await pool.query(`
+      SELECT DISTINCT ON (DATE(measured_at))
+        DATE(measured_at) as date, avg_weight_gr
+      FROM pool_measurements
+      WHERE pool_number = $1
+      ORDER BY DATE(measured_at) ASC, measured_at DESC
+    `, [poolNumber]);
+
+    const measurements = measRes.rows.map(m => ({
+      date: m.date.toISOString().split('T')[0],
+      weight: parseFloat(m.avg_weight_gr),
+      fishCount: m.fish_count,
+    }));
+
+    // 2. Get daily feed data between first measurement and today
+    const firstDate = measurements[0].date;
+    const today = new Date().toISOString().split('T')[0];
+
+    const feedRes = await pool.query(`
+      SELECT date, SUM(food_quantity_gr) as total_food_gr
+      FROM pool_meals
+      WHERE pool_number = $1
+        AND date >= $2::date
+        AND date <= $3::date
+      GROUP BY date
+      ORDER BY date
+    `, [poolNumber, firstDate, today]);
+
+    const feedByDate = {};
+    feedRes.rows.forEach(r => {
+      feedByDate[r.date.toISOString().split('T')[0]] = parseFloat(r.total_food_gr) || 0;
+    });
+
+    // 3. Get average temperature for the period
+    const tempRes = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= $1::date AND wc.temperature IS NOT NULL
+    `, [firstDate]);
+
+    const avgTemp = tempRes.rows[0]?.avg_temp
+      ? parseFloat(tempRes.rows[0].avg_temp)
+      : null;
+
+    // ─── BUILD SGR PROJECTION ───
+    // Between consecutive measurements, calculate daily SGR and interpolate.
+    // After the last measurement, project forward using feed data.
+    const sgrProjection = [];
+
+    for (let mi = 0; mi < measurements.length; mi++) {
+      const curr = measurements[mi];
+      const next = measurements[mi + 1];
+
+      if (next) {
+        // Interpolate between two known measurements using SGR
+        const d1 = new Date(curr.date);
+        const d2 = new Date(next.date);
+        const daysBetween = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        if (daysBetween <= 0) continue;
+
+        const sgr = calculateSGR(curr.weight, next.weight, daysBetween);
+
+        for (let d = 0; d < daysBetween; d++) {
+          const dt = new Date(d1);
+          dt.setDate(dt.getDate() + d);
+          const dateStr = dt.toISOString().split('T')[0];
+          // W(t) = W0 × e^(SGR/100 × t)
+          const projWeight = curr.weight * Math.exp((sgr / 100) * d);
+          sgrProjection.push({ date: dateStr, weight: Math.round(projWeight * 10) / 10 });
+        }
+      } else {
+        // Last measurement — project forward to today using feed data
+        const d1 = new Date(curr.date);
+        const dToday = new Date(today);
+        const daysToToday = Math.round((dToday - d1) / (1000 * 60 * 60 * 24));
+
+        if (daysToToday <= 0) {
+          sgrProjection.push({ date: curr.date, weight: curr.weight });
+          break;
+        }
+
+        // Accumulate daily feed and project weight day-by-day
+        let W = curr.weight;
+        let N = curr.fishCount || 100; // fallback
+
+        for (let d = 0; d <= daysToToday; d++) {
+          const dt = new Date(d1);
+          dt.setDate(dt.getDate() + d);
+          const dateStr = dt.toISOString().split('T')[0];
+          sgrProjection.push({ date: dateStr, weight: Math.round(W * 10) / 10 });
+
+          if (d < daysToToday) {
+            const dailyFeedGr = feedByDate[dateStr] || 0;
+            if (dailyFeedGr > 0) {
+              // Use phase FCR to estimate growth
+              let fcr = 0.85; // default
+              for (const phase of PHASE_FCR) {
+                if (W <= phase.maxWeight) { fcr = phase.fcr; break; }
+              }
+              const feedPerFish = dailyFeedGr / N;
+              const growth = feedPerFish / fcr;
+              W += growth;
+            }
+          }
+        }
+      }
+    }
+
+    // Add the last measurement point if only 1 measurement
+    if (measurements.length === 1 && sgrProjection.length === 0) {
+      sgrProjection.push({ date: measurements[0].date, weight: measurements[0].weight });
+    }
+
+    // ─── BUILD COPPENS IDEAL CURVE ───
+    // Find the feeding day on the Coppens curve that matches W0,
+    // then trace the ideal growth from there.
+    const coppensIdeal = [];
+    const startWeight = measurements[0].weight;
+
+    // Find the corresponding feedingDay on the Coppens curve for startWeight
+    let startFeedingDay = 0;
+    for (let i = 0; i < GROWOUT_TABLE.length - 1; i++) {
+      const lo = GROWOUT_TABLE[i];
+      const hi = GROWOUT_TABLE[i + 1];
+      if (startWeight >= lo.avgWeight && startWeight < hi.avgWeight) {
+        const ratio = (startWeight - lo.avgWeight) / (hi.avgWeight - lo.avgWeight);
+        startFeedingDay = lo.feedingDays + ratio * (hi.feedingDays - lo.feedingDays);
+        break;
+      }
+      if (startWeight < GROWOUT_TABLE[0].avgWeight) {
+        startFeedingDay = 0;
+        break;
+      }
+    }
+    if (startWeight >= GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight) {
+      startFeedingDay = GROWOUT_TABLE[GROWOUT_TABLE.length - 1].feedingDays;
+    }
+
+    // Generate daily points on the Coppens curve
+    const firstDateObj = new Date(firstDate);
+    const todayObj = new Date(today);
+    const totalDays = Math.round((todayObj - firstDateObj) / (1000 * 60 * 60 * 24));
+
+    for (let d = 0; d <= totalDays; d++) {
+      const dt = new Date(firstDateObj);
+      dt.setDate(dt.getDate() + d);
+      const dateStr = dt.toISOString().split('T')[0];
+
+      const targetFeedingDay = startFeedingDay + d;
+      const idealWeight = getWeightFromFeedingDay(targetFeedingDay);
+      coppensIdeal.push({ date: dateStr, weight: Math.round(idealWeight * 10) / 10 });
+    }
+
+    // ─── STATS ───
+    const lastMeasurement = measurements[measurements.length - 1];
+    const lastSgrPoint = sgrProjection[sgrProjection.length - 1];
+    const lastCoppensPoint = coppensIdeal[coppensIdeal.length - 1];
+
+    const currentWeight = lastSgrPoint?.weight || lastMeasurement.weight;
+    const coppensExpected = lastCoppensPoint?.weight || currentWeight;
+    const deviationPercent = coppensExpected > 0
+      ? Math.round(((currentWeight - coppensExpected) / coppensExpected) * 1000) / 10
+      : 0;
+
+    // Calculate overall SGR across all measurements
+    const overallSGR = measurements.length >= 2
+      ? calculateSGR(
+          measurements[0].weight,
+          measurements[measurements.length - 1].weight,
+          Math.round((new Date(measurements[measurements.length - 1].date) - new Date(measurements[0].date)) / (1000 * 60 * 60 * 24))
+        )
+      : 0;
+
+    res.json({
+      poolNumber,
+      hasData: true,
+      measurements,
+      sgrProjection,
+      coppensIdeal,
+      measurementDates: allDatesRes.rows.map(r => ({
+        date: r.date.toISOString().split('T')[0],
+        weight: parseFloat(r.avg_weight_gr),
+      })),
+      stats: {
+        currentWeight: Math.round(currentWeight * 10) / 10,
+        coppensExpected: Math.round(coppensExpected * 10) / 10,
+        deviationPercent,
+        avgSGR: Math.round(overallSGR * 1000) / 1000,
+        daysTracked: totalDays,
+        measurementCount: measurements.length,
+        lastMeasured: lastMeasurement.date,
+      },
+    });
+  } catch (err) {
+    console.error('Growth history error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
+/**
+ * Helper: interpolate weight from Coppens GROWOUT_TABLE feeding day
+ */
+function getWeightFromFeedingDay(feedingDay) {
+  if (feedingDay <= GROWOUT_TABLE[0].feedingDays) return GROWOUT_TABLE[0].avgWeight;
+  if (feedingDay >= GROWOUT_TABLE[GROWOUT_TABLE.length - 1].feedingDays) {
+    return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight;
+  }
+  for (let i = 0; i < GROWOUT_TABLE.length - 1; i++) {
+    const lo = GROWOUT_TABLE[i];
+    const hi = GROWOUT_TABLE[i + 1];
+    if (feedingDay >= lo.feedingDays && feedingDay < hi.feedingDays) {
+      const ratio = (feedingDay - lo.feedingDays) / (hi.feedingDays - lo.feedingDays);
+      return lo.avgWeight + ratio * (hi.avgWeight - lo.avgWeight);
+    }
+  }
+  return GROWOUT_TABLE[GROWOUT_TABLE.length - 1].avgWeight;
+}
 
 module.exports = router;

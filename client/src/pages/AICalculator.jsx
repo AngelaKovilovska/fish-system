@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Brain, Fish, Thermometer, Calculator, ChevronLeft, ChevronDown, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3, Cpu } from 'lucide-react';
+import { Brain, Fish, Thermometer, Calculator, ChevronLeft, ChevronDown, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3, Cpu, Sprout } from 'lucide-react';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
 
 /* ── Macedonian formatting ── */
 const MK_MONTHS = [
@@ -25,6 +29,12 @@ export default function AICalculator() {
   const [expandedRec, setExpandedRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [calcLoading, setCalcLoading] = useState(false);
+
+  // Growth tab state
+  const [growthPool, setGrowthPool] = useState(1);
+  const [growthFrom, setGrowthFrom] = useState(''); // '' = all measurements
+  const [growthData, setGrowthData] = useState(null);
+  const [growthLoading, setGrowthLoading] = useState(false);
 
   // Calculator inputs
   const [calcInputs, setCalcInputs] = useState({
@@ -51,6 +61,38 @@ export default function AICalculator() {
         .finally(() => setPredictionLoading(false));
     }
   }, [tab]);
+
+  // Load growth data when growth tab is opened or pool/date changes
+  useEffect(() => {
+    if (tab !== 'growth') return;
+    setGrowthLoading(true);
+    api.getGrowthHistory(growthPool, growthFrom || undefined)
+      .then(d => setGrowthData(d))
+      .catch(() => setGrowthData(null))
+      .finally(() => setGrowthLoading(false));
+  }, [tab, growthPool, growthFrom]);
+
+  // Merge all 3 curves into one dataset for recharts
+  const chartData = useMemo(() => {
+    if (!growthData?.hasData) return [];
+    const map = {};
+    // SGR projection (daily)
+    (growthData.sgrProjection || []).forEach(p => {
+      if (!map[p.date]) map[p.date] = { date: p.date };
+      map[p.date].sgr = p.weight;
+    });
+    // Coppens ideal (daily)
+    (growthData.coppensIdeal || []).forEach(p => {
+      if (!map[p.date]) map[p.date] = { date: p.date };
+      map[p.date].coppens = p.weight;
+    });
+    // Actual measurements (sparse — only on measurement days)
+    (growthData.measurements || []).forEach(p => {
+      if (!map[p.date]) map[p.date] = { date: p.date };
+      map[p.date].actual = p.weight;
+    });
+    return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
+  }, [growthData]);
 
   const handleCalculate = async () => {
     const count = parseInt(calcInputs.fishCount);
@@ -104,6 +146,7 @@ export default function AICalculator() {
           { key: 'pools', label: 'Базени', icon: Fish },
           { key: 'calculator', label: 'Калкулатор', icon: Calculator },
           { key: 'water', label: 'Вода', icon: Droplets },
+          { key: 'growth', label: 'Раст', icon: Sprout },
         ].map(t => (
           <button key={t.key}
             onClick={() => setTab(t.key)}
@@ -990,6 +1033,202 @@ export default function AICalculator() {
                     </div>
                   );
                 })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ GROWTH TAB ═══════ */}
+      {tab === 'growth' && (
+        <div className="space-y-4 animate-in-delay-1">
+          {/* Controls: Pool selector + Measurement date filter */}
+          <div className="card !p-4">
+            <div className="flex gap-3">
+              {/* Pool selector */}
+              <div className="flex-1">
+                <label className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Базен</label>
+                <select
+                  value={growthPool}
+                  onChange={e => { setGrowthPool(parseInt(e.target.value)); setGrowthFrom(''); }}
+                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                >
+                  {[1,2,3,4,5,6].map(n => (
+                    <option key={n} value={n}>Базен {n}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Measurement date filter */}
+              <div className="flex-1">
+                <label className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Од мерење</label>
+                <select
+                  value={growthFrom}
+                  onChange={e => setGrowthFrom(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                >
+                  <option value="">Сите мерења</option>
+                  {(growthData?.measurementDates || []).map(md => (
+                    <option key={md.date} value={md.date}>
+                      {new Date(md.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })} · {md.weight}g
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Loading */}
+          {growthLoading && (
+            <div className="card !p-5 text-center">
+              <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
+              <p className="text-xs text-[var(--text-muted)]">Вчитувам податоци за раст...</p>
+            </div>
+          )}
+
+          {/* No data */}
+          {!growthLoading && growthData && !growthData.hasData && (
+            <div className="card !p-5 text-center">
+              <Sprout size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
+              <p className="text-sm text-[var(--text-muted)]">{growthData.message || 'Нема мерења за овој базен'}</p>
+            </div>
+          )}
+
+          {/* Chart + Stats */}
+          {!growthLoading && growthData?.hasData && (
+            <>
+              {/* Stats row */}
+              <div className="card !p-3">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Моментална</p>
+                    <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.currentWeight}<span className="text-[9px] font-normal text-[var(--text-muted)]">g</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Coppens</p>
+                    <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.coppensExpected}<span className="text-[9px] font-normal text-[var(--text-muted)]">g</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Отстапува</p>
+                    <p className={`text-sm font-bold ${growthData.stats.deviationPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`} style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.deviationPercent > 0 ? '+' : ''}{growthData.stats.deviationPercent}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">SGR</p>
+                    <p className="text-sm font-bold text-purple-600 dark:text-purple-400" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.avgSGR}<span className="text-[9px] font-normal text-[var(--text-muted)]">%/д</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chart */}
+              <div className="card !p-3">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  Крива на раст — Базен {growthPool}
+                  <span className="normal-case tracking-normal font-normal ml-1.5">
+                    ({growthData.stats.daysTracked} дена · {growthData.stats.measurementCount} мерења)
+                  </span>
+                </p>
+
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
+                      tickFormatter={d => {
+                        const dt = new Date(d);
+                        return `${dt.getDate()}/${dt.getMonth() + 1}`;
+                      }}
+                      interval="preserveStartEnd"
+                      minTickGap={30}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 9, fill: 'var(--text-muted)' }}
+                      tickFormatter={v => `${v}g`}
+                      width={50}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r-sm)',
+                        fontSize: 11,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      }}
+                      labelFormatter={d => {
+                        const dt = new Date(d);
+                        return dt.toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
+                      }}
+                      formatter={(val, name) => {
+                        const labels = { actual: 'Измерена', sgr: 'SGR проекција', coppens: 'Coppens идеална' };
+                        return [`${val}g`, labels[name] || name];
+                      }}
+                    />
+
+                    {/* Coppens ideal — dashed orange */}
+                    <Line
+                      type="monotone"
+                      dataKey="coppens"
+                      stroke="#f59e0b"
+                      strokeWidth={1.5}
+                      strokeDasharray="6 3"
+                      dot={false}
+                      name="coppens"
+                      connectNulls
+                    />
+
+                    {/* SGR projection — blue */}
+                    <Line
+                      type="monotone"
+                      dataKey="sgr"
+                      stroke="#3b82f6"
+                      strokeWidth={1.5}
+                      dot={false}
+                      name="sgr"
+                      connectNulls
+                    />
+
+                    {/* Actual measurements — green with dots */}
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      stroke="#22c55e"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
+                      name="actual"
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-4 mt-2 text-[10px]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-0.5 rounded-full bg-[#22c55e] inline-block" style={{ height: 3 }} />
+                    <span className="text-[var(--text-secondary)]">Измерена тежина</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-0.5 rounded-full bg-[#3b82f6] inline-block" style={{ height: 2 }} />
+                    <span className="text-[var(--text-secondary)]">SGR проекција</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 inline-block border-t-2 border-dashed border-[#f59e0b]" />
+                    <span className="text-[var(--text-secondary)]">Coppens идеална</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Info note */}
+              <div className="text-[9px] text-[var(--text-muted)] italic px-1">
+                SGR = Specific Growth Rate — дневна стапка на раст пресметана од мерењата и внесената храна.
+                Coppens кривата е оптималниот раст при 26-28°C (Alltech 2025-2026).
               </div>
             </>
           )}

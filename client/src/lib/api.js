@@ -117,4 +117,5 @@ export const api = {
   getStockProjection: () => request('/ai/stock-projection'),
   getWaterPrediction: () => request('/ai/water-prediction'),
   getWaterForecast: () => request('/ai/water-forecast'),
+  getGrowthHistory: (poolNumber, from) => request(`/ai/growth-history/${poolNumber}${from ? `?from=${from}` : ''}`),
 };
