@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
-  ClipboardList, Sunrise, Sun, Moon, X,
+  ClipboardList, Sunrise, Sun, Moon, X, Flame, TrendingUp,
 } from 'lucide-react';
 
 const MK_MONTHS = [
@@ -32,6 +32,7 @@ export default function ChecklistHistory() {
   const [calendarData, setCalendarData] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [streak, setStreak] = useState(null); // { streak: N, todayDone: bool }
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -57,6 +58,11 @@ export default function ChecklistHistory() {
     setSelectedDay(null);
     loadCalendar(monthStr);
   }, [monthStr]);
+
+  // Load streak once on mount
+  useEffect(() => {
+    api.getStreak().then(d => setStreak(d)).catch(() => setStreak(null));
+  }, []);
 
   const goMonth = (delta) => {
     setCurrentMonth(new Date(year, month + delta, 1));
@@ -96,6 +102,26 @@ export default function ChecklistHistory() {
     empty: { bg: 'transparent', border: 'transparent', dot: null },
   };
 
+  // ── Monthly statistics ──
+  const monthStats = useMemo(() => {
+    // How many days have passed in this month (up to today)
+    const lastDay = isCurrentMonth ? today.getDate() : daysInMonth;
+    let completed = 0, partial = 0, alerts = 0, missed = 0;
+
+    for (let d = 1; d <= lastDay; d++) {
+      const status = getDayStatus(d);
+      if (status === 'complete') completed++;
+      else if (status === 'alerts') { completed++; alerts++; } // alerts still have checklist
+      else if (status === 'partial') partial++;
+      else missed++;
+    }
+
+    const filledDays = completed + partial; // days with any data
+    const pct = lastDay > 0 ? Math.round((completed / lastDay) * 100) : 0;
+
+    return { lastDay, completed, partial, alerts, missed, pct, filledDays };
+  }, [calendarData, daysInMonth, isCurrentMonth]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const selectedDayData = selectedDay ? calendarData[getDayKey(selectedDay)] : null;
 
   return (
@@ -106,6 +132,88 @@ export default function ChecklistHistory() {
         </button>
         <h1 className="page-title">Историја на записи</h1>
       </div>
+
+      {/* ── Monthly stats + Streak ── */}
+      {!loading && (
+        <div className="card !p-3.5 mb-4 animate-in-delay-1">
+          {/* Streak badge (only on current month view) */}
+          {streak && streak.streak > 0 && isCurrentMonth && (
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-[var(--border)]">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: streak.streak >= 7
+                  ? 'linear-gradient(135deg, #F59E0B, #EF4444)'
+                  : streak.streak >= 3
+                  ? 'linear-gradient(135deg, #F59E0B, #F97316)'
+                  : 'rgba(245,158,11,0.15)'
+                }}>
+                <Flame size={16} className={streak.streak >= 3 ? 'text-white' : 'text-amber-500'} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {streak.streak} {streak.streak === 1 ? 'ден' : 'денови'} без прекин
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {streak.todayDone ? 'Денешната чеклиста е пополнета' : 'Денешната чеклиста уште не е пополнета'}
+                </p>
+              </div>
+              {streak.streak >= 7 && (
+                <span className="text-lg">🔥</span>
+              )}
+            </div>
+          )}
+
+          {/* Month stats grid */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            <div className="text-center">
+              <div className="text-lg font-bold text-[var(--success)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {monthStats.completed}
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-medium">Пополнети</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-amber-500" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {monthStats.partial}
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-medium">Делумни</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-[var(--text-muted)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {monthStats.missed}
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-medium">Пропуштени</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-[var(--danger)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {monthStats.alerts}
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-medium">Аларми</div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-medium text-[var(--text-muted)]">
+                Комплетност: {monthStats.completed}/{monthStats.lastDay} денови
+              </span>
+              <span className="text-[10px] font-bold text-[var(--text-secondary)]">{monthStats.pct}%</span>
+            </div>
+            <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${monthStats.pct}%`,
+                  background: monthStats.pct >= 80
+                    ? 'linear-gradient(90deg, #22C55E, #16a34a)'
+                    : monthStats.pct >= 50
+                    ? 'linear-gradient(90deg, #F59E0B, #F97316)'
+                    : 'linear-gradient(90deg, #EF4444, #DC2626)',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Month navigation */}
       <div className="card !p-3 mb-4 animate-in-delay-1">

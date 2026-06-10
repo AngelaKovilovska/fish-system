@@ -75,6 +75,42 @@ router.get('/calendar', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/records/streak — current consecutive days with filled checklist
+router.get('/streak', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') as date_str
+      FROM daily_records
+      WHERE date <= CURRENT_DATE
+      ORDER BY date DESC
+      LIMIT 90
+    `);
+
+    if (result.rows.length === 0) {
+      return res.json({ streak: 0, todayDone: false });
+    }
+
+    const dateSet = new Set(result.rows.map(r => r.date_str));
+    const today = new Date().toISOString().split('T')[0];
+    const todayDone = dateSet.has(today);
+
+    // Start counting from today, or yesterday if today isn't done yet
+    let d = new Date();
+    if (!todayDone) d.setDate(d.getDate() - 1);
+
+    let streak = 0;
+    while (dateSet.has(d.toISOString().split('T')[0])) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+
+    res.json({ streak, todayDone });
+  } catch (err) {
+    console.error('Streak error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/records - list daily records with pagination
 router.get('/', authMiddleware, async (req, res) => {
   try {
