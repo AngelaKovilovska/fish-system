@@ -1051,7 +1051,7 @@ export default function AICalculator() {
                 <select
                   value={growthPool}
                   onChange={e => { setGrowthPool(parseInt(e.target.value)); setGrowthFrom(''); }}
-                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                  className="input-base"
                 >
                   {[1,2,3,4,5,6].map(n => (
                     <option key={n} value={n}>Базен {n}</option>
@@ -1065,7 +1065,7 @@ export default function AICalculator() {
                 <select
                   value={growthFrom}
                   onChange={e => setGrowthFrom(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                  className="input-base"
                 >
                   <option value="">Сите мерења</option>
                   {(growthData?.measurementDates || []).map(md => (
