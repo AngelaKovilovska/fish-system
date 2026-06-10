@@ -39,17 +39,17 @@ export default function FiltrationStep({ data, onChange }) {
                 }`}>
                   <p className="text-xs text-[var(--text-primary)] font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button type="button" onClick={() => handleFoam('yes')}
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                        hasFoam ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
-                      }`}>
-                      <AlertTriangle size={16} strokeWidth={2.5} />
-                    </button>
                     <button type="button" onClick={() => handleFoam('no')}
                       className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                         noFoam ? 'bg-[var(--success)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
                       }`}>
                       <Check size={16} strokeWidth={2.5} />
+                    </button>
+                    <button type="button" onClick={() => handleFoam('yes')}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                        hasFoam ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                      }`}>
+                      <AlertTriangle size={16} strokeWidth={2.5} />
                     </button>
                   </div>
                 </div>
