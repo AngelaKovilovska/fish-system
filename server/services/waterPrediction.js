@@ -173,10 +173,10 @@ function predictThresholdCrossing(currentValue, slope, norm) {
     };
   }
 
-  // Растечки тренд → проверка на макс
+  // Растечки тренд → проверка на макс (макс 7 дена — повеќе е непредвидливо)
   if (slope > 0 && norm.max !== null) {
     const days = (norm.max - currentValue) / slope;
-    if (days > 0 && days <= 30) {
+    if (days > 0 && days <= 7) {
       daysUntil = Math.ceil(days);
       direction = 'high';
       boundaryValue = norm.max;
@@ -185,7 +185,7 @@ function predictThresholdCrossing(currentValue, slope, norm) {
   // Опаѓачки тренд → проверка на мин
   if (slope < 0 && norm.min !== null) {
     const days = (norm.min - currentValue) / slope;
-    if (days > 0 && days <= 30) {
+    if (days > 0 && days <= 7) {
       if (daysUntil === null || Math.ceil(days) < daysUntil) {
         daysUntil = Math.ceil(days);
         direction = 'low';
