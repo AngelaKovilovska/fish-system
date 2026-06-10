@@ -3,7 +3,6 @@
  *
  * GET  /api/ai/recommendations         — All pools recommendation (from DB data)
  * POST /api/ai/calculate                — Manual calculator (custom inputs)
- * GET  /api/ai/water-analysis           — Water parameter anomaly detection
  * GET  /api/ai/pool/:poolNumber         — Single pool recommendation
  * GET  /api/ai/stock-projection         — Dynamic stock duration projection
  */
@@ -21,7 +20,6 @@ const {
   FEED_PRODUCTS,
 } = require('../services/feedingRecommendation');
 const { projectCurrentWeight } = require('../services/growthPrediction');
-const { analyzeWaterParameters } = require('../services/waterAnomalyDetection');
 const { analyzeWaterPrediction, analyzeWaterPredictionEnhanced } = require('../services/waterPrediction');
 const { generateWaterForecast } = require('../services/waterRandomForest');
 
@@ -395,50 +393,6 @@ router.post('/calculate', authMiddleware, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('AI calculate error:', err);
-    res.status(500).json({ error: 'Серверска грешка' });
-  }
-});
-
-/**
- * GET /api/ai/water-analysis
- * Analyze current water parameters for anomalies
- */
-router.get('/water-analysis', authMiddleware, async (req, res) => {
-  try {
-    // Get latest water reading
-    const latestRes = await pool.query(`
-      SELECT wc.*, dr.date
-      FROM water_control wc
-      JOIN daily_records dr ON wc.daily_record_id = dr.id
-      ORDER BY dr.date DESC
-      LIMIT 1
-    `);
-
-    if (latestRes.rows.length === 0) {
-      return res.json({ hasData: false, message: 'Нема податоци за вода' });
-    }
-
-    const current = latestRes.rows[0];
-
-    // Get historical readings (last 30 days)
-    const historyRes = await pool.query(`
-      SELECT wc.temperature, wc.ph, wc.total_alkalinity,
-             wc.nitrates, wc.nitrites, wc.hardness, wc.total_chlorine, wc.ammonium
-      FROM water_control wc
-      JOIN daily_records dr ON wc.daily_record_id = dr.id
-      WHERE dr.date >= CURRENT_DATE - INTERVAL '30 days'
-      ORDER BY dr.date ASC
-    `);
-
-    const analysis = analyzeWaterParameters(current, historyRes.rows);
-
-    res.json({
-      hasData: true,
-      date: current.date,
-      ...analysis,
-    });
-  } catch (err) {
-    console.error('Water analysis error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   }
 });

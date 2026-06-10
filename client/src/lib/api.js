@@ -38,7 +38,6 @@ export const api = {
   // Users
   getUsers: () => request('/users'),
   createUser: (data) => request('/users', { method: 'POST', body: JSON.stringify(data) }),
-  updateUser: (id, data) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 
   // Norms
@@ -113,10 +112,7 @@ export const api = {
 
   // AI Feeding Recommendations
   getAIRecommendations: () => request('/ai/recommendations'),
-  getAIPoolRecommendation: (poolNumber) => request(`/ai/pool/${poolNumber}`),
   calculateAI: (data) => request('/ai/calculate', { method: 'POST', body: JSON.stringify(data) }),
-  getWaterAnalysis: () => request('/ai/water-analysis'),
-  getFeedingTable: () => request('/ai/feeding-table'),
   getStockProjection: () => request('/ai/stock-projection'),
   getWaterPrediction: () => request('/ai/water-prediction'),
   getWaterForecast: () => request('/ai/water-forecast'),

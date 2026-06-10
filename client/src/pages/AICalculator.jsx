@@ -18,7 +18,6 @@ function formatDateMK(dateStr) {
 export default function AICalculator() {
   const [tab, setTab] = useState('pools'); // 'pools' | 'calculator' | 'water'
   const [aiData, setAiData] = useState(null);
-  const [waterData, setWaterData] = useState(null);
   const [waterPrediction, setWaterPrediction] = useState(null);
   const [waterForecast, setWaterForecast] = useState(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
@@ -36,10 +35,7 @@ export default function AICalculator() {
   const [calcResult, setCalcResult] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      api.getAIRecommendations().then(d => setAiData(d)).catch(() => {}),
-      api.getWaterAnalysis().then(d => setWaterData(d)).catch(() => {}),
-    ]).finally(() => setLoading(false));
+    api.getAIRecommendations().then(d => setAiData(d)).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   // Load water prediction + ML forecast when water tab is opened

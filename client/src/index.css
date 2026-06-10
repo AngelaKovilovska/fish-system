@@ -188,16 +188,6 @@ body {
   animation: bubbleRise 14s linear infinite;
 }
 
-/* Pool tank water ripple effect */
-@keyframes poolRipple {
-  0%   { opacity: 0.3; transform: scale(0.95); }
-  50%  { opacity: 0.7; transform: scale(1.02); }
-  100% { opacity: 0.3; transform: scale(0.95); }
-}
-.pool-ripple {
-  animation: poolRipple 4s ease-in-out infinite;
-}
-
 /* ═══════════════════════════════════════════════════════════
    Cards
    ═══════════════════════════════════════════════════════════ */
@@ -298,9 +288,7 @@ select.input-base:focus {
 
 .input-error { border-color: var(--danger) !important; background: #FEF2F2 !important; }
 .input-warning { border-color: var(--border) !important; background: var(--surface) !important; }
-.input-success { border-color: var(--success) !important; background: #F0FDF4 !important; }
 [data-theme="dark"] .input-error { background: rgba(239,68,68,0.1) !important; }
-[data-theme="dark"] .input-success { background: rgba(34,197,94,0.1) !important; }
 
 .input-metric {
   width: 100%;
@@ -387,7 +375,6 @@ select.input-base:focus {
 .pill-success { background: rgba(34,197,94,0.1); color: #16a34a; }
 .pill-warning { background: rgba(245,158,11,0.12); color: #b45309; }
 .pill-danger { background: rgba(239,68,68,0.1); color: #dc2626; }
-.pill-info { background: var(--primary-muted); color: var(--primary); }
 .pill-blue { background: var(--primary-muted); color: var(--primary); }
 
 .chip-active {
@@ -486,7 +473,6 @@ select.input-base:focus {
 .animate-in-delay-3 { animation: fadeInUp 0.45s var(--ease-out) 0.15s both; }
 .animate-in-delay-4 { animation: fadeInUp 0.45s var(--ease-out) 0.2s both; }
 .animate-in-delay-5 { animation: fadeInUp 0.45s var(--ease-out) 0.25s both; }
-.animate-in-delay-6 { animation: fadeInUp 0.45s var(--ease-out) 0.3s both; }
 
 .skeleton {
   background: linear-gradient(90deg, var(--border) 25%, var(--bg) 37%, var(--border) 63%);
@@ -628,9 +614,6 @@ select.input-base:focus {
 /* ═══════════════════════════════════════════════════════════
    Status
    ═══════════════════════════════════════════════════════════ */
-
-.status-healthy { background: rgba(34,197,94,0.1); color: #16a34a; }
-.status-attention { background: rgba(245,158,11,0.12); color: #b45309; }
 
 /* ═══════════════════════════════════════════════════════════
    Pulse animation (status dots)
