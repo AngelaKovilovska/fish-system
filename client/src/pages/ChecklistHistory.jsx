@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
-  ClipboardList, Sunrise, Sun, Moon, X, Flame, TrendingUp,
+  ClipboardList, Sunrise, Sun, Moon, X, Flame,
 } from 'lucide-react';
 
 const MK_MONTHS = [
@@ -133,83 +133,44 @@ export default function ChecklistHistory() {
         <h1 className="page-title">Историја на записи</h1>
       </div>
 
-      {/* ── Monthly stats + Streak ── */}
+      {/* ── Compact stats row: streak + stats + progress ── */}
       {!loading && (
-        <div className="card !p-3.5 mb-4 animate-in-delay-1">
-          {/* Streak badge (only on current month view) */}
-          {streak && streak.streak > 0 && isCurrentMonth && (
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-[var(--border)]">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+        <div className="card !p-2.5 mb-3 animate-in-delay-1">
+          <div className="flex items-center gap-3">
+            {/* Streak pill */}
+            {streak && streak.streak > 0 && isCurrentMonth && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0"
                 style={{ background: streak.streak >= 7
                   ? 'linear-gradient(135deg, #F59E0B, #EF4444)'
                   : streak.streak >= 3
                   ? 'linear-gradient(135deg, #F59E0B, #F97316)'
                   : 'rgba(245,158,11,0.15)'
                 }}>
-                <Flame size={16} className={streak.streak >= 3 ? 'text-white' : 'text-amber-500'} />
+                <Flame size={12} className={streak.streak >= 3 ? 'text-white' : 'text-amber-500'} />
+                <span className={`text-[11px] font-bold ${streak.streak >= 3 ? 'text-white' : 'text-amber-600'}`}>
+                  {streak.streak}д
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {streak.streak} {streak.streak === 1 ? 'ден' : 'денови'} без прекин
-                </p>
-                <p className="text-[11px] text-[var(--text-muted)]">
-                  {streak.todayDone ? 'Денешната чеклиста е пополнета' : 'Денешната чеклиста уште не е пополнета'}
-                </p>
-              </div>
-              {streak.streak >= 7 && (
-                <span className="text-lg">🔥</span>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Month stats grid */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            <div className="text-center">
-              <div className="text-lg font-bold text-[var(--success)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                {monthStats.completed}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] font-medium">Пополнети</div>
+            {/* Stats inline */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <span className="text-[11px]"><span className="font-bold text-[var(--success)]">{monthStats.completed}</span> <span className="text-[var(--text-muted)]">✓</span></span>
+              <span className="text-[11px]"><span className="font-bold text-amber-500">{monthStats.partial}</span> <span className="text-[var(--text-muted)]">½</span></span>
+              <span className="text-[11px]"><span className="font-bold text-[var(--text-muted)]">{monthStats.missed}</span> <span className="text-[var(--text-muted)]">—</span></span>
+              <span className="text-[11px]"><span className="font-bold text-[var(--danger)]">{monthStats.alerts}</span> <span className="text-[var(--text-muted)]">⚠</span></span>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-amber-500" style={{ fontFamily: 'Sora, sans-serif' }}>
-                {monthStats.partial}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] font-medium">Делумни</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-[var(--text-muted)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                {monthStats.missed}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] font-medium">Пропуштени</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-[var(--danger)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                {monthStats.alerts}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] font-medium">Аларми</div>
-            </div>
-          </div>
 
-          {/* Progress bar */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-[var(--text-muted)]">
-                Комплетност: {monthStats.completed}/{monthStats.lastDay} денови
-              </span>
-              <span className="text-[10px] font-bold text-[var(--text-secondary)]">{monthStats.pct}%</span>
-            </div>
-            <div className="h-2 bg-[var(--bg)] rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${monthStats.pct}%`,
-                  background: monthStats.pct >= 80
-                    ? 'linear-gradient(90deg, #22C55E, #16a34a)'
-                    : monthStats.pct >= 50
-                    ? 'linear-gradient(90deg, #F59E0B, #F97316)'
-                    : 'linear-gradient(90deg, #EF4444, #DC2626)',
-                }}
-              />
+            {/* Compact progress */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-16 h-1.5 bg-[var(--bg)] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${monthStats.pct}%`,
+                    background: monthStats.pct >= 80 ? '#22C55E' : monthStats.pct >= 50 ? '#F59E0B' : '#EF4444',
+                  }} />
+              </div>
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] w-7 text-right">{monthStats.pct}%</span>
             </div>
           </div>
         </div>
