@@ -22,7 +22,8 @@ const {
 } = require('../services/feedingRecommendation');
 const { projectCurrentWeight } = require('../services/growthPrediction');
 const { analyzeWaterParameters } = require('../services/waterAnomalyDetection');
-const { analyzeWaterPrediction } = require('../services/waterPrediction');
+const { analyzeWaterPrediction, analyzeWaterPredictionEnhanced } = require('../services/waterPrediction');
+const { generateWaterForecast } = require('../services/waterRandomForest');
 
 const router = express.Router();
 
@@ -550,11 +551,25 @@ router.get('/stock-projection', authMiddleware, async (req, res) => {
  */
 router.get('/water-prediction', authMiddleware, async (req, res) => {
   try {
-    const result = await analyzeWaterPrediction(pool);
+    const result = await analyzeWaterPredictionEnhanced(pool);
     res.json(result);
   } catch (err) {
     console.error('Water prediction error:', err);
     res.status(500).json({ error: 'Серверска грешка при анализа' });
+  }
+});
+
+/**
+ * GET /api/ai/water-forecast
+ * Random Forest ML prediction for water parameters (1-3 days ahead)
+ */
+router.get('/water-forecast', authMiddleware, async (req, res) => {
+  try {
+    const result = await generateWaterForecast(pool);
+    res.json(result);
+  } catch (err) {
+    console.error('Water RF forecast error:', err);
+    res.status(500).json({ error: 'Серверска грешка при ML предикција' });
   }
 });
 

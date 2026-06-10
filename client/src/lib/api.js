@@ -119,4 +119,5 @@ export const api = {
   getFeedingTable: () => request('/ai/feeding-table'),
   getStockProjection: () => request('/ai/stock-projection'),
   getWaterPrediction: () => request('/ai/water-prediction'),
+  getWaterForecast: () => request('/ai/water-forecast'),
 };

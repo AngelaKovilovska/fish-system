@@ -794,4 +794,76 @@ async function analyzeWaterPrediction(dbPool) {
   };
 }
 
-module.exports = { analyzeWaterPrediction, calculateNH3 };
+// ═══════════════════════════════════════════════════
+// ИНТЕГРАЦИЈА: Random Forest предикции
+// ═══════════════════════════════════════════════════
+
+let rfModule = null;
+try {
+  rfModule = require('./waterRandomForest');
+} catch (e) {
+  // ML модулот не е достапен — продолжи без него
+}
+
+/**
+ * Обогатена анализа: rule-based + Random Forest предикции
+ */
+async function analyzeWaterPredictionEnhanced(dbPool) {
+  // Стартувај ги паралелно за брзина
+  const [ruleBasedResult, rfResult] = await Promise.all([
+    analyzeWaterPrediction(dbPool),
+    rfModule ? rfModule.generateWaterForecast(dbPool).catch(err => {
+      console.error('RF forecast failed (non-critical):', err.message);
+      return { available: false, reason: 'ML грешка: ' + err.message };
+    }) : Promise.resolve(null),
+  ]);
+
+  // Ако RF е достапен, додај ги предикциите и споредбата
+  if (rfResult && rfResult.available && ruleBasedResult.hasData) {
+    ruleBasedResult.mlForecast = rfResult;
+
+    // Споредба: ако и линеарниот тренд и RF се согласуваат за предупредување
+    // → зголеми ја тежината на предупредувањето
+    if (rfResult.warnings && rfResult.warnings.length > 0 && ruleBasedResult.warnings) {
+      for (const rfWarn of rfResult.warnings) {
+        const matchingTrend = ruleBasedResult.warnings.find(
+          w => w.parameter === rfWarn.parameter && w.type === 'trend'
+        );
+        if (matchingTrend) {
+          // И двата модели се согласуваат — додај ознака
+          matchingTrend.confirmedByML = true;
+          matchingTrend.mlPredicted = rfWarn.predicted;
+          matchingTrend.mlDay = rfWarn.day;
+        }
+      }
+
+      // Додај RF предупредувања кои тренд анализата не ги фатила
+      for (const rfWarn of rfResult.warnings) {
+        const alreadyExists = ruleBasedResult.warnings.some(
+          w => w.parameter === rfWarn.parameter
+        );
+        if (!alreadyExists) {
+          ruleBasedResult.warnings.push({
+            type: 'ml_forecast',
+            severity: rfWarn.severity,
+            parameter: rfWarn.parameter,
+            label: rfWarn.label,
+            message: `ML предикција: ${rfWarn.label} ${rfWarn.direction === 'high' ? 'ќе ја надмине' : 'ќе падне под'} нормата (${rfWarn.boundary}${rfWarn.unit}) за ${rfWarn.day} ден${rfWarn.day > 1 ? 'а' : ''} (предвидено: ${rfWarn.predicted})`,
+            daysUntil: rfWarn.day,
+            mlPredicted: rfWarn.predicted,
+          });
+        }
+      }
+
+      // Ресортирај
+      ruleBasedResult.warnings.sort((a, b) => {
+        const sev = { critical: 0, warning: 1, info: 2 };
+        return (sev[a.severity] || 9) - (sev[b.severity] || 9) || (a.daysUntil || 0) - (b.daysUntil || 0);
+      });
+    }
+  }
+
+  return ruleBasedResult;
+}
+
+module.exports = { analyzeWaterPrediction, analyzeWaterPredictionEnhanced, calculateNH3 };
