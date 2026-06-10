@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { PARAMETER_LABELS } from '../../lib/constants';
-import { Save, Loader2, Check } from 'lucide-react';
+import { Save, Loader2, Check, ChevronLeft } from 'lucide-react';
 
 export default function ManageNorms() {
+  const navigate = useNavigate();
   const [norms, setNorms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingAll, setSavingAll] = useState(false);
@@ -39,7 +41,12 @@ export default function ManageNorms() {
     <div className="max-w-[700px] mx-auto">
       <div className="flex items-center justify-between mb-5 animate-in">
         <div>
-          <h1 className="page-title mb-1">Управување со норми</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5">
+              <ChevronLeft size={20} />
+            </button>
+            <h1 className="page-title mb-1">Управување со норми</h1>
+          </div>
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">
             Поставете мин/макс вредности. Надвор од норма = аларм.
           </p>

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { Trash2, Plus, X } from 'lucide-react';
+import { Trash2, Plus, X, ChevronLeft } from 'lucide-react';
 
 export default function ManageUsers() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ email: '', full_name: '', password: '', role: 'worker' });
+  const [form, setForm] = useState({ email: '', full_name: '', password: '', role: 'operator' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,7 +28,7 @@ export default function ManageUsers() {
     setError(''); setSubmitting(true);
     try {
       await api.createUser(form);
-      setForm({ email: '', full_name: '', password: '', role: 'worker' });
+      setForm({ email: '', full_name: '', password: '', role: 'operator' });
       setShowForm(false);
       loadUsers();
     } catch (err) { setError(err.message); }
@@ -48,7 +50,12 @@ export default function ManageUsers() {
   return (
     <div className="max-w-[700px] mx-auto">
       <div className="flex justify-between items-center mb-5 animate-in">
-        <h1 className="page-title">Корисници</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="page-title">Корисници</h1>
+        </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className={showForm ? 'btn-secondary py-2 px-3 text-sm' : 'btn-primary py-2 px-3 text-sm'}
@@ -84,7 +91,7 @@ export default function ManageUsers() {
             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Улога</label>
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
               className="input-base">
-              <option value="worker">Работник</option>
+              <option value="operator">Оператор</option>
               <option value="admin">Админ</option>
             </select>
           </div>
@@ -131,7 +138,7 @@ export default function ManageUsers() {
                 <td className="text-[var(--text-secondary)] text-xs">{u.email}</td>
                 <td className="text-center">
                   <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
-                    {u.role === 'admin' ? 'Админ' : 'Работник'}
+                    {u.role === 'admin' ? 'Админ' : 'Оператор'}
                   </span>
                 </td>
                 <td className="text-right">

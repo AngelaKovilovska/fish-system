@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { UtensilsCrossed, Search, X, ChevronLeft, ChevronRight, Sunrise, Sun, Moon, Calendar } from 'lucide-react';
 
@@ -12,6 +12,7 @@ const MEAL_INFO = {
 };
 
 export default function MealHistory() {
+  const navigate = useNavigate();
   const [dates, setDates] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,9 @@ export default function MealHistory() {
   return (
     <div className="overflow-hidden">
       <div className="flex items-center gap-3 mb-4 animate-in">
+        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
+          <ChevronLeft size={20} />
+        </button>
         <div className="icon-box"
           style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
           <UtensilsCrossed size={18} />

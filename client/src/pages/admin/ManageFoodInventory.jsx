@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search } from 'lucide-react';
+import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search, ChevronLeft } from 'lucide-react';
 
 const MK_MONTHS = [
   'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -23,6 +24,7 @@ function fuzzyMatch(haystack, needle) {
 }
 
 export default function ManageFoodInventory() {
+  const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,7 +217,12 @@ export default function ManageFoodInventory() {
   return (
     <div className="max-w-[700px] mx-auto">
       <div className="mb-5 animate-in">
-        <h1 className="page-title mb-1">Залихи на храна</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="page-title mb-1">Залихи на храна</h1>
+        </div>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
           Следете ги залихите. При секоја чек-листа потрошената храна автоматски се одзема.
         </p>

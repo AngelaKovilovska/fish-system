@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
-import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp, Check, ChevronLeft } from 'lucide-react';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function ManagePoolMeasurements() {
+  const navigate = useNavigate();
   const [measurements, setMeasurements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePool, setActivePool] = useState(POOL_NUMBERS[0]);
@@ -122,7 +124,12 @@ export default function ManagePoolMeasurements() {
   return (
     <div className="max-w-lg mx-auto">
       <div className="mb-5 animate-in">
-        <h1 className="page-title mb-1">Мерења по базен</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="page-title mb-1">Мерења по базен</h1>
+        </div>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
           Внесете број на риби и просечна тежина. Зачувајте сè одеднаш на крајот.
         </p>

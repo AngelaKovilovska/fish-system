@@ -37,7 +37,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ error: 'Лозинката мора да има минимум 8 карактери' });
     }
 
-    if (role && !['admin', 'worker'].includes(role)) {
+    if (role && !['admin', 'operator'].includes(role)) {
       return res.status(400).json({ error: 'Невалидна улога' });
     }
 
@@ -49,7 +49,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
     const password_hash = await bcrypt.hash(password, 12);
     const result = await pool.query(
       'INSERT INTO users (email, full_name, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role, created_at',
-      [email, full_name, password_hash, role || 'worker']
+      [email, full_name, password_hash, role || 'operator']
     );
 
     res.status(201).json({ user: result.rows[0] });
@@ -76,7 +76,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
       fields.push(`email = $${idx++}`); values.push(email);
     }
     if (full_name) { fields.push(`full_name = $${idx++}`); values.push(sanitizeString(full_name, 100)); }
-    if (role && ['admin', 'worker'].includes(role)) { fields.push(`role = $${idx++}`); values.push(role); }
+    if (role && ['admin', 'operator'].includes(role)) { fields.push(`role = $${idx++}`); values.push(role); }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: 'Нема податоци за ажурирање' });

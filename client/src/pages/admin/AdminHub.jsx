@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Scale, Package, Settings, Users, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Scale, Package, Settings, Users, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const adminPages = [
   { path: '/admin/measurements', label: 'Мерења', desc: 'Мерења на базени', icon: Scale, color: 'var(--primary)' },
@@ -9,9 +9,15 @@ const adminPages = [
 ];
 
 export default function AdminHub() {
+  const navigate = useNavigate();
   return (
     <div>
-      <h1 className="page-title mb-1 animate-in">Администрација</h1>
+      <div className="flex items-center gap-2 mb-1 animate-in">
+        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5">
+          <ChevronLeft size={20} />
+        </button>
+        <h1 className="page-title">Администрација</h1>
+      </div>
       <p className="text-sm text-[var(--text-muted)] mb-5 animate-in" style={{ fontFamily: 'Sora, sans-serif' }}>
         Управување со системот
       </p>

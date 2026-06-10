@@ -1,5 +1,9 @@
+import { useRef } from 'react';
 import { PARAMETER_LABELS } from '../../lib/constants';
 import { AlertTriangle, Droplets, Thermometer, Beaker, FlaskConical, ShieldAlert, Waves } from 'lucide-react';
+
+// All field keys in order (parameters + water_exchange)
+const ALL_FIELD_KEYS = [...Object.keys(PARAMETER_LABELS), 'water_exchange_m3'];
 
 const FIELD_ICONS = {
   temperature: Thermometer,
@@ -13,8 +17,25 @@ const FIELD_ICONS = {
 };
 
 export default function WaterControlStep({ data, onChange, norms, requiredFields = [] }) {
+  const inputRefs = useRef({});
+
   const handleChange = (field, value) => {
     onChange({ ...data, [field]: value });
+  };
+
+  // Enter key → focus next input field
+  const handleKeyDown = (e, fieldKey) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = ALL_FIELD_KEYS.indexOf(fieldKey);
+      if (idx >= 0 && idx < ALL_FIELD_KEYS.length - 1) {
+        const nextKey = ALL_FIELD_KEYS[idx + 1];
+        inputRefs.current[nextKey]?.focus();
+      } else {
+        // Last field — blur
+        e.target.blur();
+      }
+    }
   };
 
   const isOutOfRange = (field, value) => {
@@ -58,7 +79,7 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {Object.entries(PARAMETER_LABELS).map(([key, { label, unit }]) => {
           const outOfRange = isOutOfRange(key, data[key]);
           const required = isRequired(key);
@@ -68,11 +89,11 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
           const Icon = FIELD_ICONS[key] || Droplets;
 
           return (
-            <div key={key} className={`rounded-[var(--r-lg)] p-3.5 transition-all duration-150 ${
+            <div key={key} className={`rounded-[var(--r-md)] p-2.5 transition-all duration-150 ${
               outOfRange ? 'bg-[rgba(255,107,107,0.04)] border border-[rgba(255,107,107,0.25)]' :
               'bg-[var(--surface)]'
             }`}>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   <Icon size={14} className={outOfRange ? 'text-[var(--danger)]' : 'text-[var(--primary)]'} />
@@ -87,10 +108,13 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
                 )}
               </div>
               <input
+                ref={el => { inputRefs.current[key] = el; }}
                 type="number"
+                inputMode="decimal"
                 step="any"
                 value={data[key] ?? ''}
                 onChange={(e) => handleChange(key, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, key)}
                 className={`input-metric ${
                   outOfRange ? 'input-error' : isEmpty ? 'input-warning' : ''
                 }`}
@@ -107,8 +131,8 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
         })}
 
         {/* Water exchange - optional, separate from monitored parameters */}
-        <div className="rounded-[var(--r-lg)] p-3.5 bg-[var(--surface)] mt-4 border border-dashed border-[var(--border)]">
-          <div className="flex items-center justify-between mb-2">
+        <div className="rounded-[var(--r-md)] p-2.5 bg-[var(--surface)] mt-3 border border-dashed border-[var(--border)]">
+          <div className="flex items-center justify-between mb-1.5">
             <label className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               <Waves size={14} className="text-[var(--primary)]" />
@@ -118,11 +142,14 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
             <span className="pill pill-blue text-[10px]">опционално</span>
           </div>
           <input
+            ref={el => { inputRefs.current['water_exchange_m3'] = el; }}
             type="number"
+            inputMode="decimal"
             step="any"
             min="0"
             value={data.water_exchange_m3 ?? ''}
             onChange={(e) => handleChange('water_exchange_m3', e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, 'water_exchange_m3')}
             className="input-metric"
             placeholder="Внеси количина ако имало замена"
           />

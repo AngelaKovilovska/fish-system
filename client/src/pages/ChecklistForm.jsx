@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import WaterControlStep from '../components/checklist/WaterControlStep';
@@ -6,13 +6,14 @@ import FiltrationStep from '../components/checklist/FiltrationStep';
 import FishControlStep from '../components/checklist/FishControlStep';
 import FeedingStep from '../components/checklist/FeedingStep';
 import ActivitiesStep from '../components/checklist/ActivitiesStep';
+import SummaryStep from '../components/checklist/SummaryStep';
 import { POOL_NUMBERS, FILTRATION_LABELS, FISH_VISUAL_LABELS } from '../lib/constants';
-import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pencil, X } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pencil, X, RotateCcw } from 'lucide-react';
 
-const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности'];
-const STEP_ICONS = ['💧', '⚙️', '🐟', '🐟', '📋'];
+const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности', 'Резиме'];
 const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites', 'ammonium'];
 const MK_MONTHS = ['Јануари','Февруари','Март','Април','Мај','Јуни','Јули','Август','Септември','Октомври','Ноември','Декември'];
+const DRAFT_KEY = 'clario_checklist_draft';
 
 export default function ChecklistForm() {
   const navigate = useNavigate();
@@ -28,11 +29,13 @@ export default function ChecklistForm() {
   const [fishInventory, setFishInventory] = useState([]);
   const [stepErrors, setStepErrors] = useState({});
   const [duplicateRecord, setDuplicateRecord] = useState(null); // existing record for selected date
+  const [draftAvailable, setDraftAvailable] = useState(false); // show draft recovery banner
   const feedingRef = useRef(null);
+  const draftSaveTimer = useRef(null);
 
   const today = new Date().toISOString().split('T')[0];
 
-  const [formData, setFormData] = useState({
+  const makeEmptyForm = () => ({
     date: today,
     water_control: {},
     filtration_checks: {},
@@ -40,6 +43,8 @@ export default function ChecklistForm() {
     pool_feeding: POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
     activities: {},
   });
+
+  const [formData, setFormData] = useState(makeEmptyForm);
 
   useEffect(() => {
     api.getNorms().then(d => setNorms(d.norms)).catch(console.error);
@@ -86,6 +91,69 @@ export default function ChecklistForm() {
       .catch(err => setError('Грешка при вчитување: ' + err.message))
       .finally(() => setLoadingRecord(false));
   }, [editId]);
+
+  // ── Auto-save draft: detect on mount ──
+  useEffect(() => {
+    if (isEdit) return; // don't offer draft recovery in edit mode
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Only offer if draft is from today or yesterday (not stale)
+        if (parsed.formData && parsed.savedAt) {
+          const ageMs = Date.now() - parsed.savedAt;
+          const ageHours = ageMs / (1000 * 60 * 60);
+          if (ageHours < 24) {
+            setDraftAvailable(true);
+          } else {
+            localStorage.removeItem(DRAFT_KEY);
+          }
+        }
+      }
+    } catch { /* ignore corrupt data */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-save draft: save on every formData/step change (debounced) ──
+  useEffect(() => {
+    if (isEdit) return;
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = setTimeout(() => {
+      try {
+        // Only save if there's meaningful data (at least one water field filled)
+        const hasData = Object.values(formData.water_control || {}).some(v => v !== '' && v != null);
+        if (hasData) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            formData,
+            step,
+            savedAt: Date.now(),
+          }));
+        }
+      } catch { /* localStorage full or unavailable */ }
+    }, 1000); // debounce 1s
+    return () => { if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current); };
+  }, [formData, step, isEdit]);
+
+  const restoreDraft = useCallback(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY));
+      if (saved?.formData) {
+        setFormData(saved.formData);
+        if (saved.step != null && saved.step >= 0 && saved.step < STEPS.length) {
+          setStep(saved.step);
+        }
+      }
+    } catch { /* ignore */ }
+    setDraftAvailable(false);
+  }, []);
+
+  const discardDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftAvailable(false);
+  }, []);
+
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+  }, []);
 
   const validateWater = () => {
     const errors = [];
@@ -162,6 +230,7 @@ export default function ChecklistForm() {
       let result;
       if (isEdit) { result = await api.updateRecord(editId, payload); }
       else { result = await api.createRecord(payload); }
+      clearDraft();
       setSuccess(isEdit ? 'Записот е ажуриран!' : 'Записот е зачуван!');
       if (result.alerts?.length > 0) setSuccess(prev => prev + ` ${result.alerts.length} аларм(и).`);
       setTimeout(() => navigate('/'), 2000);
@@ -257,6 +326,30 @@ export default function ChecklistForm() {
           className="input-base" />
       </div>
 
+      {/* ── Draft recovery banner ── */}
+      {draftAvailable && (
+        <div className="mb-4 animate-in rounded-[var(--r-lg)] p-3.5 flex items-center justify-between gap-3"
+          style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(37,99,235,0.03))', border: '1px solid rgba(37,99,235,0.2)' }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <RotateCcw size={16} className="text-[var(--primary)] flex-shrink-0" />
+            <span className="text-xs font-medium text-[var(--text-primary)]">
+              Имате незавршена чек-листа
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button type="button" onClick={restoreDraft}
+              className="text-[11px] font-bold text-white px-3 py-1.5 rounded-lg"
+              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
+              Продолжи
+            </button>
+            <button type="button" onClick={discardDraft}
+              className="text-[11px] font-medium text-[var(--text-muted)] px-2 py-1.5">
+              Нова
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Stepper ── */}
       <div className="mb-5 animate-in-delay-1">
         <div className="flex items-center justify-between relative">
@@ -274,7 +367,23 @@ export default function ChecklistForm() {
               <button key={i} type="button"
                 onClick={() => {
                   if (i <= step) { setStep(i); setTimeout(() => window.scrollTo(0, 0), 50); }
-                  else {
+                  else if (i === STEPS.length - 1) {
+                    // Clicking summary step: validate all required steps (0-2)
+                    const allErrors = {};
+                    for (let s = 0; s <= 2; s++) {
+                      const errs = validateStep(s);
+                      if (errs.length > 0) allErrors[s] = errs;
+                    }
+                    if (Object.keys(allErrors).length > 0) {
+                      setStepErrors({ ...stepErrors, ...allErrors });
+                      setStep(Math.min(...Object.keys(allErrors).map(Number)));
+                      setTimeout(() => window.scrollTo(0, 0), 50);
+                    } else {
+                      setStepErrors({ ...stepErrors, [step]: [] });
+                      setStep(i);
+                      setTimeout(() => window.scrollTo(0, 0), 50);
+                    }
+                  } else {
                     const errors = validateStep(step);
                     if (errors.length > 0) setStepErrors({ ...stepErrors, [step]: errors });
                     else { setStepErrors({ ...stepErrors, [step]: [] }); setStep(i); setTimeout(() => window.scrollTo(0, 0), 50); }
@@ -325,41 +434,48 @@ export default function ChecklistForm() {
         {step === 2 && <FishControlStep data={formData.fish_visual} onChange={(d) => setFormData({ ...formData, fish_visual: d })} />}
         {step === 3 && <FeedingStep ref={feedingRef} data={formData.pool_feeding} onChange={(d) => setFormData({ ...formData, pool_feeding: d })} poolMeasurements={poolMeasurements} fishInventory={fishInventory} />}
         {step === 4 && <ActivitiesStep data={formData.activities} onChange={(d) => setFormData({ ...formData, activities: d })} />}
+        {step === 5 && <SummaryStep formData={formData} norms={norms} fishInventory={fishInventory}
+          onGoToStep={(i) => { setStep(i); setTimeout(() => window.scrollTo(0, 0), 50); }} />}
       </div>
 
       {/* Messages */}
       {error && <div className="alert-danger mb-3 animate-in text-sm">{error}</div>}
       {success && <div className="alert-success mb-3 animate-in text-sm">{success}</div>}
 
-      {/* Nav buttons */}
-      <div className="flex gap-3 animate-in-delay-3">
-        {step > 0 && (
-          <button type="button" onClick={() => {
-            if (step === 3 && feedingRef.current?.tryGoBackPool()) {
-              setTimeout(() => window.scrollTo(0, 0), 50);
-              return;
-            }
-            setStep(step - 1); setTimeout(() => window.scrollTo(0, 0), 50);
-          }} className="btn-secondary flex-1 py-2.5">
-            <ChevronLeft size={16} /> Назад
-          </button>
-        )}
-        {step < STEPS.length - 1 ? (
-          <button type="button" onClick={handleNext} className="btn-primary flex-1 py-2.5">
-            Следно <ChevronRight size={16} />
-          </button>
-        ) : (
-          <button type="button" onClick={handleSubmit} disabled={saving} className="btn-primary flex-1 py-2.5">
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <div className="wave-loader"><span /><span /><span /><span /></div>
-                Се зачувува...
-              </span>
-            ) : (
-              <><Save size={16} /> {isEdit ? 'Ажурирај' : 'Зачувај'}</>
-            )}
-          </button>
-        )}
+      {/* Spacer so content doesn't hide behind sticky footer */}
+      <div className="h-20" />
+
+      {/* Sticky nav buttons */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--bg)] border-t border-[var(--border)] px-4 py-3 safe-area-bottom">
+        <div className="max-w-lg mx-auto flex gap-3">
+          {step > 0 && (
+            <button type="button" onClick={() => {
+              if (step === 3 && feedingRef.current?.tryGoBackPool()) {
+                setTimeout(() => window.scrollTo(0, 0), 50);
+                return;
+              }
+              setStep(step - 1); setTimeout(() => window.scrollTo(0, 0), 50);
+            }} className="btn-secondary flex-1 py-2.5">
+              <ChevronLeft size={16} /> Назад
+            </button>
+          )}
+          {step < STEPS.length - 1 ? (
+            <button type="button" onClick={handleNext} className="btn-primary flex-1 py-2.5">
+              Следно <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button type="button" onClick={handleSubmit} disabled={saving} className="btn-primary flex-1 py-2.5">
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <div className="wave-loader"><span /><span /><span /><span /></div>
+                  Се зачувува...
+                </span>
+              ) : (
+                <><Save size={16} /> {isEdit ? 'Ажурирај' : 'Зачувај'}</>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

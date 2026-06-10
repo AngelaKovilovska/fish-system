@@ -23,7 +23,7 @@ export default function FiltrationStep({ data, onChange }) {
         </div>
       </div>
 
-      <div className="space-y-3 lg:space-y-2.5">
+      <div className="space-y-1.5">
         {Object.entries(FILTRATION_LABELS).map(([key, label]) => {
           if (key === 'bio_filter_foam') {
             const foamValue = data[key];
@@ -31,31 +31,32 @@ export default function FiltrationStep({ data, onChange }) {
             const noFoam = foamValue === 'no';
 
             return (
-              <div key={key}
-                className={`rounded-[var(--r-lg)] transition-all duration-300 border ${
+              <div key={key}>
+                <div className={`flex items-center justify-between p-2.5 rounded-[var(--r-md)] transition-all duration-200 border ${
                   hasFoam ? 'bg-[rgba(255,107,107,0.04)] border-[rgba(255,107,107,0.25)]'
                   : noFoam ? 'bg-[rgba(34,197,94,0.03)] border-[rgba(34,197,94,0.15)]'
                   : 'bg-[var(--surface)] border-[var(--border)]'
                 }`}>
-                <div className="p-3.5">
-                  <p className="text-[13px] text-[var(--text-primary)] font-medium mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
-                  <div className="flex items-center gap-2">
+                  <p className="text-xs text-[var(--text-primary)] font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button type="button" onClick={() => handleFoam('yes')}
-                      className={`seg-btn flex-1 ${hasFoam ? 'seg-bad' : ''}`}>
-                      <Check size={15} strokeWidth={2.5} />
-                      Има
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                        hasFoam ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                      }`}>
+                      <AlertTriangle size={16} strokeWidth={2.5} />
                     </button>
                     <button type="button" onClick={() => handleFoam('no')}
-                      className={`seg-btn flex-1 ${noFoam ? 'seg-ok' : ''}`}>
-                      <X size={15} strokeWidth={2.5} />
-                      Нема
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                        noFoam ? 'bg-[var(--success)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                      }`}>
+                      <Check size={16} strokeWidth={2.5} />
                     </button>
                   </div>
                 </div>
                 {hasFoam && (
-                  <div className="mx-3.5 mb-3.5 p-2.5 bg-[rgba(255,107,107,0.06)] border border-[rgba(255,107,107,0.2)] rounded-[var(--r-sm)] flex items-center gap-2">
-                    <AlertTriangle size={15} className="text-[var(--danger)] flex-shrink-0" />
-                    <p className="text-xs text-[var(--danger)] font-bold">
+                  <div className="mx-2.5 mt-1 mb-1 p-2 bg-[rgba(255,107,107,0.06)] border border-[rgba(255,107,107,0.2)] rounded-[var(--r-sm)] flex items-center gap-2">
+                    <AlertTriangle size={13} className="text-[var(--danger)] flex-shrink-0" />
+                    <p className="text-[11px] text-[var(--danger)] font-bold">
                       ОПАСНОСТ: Детектирана пена!
                     </p>
                   </div>
@@ -70,22 +71,24 @@ export default function FiltrationStep({ data, onChange }) {
 
           return (
             <div key={key}
-              className={`p-3.5 rounded-[var(--r-lg)] transition-all duration-300 border ${
+              className={`flex items-center justify-between p-2.5 rounded-[var(--r-md)] transition-all duration-200 border ${
                 isOk ? 'bg-[rgba(34,197,94,0.03)] border-[rgba(34,197,94,0.15)]'
                 : isNotOk ? 'bg-[rgba(255,107,107,0.04)] border-[rgba(255,107,107,0.25)]'
                 : 'bg-[var(--surface)] border-[var(--border)]'
               }`}>
-              <p className="text-[13px] text-[var(--text-primary)] font-medium mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
-              <div className="flex items-center gap-2">
+              <p className="text-xs text-[var(--text-primary)] font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button type="button" onClick={() => handleToggle(key, true)}
-                  className={`seg-btn flex-1 ${isOk ? 'seg-ok' : ''}`}>
-                  <Check size={15} strokeWidth={2.5} />
-                  ОК
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                    isOk ? 'bg-[var(--success)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                  }`}>
+                  <Check size={16} strokeWidth={2.5} />
                 </button>
                 <button type="button" onClick={() => handleToggle(key, false)}
-                  className={`seg-btn flex-1 ${isNotOk ? 'seg-bad' : ''}`}>
-                  <X size={15} strokeWidth={2.5} />
-                  Не е ОК
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                    isNotOk ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                  }`}>
+                  <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
             </div>

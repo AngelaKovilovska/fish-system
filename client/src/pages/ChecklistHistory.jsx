@@ -100,7 +100,12 @@ export default function ChecklistHistory() {
 
   return (
     <div>
-      <h1 className="page-title mb-4 animate-in">Историја на записи</h1>
+      <div className="flex items-center gap-2 mb-4 animate-in">
+        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5">
+          <ChevronLeft size={20} />
+        </button>
+        <h1 className="page-title">Историја на записи</h1>
+      </div>
 
       {/* Month navigation */}
       <div className="card !p-3 mb-4 animate-in-delay-1">

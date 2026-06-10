@@ -304,19 +304,19 @@ select.input-base:focus {
 
 .input-metric {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 0.5rem 0.75rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   font-family: 'Sora', sans-serif;
   transition: all 150ms var(--ease-smooth);
   outline: none;
   letter-spacing: -0.02em;
 }
-.input-metric::placeholder { color: var(--text-muted); font-weight: 400; font-size: 0.875rem; }
+.input-metric::placeholder { color: var(--text-muted); font-weight: 400; font-size: 0.8125rem; }
 .input-metric:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1), 0 2px 8px rgba(37,99,235,0.08); background: var(--surface); }
 
 /* ═══════════════════════════════════════════════════════════
@@ -466,6 +466,14 @@ select.input-base:focus {
   border: 1.5px solid rgba(37,99,235,0.12);
   border-radius: var(--r-sm); color: var(--primary);
   font-size: 0.8125rem; font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Utilities
+   ═══════════════════════════════════════════════════════════ */
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -669,10 +677,10 @@ select.input-base:focus {
     font-size: 0.9375rem;
   }
 
-  /* Larger number inputs for water parameters */
+  /* Compact number inputs for water parameters */
   .input-metric {
-    padding: 0.75rem 1rem;
-    font-size: 1.375rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 1.0625rem;
   }
 
   /* Better table readability on small screens */

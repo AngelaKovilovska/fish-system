@@ -19,7 +19,7 @@ export default function FishControlStep({ data, onChange }) {
         </div>
       </div>
 
-      <div className="space-y-3 lg:space-y-2.5">
+      <div className="space-y-1.5">
         {Object.entries(FISH_VISUAL_LABELS).map(([key, label]) => {
           const value = data[key];
           const isOk = value === true;
@@ -27,22 +27,24 @@ export default function FishControlStep({ data, onChange }) {
 
           return (
             <div key={key}
-              className={`p-3.5 rounded-[var(--r-lg)] transition-all duration-300 border ${
+              className={`flex items-center justify-between p-2.5 rounded-[var(--r-md)] transition-all duration-200 border ${
                 isOk ? 'bg-[rgba(34,197,94,0.03)] border-[rgba(34,197,94,0.15)]'
                 : isNotOk ? 'bg-[rgba(255,107,107,0.04)] border-[rgba(255,107,107,0.25)]'
                 : 'bg-[var(--surface)] border-[var(--border)]'
               }`}>
-              <p className="text-[13px] text-[var(--text-primary)] font-medium mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
-              <div className="flex items-center gap-2">
+              <p className="text-xs text-[var(--text-primary)] font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button type="button" onClick={() => handleToggle(key, true)}
-                  className={`seg-btn flex-1 ${isOk ? 'seg-ok' : ''}`}>
-                  <Check size={15} strokeWidth={2.5} />
-                  ОК
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                    isOk ? 'bg-[var(--success)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                  }`}>
+                  <Check size={16} strokeWidth={2.5} />
                 </button>
                 <button type="button" onClick={() => handleToggle(key, false)}
-                  className={`seg-btn flex-1 ${isNotOk ? 'seg-bad' : ''}`}>
-                  <X size={15} strokeWidth={2.5} />
-                  Не е ОК
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                    isNotOk ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                  }`}>
+                  <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
