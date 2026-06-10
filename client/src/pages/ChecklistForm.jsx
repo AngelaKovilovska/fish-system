@@ -15,6 +15,14 @@ const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites', 'amm
 const MK_MONTHS = ['Јануари','Февруари','Март','Април','Мај','Јуни','Јули','Август','Септември','Октомври','Ноември','Декември'];
 const DRAFT_KEY = 'clario_checklist_draft';
 
+const hasMeaningfulData = (fd) => {
+  if (!fd) return false;
+  const hasWater = Object.values(fd.water_control || {}).some(v => v !== '' && v != null);
+  const hasFilters = Object.values(fd.filtration_checks || {}).some(v => v != null);
+  const hasFish = Object.values(fd.fish_visual || {}).some(v => v != null);
+  return hasWater || hasFilters || hasFish;
+};
+
 export default function ChecklistForm() {
   const navigate = useNavigate();
   const { id: editId } = useParams();
@@ -29,7 +37,7 @@ export default function ChecklistForm() {
   const [fishInventory, setFishInventory] = useState([]);
   const [stepErrors, setStepErrors] = useState({});
   const [duplicateRecord, setDuplicateRecord] = useState(null); // existing record for selected date
-  const [draftAvailable, setDraftAvailable] = useState(false); // show draft recovery banner
+  const [draftAvailable, setDraftAvailable] = useState(null); // draft info object or null
   const feedingRef = useRef(null);
   const draftSaveTimer = useRef(null);
 
@@ -45,6 +53,12 @@ export default function ChecklistForm() {
   });
 
   const [formData, setFormData] = useState(makeEmptyForm);
+
+  // Refs for unmount/beforeunload access (always hold latest values)
+  const formDataRef = useRef(formData);
+  const stepRef = useRef(step);
+  formDataRef.current = formData;
+  stepRef.current = step;
 
   useEffect(() => {
     api.getNorms().then(d => setNorms(d.norms)).catch(console.error);
@@ -92,21 +106,20 @@ export default function ChecklistForm() {
       .finally(() => setLoadingRecord(false));
   }, [editId]);
 
-  // ── Auto-save draft: detect on mount ──
+  // ── Auto-save draft: detect on mount (same-day only) ──
   useEffect(() => {
-    if (isEdit) return; // don't offer draft recovery in edit mode
+    if (isEdit) return;
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Only offer if draft is from today or yesterday (not stale)
         if (parsed.formData && parsed.savedAt) {
-          const ageMs = Date.now() - parsed.savedAt;
-          const ageHours = ageMs / (1000 * 60 * 60);
-          if (ageHours < 24) {
-            setDraftAvailable(true);
+          const savedDay = new Date(parsed.savedAt).toISOString().split('T')[0];
+          const todayDay = new Date().toISOString().split('T')[0];
+          if (savedDay === todayDay) {
+            setDraftAvailable(parsed); // store full draft info for banner
           } else {
-            localStorage.removeItem(DRAFT_KEY);
+            localStorage.removeItem(DRAFT_KEY); // stale — different day, auto-delete
           }
         }
       }
@@ -119,9 +132,7 @@ export default function ChecklistForm() {
     if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     draftSaveTimer.current = setTimeout(() => {
       try {
-        // Only save if there's meaningful data (at least one water field filled)
-        const hasData = Object.values(formData.water_control || {}).some(v => v !== '' && v != null);
-        if (hasData) {
+        if (hasMeaningfulData(formData)) {
           localStorage.setItem(DRAFT_KEY, JSON.stringify({
             formData,
             step,
@@ -133,6 +144,40 @@ export default function ChecklistForm() {
     return () => { if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current); };
   }, [formData, step, isEdit]);
 
+  // ── Save draft immediately on unmount (bypass debounce) ──
+  useEffect(() => {
+    if (isEdit) return;
+    return () => {
+      try {
+        if (hasMeaningfulData(formDataRef.current)) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            formData: formDataRef.current,
+            step: stepRef.current,
+            savedAt: Date.now(),
+          }));
+        }
+      } catch { /* ignore */ }
+    };
+  }, [isEdit]);
+
+  // ── Save draft on tab/browser close ──
+  useEffect(() => {
+    if (isEdit) return;
+    const handleBeforeUnload = () => {
+      try {
+        if (hasMeaningfulData(formDataRef.current)) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            formData: formDataRef.current,
+            step: stepRef.current,
+            savedAt: Date.now(),
+          }));
+        }
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEdit]);
+
   const restoreDraft = useCallback(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(DRAFT_KEY));
@@ -143,12 +188,12 @@ export default function ChecklistForm() {
         }
       }
     } catch { /* ignore */ }
-    setDraftAvailable(false);
+    setDraftAvailable(null);
   }, []);
 
   const discardDraft = useCallback(() => {
     localStorage.removeItem(DRAFT_KEY);
-    setDraftAvailable(false);
+    setDraftAvailable(null);
   }, []);
 
   const clearDraft = useCallback(() => {
@@ -328,24 +373,33 @@ export default function ChecklistForm() {
 
       {/* ── Draft recovery banner ── */}
       {draftAvailable && (
-        <div className="mb-4 animate-in rounded-[var(--r-lg)] p-3.5 flex items-center justify-between gap-3"
-          style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(37,99,235,0.03))', border: '1px solid rgba(37,99,235,0.2)' }}>
-          <div className="flex items-center gap-2 min-w-0">
-            <RotateCcw size={16} className="text-[var(--primary)] flex-shrink-0" />
-            <span className="text-xs font-medium text-[var(--text-primary)]">
-              Имате незавршена чек-листа
-            </span>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button type="button" onClick={restoreDraft}
-              className="text-[11px] font-bold text-white px-3 py-1.5 rounded-lg"
-              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
-              Продолжи
-            </button>
-            <button type="button" onClick={discardDraft}
-              className="text-[11px] font-medium text-[var(--text-muted)] px-2 py-1.5">
-              Нова
-            </button>
+        <div className="mb-4 animate-in rounded-[var(--r-lg)] overflow-hidden"
+          style={{ border: '1px solid rgba(37,99,235,0.25)' }}>
+          <div className="p-4" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(37,99,235,0.03))' }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <RotateCcw size={16} className="text-[var(--primary)]" />
+              <span className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                Имате незавршена чек-листа
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mb-3">
+              {draftAvailable.step != null && `Стигнато до: Чекор ${draftAvailable.step + 1} — ${STEPS[draftAvailable.step] || 'Вода'}`}
+              {draftAvailable.savedAt && (
+                <> · зачувано во {new Date(draftAvailable.savedAt).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>
+              )}
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={restoreDraft}
+                className="btn-primary flex-1 py-2.5 text-sm">
+                <RotateCcw size={14} />
+                Продолжи
+              </button>
+              <button type="button" onClick={discardDraft}
+                className="btn-secondary flex-1 py-2.5 text-sm">
+                <X size={14} />
+                Почни нова
+              </button>
+            </div>
           </div>
         </div>
       )}
