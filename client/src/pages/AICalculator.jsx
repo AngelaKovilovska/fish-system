@@ -1053,7 +1053,7 @@ export default function AICalculator() {
                   onChange={e => { setGrowthPool(parseInt(e.target.value)); setGrowthFrom(''); }}
                   className="input-base"
                 >
-                  {[1,2,3,4,5,6].map(n => (
+                  {[1,2,3,4,5,6,7,8].map(n => (
                     <option key={n} value={n}>Базен {n}</option>
                   ))}
                 </select>
@@ -1091,6 +1091,20 @@ export default function AICalculator() {
             <div className="card !p-5 text-center">
               <Sprout size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
               <p className="text-sm text-[var(--text-muted)]">{growthData.message || 'Нема мерења за овој базен'}</p>
+            </div>
+          )}
+
+          {/* Sorting info banner */}
+          {!growthLoading && growthData?.sortingInfo?.filtered && (
+            <div className="card !p-3 flex items-center gap-2.5"
+              style={{ borderLeft: '3px solid #f59e0b', background: 'rgba(245,158,11,0.05)' }}>
+              <Info size={14} className="text-amber-500 flex-shrink-0" />
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                Прикажан раст после последното сортирање
+                <span className="font-semibold text-[var(--text-primary)] ml-1">
+                  ({new Date(growthData.sortingInfo.lastSortingDate).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })})
+                </span>
+              </p>
             </div>
           )}
 

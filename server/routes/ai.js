@@ -547,33 +547,59 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
 
     const fromDate = req.query.from || null;
 
-    // 1. Get ALL measurements for this pool (ordered chronologically)
+    // ─── CHECK LAST SORTING DATE ───
+    // After sorting, fish move between pools — measurements before sorting
+    // belong to a different cohort of fish. Use sorting_date as a floor.
+    const sortingRes = await pool.query(`
+      SELECT MAX(act.sorting_date) as last_sorting
+      FROM activities act
+      WHERE act.sorting_date IS NOT NULL
+    `);
+    const lastSortingDate = sortingRes.rows[0]?.last_sorting
+      ? sortingRes.rows[0].last_sorting.toISOString().split('T')[0]
+      : null;
+
+    // Effective start date: later of fromDate and lastSortingDate
+    let effectiveFrom = fromDate;
+    let filteredBySorting = false;
+    if (lastSortingDate) {
+      if (!effectiveFrom || lastSortingDate > effectiveFrom) {
+        effectiveFrom = lastSortingDate;
+        filteredBySorting = !fromDate; // only flag if user didn't manually pick a date
+      }
+    }
+
+    // 1. Get measurements for this pool (after sorting if applicable)
     const measRes = await pool.query(`
       SELECT id, fish_count, avg_weight_gr, DATE(measured_at) as date,
              measured_at
       FROM pool_measurements
       WHERE pool_number = $1
-        ${fromDate ? 'AND DATE(measured_at) >= $2' : ''}
+        ${effectiveFrom ? 'AND DATE(measured_at) >= $2' : ''}
       ORDER BY measured_at ASC
-    `, fromDate ? [poolNumber, fromDate] : [poolNumber]);
+    `, effectiveFrom ? [poolNumber, effectiveFrom] : [poolNumber]);
 
     if (measRes.rows.length === 0) {
       return res.json({
         poolNumber,
         hasData: false,
-        message: 'Нема мерења за овој базен',
+        message: lastSortingDate
+          ? `Нема мерења после последното сортирање (${lastSortingDate})`
+          : 'Нема мерења за овој базен',
         measurementDates: [],
+        sortingInfo: lastSortingDate ? { lastSortingDate, filtered: true } : null,
       });
     }
 
-    // Also get ALL measurement dates (unfiltered) for the dropdown filter
+    // Get measurement dates (post-sorting) for the dropdown filter
     const allDatesRes = await pool.query(`
       SELECT DISTINCT ON (DATE(measured_at))
         DATE(measured_at) as date, avg_weight_gr
       FROM pool_measurements
       WHERE pool_number = $1
+        ${lastSortingDate ? 'AND DATE(measured_at) >= $2' : ''}
       ORDER BY DATE(measured_at) ASC, measured_at DESC
-    `, [poolNumber]);
+    `, lastSortingDate ? [poolNumber, lastSortingDate] : [poolNumber]);
 
     const measurements = measRes.rows.map(m => ({
       date: m.date.toISOString().split('T')[0],
@@ -760,6 +786,10 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
         measurementCount: measurements.length,
         lastMeasured: lastMeasurement.date,
       },
+      sortingInfo: lastSortingDate ? {
+        lastSortingDate,
+        filtered: filteredBySorting,
+      } : null,
     });
   } catch (err) {
     console.error('Growth history error:', err);

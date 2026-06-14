@@ -6,3 +6,4 @@ dist/
 client/dist/
 server/backups/
 .claude/
+*.docx
