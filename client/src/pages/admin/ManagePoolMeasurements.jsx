@@ -341,9 +341,16 @@ export default function ManagePoolMeasurements() {
                       {poolData[num].fishCount} риби / {poolData[num].avgWeight} gr
                       <span className="text-[10px] ml-1 font-semibold">(ново)</span>
                     </span>
-                  ) : (
-                    <span className="italic text-[10px]">Празен базен (0 риби)</span>
-                  )}
+                  ) : (() => {
+                    const m = getMeasurement(num);
+                    const inv = getInventory(num);
+                    const count = inv?.current_count ?? m?.fish_count ?? 0;
+                    return count > 0 ? (
+                      <span className="text-[10px]">{count} риби / {m?.avg_weight_gr ?? '?'} gr</span>
+                    ) : (
+                      <span className="italic text-[10px]">Празен базен (0 риби)</span>
+                    );
+                  })()}
                 </span>
               </button>
             );
