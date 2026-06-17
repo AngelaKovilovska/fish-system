@@ -19,8 +19,13 @@ const FIELD_ICONS = {
 export default function WaterControlStep({ data, onChange, norms, requiredFields = [] }) {
   const inputRefs = useRef({});
 
-  const handleChange = (field, value) => {
-    onChange({ ...data, [field]: value });
+  const handleChange = (field, rawValue) => {
+    // Allow digits, one dot or comma, and empty string
+    const value = rawValue.replace(',', '.').replace(/[^0-9.]/g, '');
+    // Prevent multiple dots
+    const parts = value.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : value;
+    onChange({ ...data, [field]: sanitized });
   };
 
   // Enter key → focus next input field
@@ -109,9 +114,9 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
               </div>
               <input
                 ref={el => { inputRefs.current[key] = el; }}
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step="any"
+                autoComplete="off"
                 value={data[key] ?? ''}
                 onChange={(e) => handleChange(key, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, key)}
@@ -143,10 +148,9 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
           </div>
           <input
             ref={el => { inputRefs.current['water_exchange_m3'] = el; }}
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="any"
-            min="0"
+            autoComplete="off"
             value={data.water_exchange_m3 ?? ''}
             onChange={(e) => handleChange('water_exchange_m3', e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, 'water_exchange_m3')}

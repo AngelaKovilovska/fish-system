@@ -127,7 +127,7 @@ export default function ChecklistHistory() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5">
+        <button onClick={() => navigate('/reports')} className="btn-ghost p-1.5 -ml-1.5">
           <ChevronLeft size={20} />
         </button>
         <h1 className="page-title">Историја на записи</h1>

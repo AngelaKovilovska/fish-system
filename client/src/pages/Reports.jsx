@@ -18,8 +18,8 @@ const REPORT_TYPES = [
   { key: 'inventory', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
 ];
 
-// Chart colors
-const CHART_COLORS = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#e11d48', '#4f46e5'];
+// Chart colors — clean, consistent palette
+const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
 
 // Custom tooltip for charts
 function ChartTooltipContent({ active, payload, label, suffix = '' }) {
@@ -265,6 +265,10 @@ ${tableHTML}
   const renderChart = () => {
     if (!previewData) return null;
 
+    const gridStyle = { stroke: 'var(--border)', strokeOpacity: 0.5 };
+    const axisStyle = { fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' };
+    const axisSmall = { ...axisStyle, fontSize: 11 };
+
     // ── Food consumption bar chart ──
     if (activeReport === 'food' && (previewData.data || []).length > 0) {
       const chartData = previewData.data.map(d => ({
@@ -276,17 +280,17 @@ ${tableHTML}
 
       return (
         <div className="card mb-4 animate-in">
-          <h3 className="section-title text-sm mb-3">Потрошувачка по тип храна (kg)</h3>
-          <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 50 + 60)}>
-            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+          <h3 className="section-title text-sm mb-4">Потрошувачка по тип храна (kg)</h3>
+          <ResponsiveContainer width="100%" height={Math.max(180, chartData.length * 55 + 50)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 15, left: 5, bottom: 0 }} barGap={2} barCategoryGap="25%">
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+              <XAxis type="number" tick={axisSmall} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={90} tick={axisStyle} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="Набавено" fill="#2563eb" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="Потрошено" fill="#dc2626" radius={[0, 4, 4, 0]} />
-              <Bar dataKey="Преостанато" fill="#059669" radius={[0, 4, 4, 0]} />
+              <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'Sora, sans-serif', paddingTop: 8 }} />
+              <Bar dataKey="Набавено" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="Потрошено" fill="#ef4444" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="Преостанато" fill="#10b981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -296,13 +300,10 @@ ${tableHTML}
     // ── Weight line/bar chart ──
     if (activeReport === 'weight' && (previewData.data || []).length > 0) {
       const data = previewData.data;
-
-      // Group by pool for line chart (multiple dates)
       const uniqueDates = [...new Set(data.map(d => d.measured_at))];
       const uniquePools = [...new Set(data.map(d => d.pool_number))].sort((a, b) => a - b);
 
       if (uniqueDates.length > 1) {
-        // Line chart: weight over time, one line per pool
         const chartData = uniqueDates.map(date => {
           const point = { date: fmtDate(date) };
           for (const pool of uniquePools) {
@@ -314,18 +315,18 @@ ${tableHTML}
 
         return (
           <div className="card mb-4 animate-in">
-            <h3 className="section-title text-sm mb-3">Крива на раст (gr)</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+            <h3 className="section-title text-sm mb-4">Крива на раст (gr)</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                <CartesianGrid {...gridStyle} strokeDasharray="4 4" />
+                <XAxis dataKey="date" tick={axisSmall} axisLine={false} tickLine={false} />
+                <YAxis tick={axisSmall} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent suffix=" gr" />} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'Sora, sans-serif', paddingTop: 8 }} />
                 {uniquePools.map((pool, i) => (
                   <Line key={pool} type="monotone" dataKey={`Б${pool}`}
                     stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                    strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }}
+                    strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }}
                     connectNulls />
                 ))}
               </LineChart>
@@ -333,7 +334,6 @@ ${tableHTML}
           </div>
         );
       } else {
-        // Bar chart: single date, bars per pool
         const chartData = data.map(d => ({
           name: `Б${d.pool_number}`,
           Тежина: parseFloat(d.avg_weight_gr),
@@ -342,18 +342,14 @@ ${tableHTML}
 
         return (
           <div className="card mb-4 animate-in">
-            <h3 className="section-title text-sm mb-3">Тежина по базен (gr) — {fmtDate(data[0].measured_at)}</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+            <h3 className="section-title text-sm mb-4">Тежина по базен (gr) — {fmtDate(data[0].measured_at)}</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="30%">
+                <CartesianGrid vertical={false} {...gridStyle} />
+                <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis tick={axisSmall} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent suffix=" gr" />} />
-                <Bar dataKey="Тежина" radius={[6, 6, 0, 0]}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
+                <Bar dataKey="Тежина" fill="#3b82f6" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -361,9 +357,8 @@ ${tableHTML}
       }
     }
 
-    // ── Alerts timeline bar chart ──
+    // ── Alerts bar chart ──
     if (activeReport === 'alerts' && (previewData.data || []).length > 0) {
-      // Group alerts by date
       const dateMap = {};
       for (const d of previewData.data) {
         const dateStr = fmtDate(d.date);
@@ -372,7 +367,6 @@ ${tableHTML}
       }
       const chartData = Object.entries(dateMap).map(([date, count]) => ({ date, Аларми: count }));
 
-      // Also group by parameter for a secondary view
       const paramMap = {};
       for (const d of previewData.data) {
         const name = PARAM_LABELS[d.parameter_name] || d.parameter_name;
@@ -384,37 +378,29 @@ ${tableHTML}
         .sort((a, b) => b.Број - a.Број);
 
       return (
-        <div className="card mb-4 animate-in space-y-4">
+        <div className="card mb-4 animate-in space-y-5">
           <div>
-            <h3 className="section-title text-sm mb-3">Аларми по ден</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+            <h3 className="section-title text-sm mb-4">Аларми по ден</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="25%">
+                <CartesianGrid vertical={false} {...gridStyle} />
+                <XAxis dataKey="date" tick={axisSmall} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={axisSmall} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="Аларми" fill="#dc2626" radius={[4, 4, 0, 0]}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={chartData[i].Аларми > 3 ? '#991b1b' : '#dc2626'} />
-                  ))}
-                </Bar>
+                <Bar dataKey="Аларми" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           {paramData.length > 1 && (
             <div>
-              <h3 className="section-title text-sm mb-3">Најчести параметри со аларм</h3>
-              <ResponsiveContainer width="100%" height={Math.max(150, paramData.length * 35 + 40)}>
-                <BarChart data={paramData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+              <h3 className="section-title text-sm mb-4">Најчести параметри со аларм</h3>
+              <ResponsiveContainer width="100%" height={Math.max(140, paramData.length * 32 + 30)}>
+                <BarChart data={paramData} layout="vertical" margin={{ top: 0, right: 15, left: 5, bottom: 0 }} barCategoryGap="20%">
+                  <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+                  <XAxis type="number" allowDecimals={false} tick={axisSmall} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={130} tick={axisSmall} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="Број" fill="#f59e0b" radius={[0, 4, 4, 0]}>
-                    {paramData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[(i + 3) % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
+                  <Bar dataKey="Број" fill="#f59e0b" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -425,7 +411,6 @@ ${tableHTML}
 
     // ── Purchases bar chart ──
     if (activeReport === 'purchases' && (previewData.data || []).length > 0) {
-      // Group by food type
       const typeMap = {};
       for (const d of previewData.data) {
         if (!typeMap[d.food_type]) typeMap[d.food_type] = 0;
@@ -437,28 +422,23 @@ ${tableHTML}
 
       return (
         <div className="card mb-4 animate-in">
-          <h3 className="section-title text-sm mb-3">Набавки по тип храна (kg)</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+          <h3 className="section-title text-sm mb-4">Набавки по тип храна (kg)</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="30%">
+              <CartesianGrid vertical={false} {...gridStyle} />
+              <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={axisSmall} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
-              <Bar dataKey="Количина" fill="#059669" radius={[6, 6, 0, 0]}>
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Bar>
+              <Bar dataKey="Количина" fill="#10b981" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       );
     }
 
-    // ── Sorting — simple visual timeline ──
+    // ── Sorting timeline ──
     if (activeReport === 'sorting' && (previewData.dates || []).length > 0) {
       const dates = previewData.dates;
-      // Calculate gaps between sortings
       const chartData = dates.map((d, i) => {
         const current = new Date(d);
         const prev = i > 0 ? new Date(dates[i - 1]) : null;
@@ -469,18 +449,14 @@ ${tableHTML}
       if (chartData.length > 1) {
         return (
           <div className="card mb-4 animate-in">
-            <h3 className="section-title text-sm mb-3">Денови помеѓу сортирања</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData.slice(1)} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+            <h3 className="section-title text-sm mb-4">Денови помеѓу сортирања</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={chartData.slice(1)} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="25%">
+                <CartesianGrid vertical={false} {...gridStyle} />
+                <XAxis dataKey="date" tick={axisSmall} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={axisSmall} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent suffix=" дена" />} />
-                <Bar dataKey="Денови" fill="#7c3aed" radius={[6, 6, 0, 0]}>
-                  {chartData.slice(1).map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
+                <Bar dataKey="Денови" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -676,26 +652,28 @@ ${tableHTML}
         {/* Inventory bar chart */}
         {inventory.length > 0 && (
           <div className="card animate-in">
-            <h3 className="section-title text-sm mb-3">Залихи по тип храна (kg)</h3>
-            <ResponsiveContainer width="100%" height={Math.max(160, inventory.length * 45 + 40)}>
+            <h3 className="section-title text-sm mb-4">Залихи по тип храна (kg)</h3>
+            <ResponsiveContainer width="100%" height={Math.max(150, inventory.length * 40 + 30)}>
               <BarChart
                 data={inventory.map(item => ({
                   name: item.food_type,
                   Залиха: parseFloat(parseFloat(item.quantity_kg).toFixed(2)),
+                  _qty: parseFloat(item.quantity_kg),
                 }))}
                 layout="vertical"
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                margin={{ top: 0, right: 15, left: 5, bottom: 0 }}
+                barCategoryGap="25%"
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
                 <Bar dataKey="Залиха" radius={[0, 6, 6, 0]}>
                   {inventory.map((item, i) => (
                     <Cell key={i} fill={
-                      parseFloat(item.quantity_kg) <= 5 ? '#dc2626' :
-                      parseFloat(item.quantity_kg) <= 15 ? '#d97706' :
-                      '#059669'
+                      parseFloat(item.quantity_kg) <= 5 ? '#ef4444' :
+                      parseFloat(item.quantity_kg) <= 15 ? '#f59e0b' :
+                      '#10b981'
                     } />
                   ))}
                 </Bar>
@@ -948,7 +926,12 @@ ${tableHTML}
   // ═══════ CARDS LIST VIEW (no report selected) ═══════
   return (
     <div className="max-w-[900px] mx-auto">
-      <h1 className="page-title mb-4 animate-in">Извештаи</h1>
+      <div className="flex items-center gap-2 mb-4 animate-in">
+        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5">
+          <ChevronLeft size={20} />
+        </button>
+        <h1 className="page-title !mb-0">Извештаи</h1>
+      </div>
 
       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
         {REPORT_TYPES.map((r, i) => {

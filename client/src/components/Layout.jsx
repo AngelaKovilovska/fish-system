@@ -169,7 +169,7 @@ export default function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-white/90 truncate">{user?.full_name}</p>
-              <p className="text-[10px] text-white/40">{isAdmin ? 'Админ' : 'Работник'}</p>
+              <p className="text-[10px] text-white/40">{isAdmin ? 'Админ' : 'Оператор'}</p>
             </div>
           </div>
           <button onClick={logout}
@@ -235,7 +235,7 @@ export default function Layout() {
                 </div>
                 <div className="mb-3">
                   <span className={`pill ${isAdmin ? 'pill-warning' : 'pill-blue'}`}>
-                    {isAdmin ? 'Админ' : 'Работник'}
+                    {isAdmin ? 'Админ' : 'Оператор'}
                   </span>
                 </div>
                 {isAdmin && (
