@@ -71,7 +71,7 @@ export default function Dashboard() {
         .catch(() => setTodayRecord(false)),
       api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
-      api.getStockProjection().then(d => setStockProjection(d)).catch(() => setStockProjection(null)),
+      api.getFoodProjection(14).then(d => setStockProjection(d)).catch(() => setStockProjection(null)),
     ])
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -420,7 +420,14 @@ export default function Dashboard() {
 
       {/* ── Food Inventory — Visual Bars + Dynamic Stock Projection ── */}
       {inventory.length > 0 && (() => {
-        const proj = stockProjection?.projections || {};
+        // Build lookup by food_type (projection returns array)
+        const proj = {};
+        const projArr = stockProjection?.projections || [];
+        if (Array.isArray(projArr)) {
+          projArr.forEach(p => { proj[p.food_type] = p; });
+        } else {
+          Object.assign(proj, projArr);
+        }
 
         return (
           <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
@@ -442,7 +449,7 @@ export default function Dashboard() {
                 const pct = Math.min((qty / barMax) * 100, 100);
                 const p = proj[item.food_type];
                 const daysLeft = p?.daysLeft;
-                const endDate = p?.endDate;
+                const endDate = p?.depletionDate || p?.endDate;
                 const isLow = qty <= 5;
                 const isWarn = qty <= 15 && !isLow;
                 const barColor = isLow
