@@ -41,7 +41,7 @@ export default function MealHistory() {
   return (
     <div className="overflow-hidden">
       <div className="flex items-center gap-3 mb-4 animate-in">
-        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
+        <button onClick={() => navigate('/entry')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
           <ChevronLeft size={20} />
         </button>
         <div className="icon-box"

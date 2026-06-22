@@ -104,7 +104,7 @@ export default function MealForm() {
   // Initial load
   useEffect(() => {
     if (!MEAL_LABELS[mealType]) {
-      navigate('/');
+      navigate('/entry');
       return;
     }
     loadMealData(selectedDate);
@@ -214,7 +214,7 @@ export default function MealForm() {
         })),
       });
       setSuccess(isEdit ? 'Оброкот е ажуриран!' : 'Оброкот е зачуван!');
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate('/entry'), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -229,7 +229,7 @@ export default function MealForm() {
     try {
       await api.deleteMeal(selectedDate, mealType);
       setSuccess('Оброкот е избришан!');
-      setTimeout(() => navigate('/'), 1200);
+      setTimeout(() => navigate('/entry'), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -481,7 +481,7 @@ export default function MealForm() {
 
       {/* Buttons */}
       <div className="flex gap-3 animate-in-delay-3">
-        <button type="button" onClick={() => navigate('/')} className="btn-secondary py-2.5 px-4">
+        <button type="button" onClick={() => navigate('/entry')} className="btn-secondary py-2.5 px-4">
           <ChevronLeft size={16} />
         </button>
         {isEdit && (

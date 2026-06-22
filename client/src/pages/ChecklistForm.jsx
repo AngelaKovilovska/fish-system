@@ -278,7 +278,7 @@ export default function ChecklistForm() {
       clearDraft();
       setSuccess(isEdit ? 'Записот е ажуриран!' : 'Записот е зачуван!');
       if (result.alerts?.length > 0) setSuccess(prev => prev + ` ${result.alerts.length} аларм(и).`);
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => navigate('/entry'), 2000);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   };
@@ -331,10 +331,10 @@ export default function ChecklistForm() {
                 className="input-base" />
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/entry')}
               className="btn-secondary w-full py-2.5 text-sm">
               <X size={16} />
-              Назад кон почетна
+              Назад кон внесување
             </button>
           </div>
         </div>
