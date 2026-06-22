@@ -61,6 +61,16 @@ function fmtDate(dateVal) {
   return `${dd}.${mm}.${yyyy}`;
 }
 
+// Parse DD.MM.YYYY string back to Date (inverse of fmtDate)
+function parseDDMMYYYY(str) {
+  if (!str || typeof str !== 'string') return new Date(str);
+  const parts = str.split('.');
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  }
+  return new Date(str);
+}
+
 export default function Reports() {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
@@ -440,10 +450,10 @@ ${tableHTML}
     if (activeReport === 'sorting' && (previewData.dates || []).length > 0) {
       const dates = previewData.dates;
       const chartData = dates.map((d, i) => {
-        const current = new Date(d);
-        const prev = i > 0 ? new Date(dates[i - 1]) : null;
-        const gap = prev ? Math.round((current - prev) / (1000 * 60 * 60 * 24)) : 0;
-        return { date: fmtDate(d), Денови: gap };
+        const current = parseDDMMYYYY(d);
+        const prev = i > 0 ? parseDDMMYYYY(dates[i - 1]) : null;
+        const gap = prev && !isNaN(current) && !isNaN(prev) ? Math.round((current - prev) / (1000 * 60 * 60 * 24)) : 0;
+        return { date: d, Денови: gap };
       });
 
       if (chartData.length > 1) {
