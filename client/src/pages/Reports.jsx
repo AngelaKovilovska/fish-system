@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS } from '../lib/constants';
-import { Mail, Eye, ChevronLeft, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Cell, Legend,
@@ -88,6 +88,9 @@ export default function Reports() {
   const [previewData, setPreviewData] = useState(null);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+
+  // Accordion state for alert groups
+  const [expandedAlertGroups, setExpandedAlertGroups] = useState(new Set());
 
   // Food inventory state (lazy loaded)
   const [inventory, setInventory] = useState([]);
@@ -555,30 +558,83 @@ ${tableHTML}
     }
 
     if (activeReport === 'alerts') {
+      // Group alerts by parameter
+      const grouped = {};
+      for (const d of (previewData.data || [])) {
+        const key = d.parameter_name;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(d);
+      }
+      // Sort groups by count descending
+      const sortedGroups = Object.entries(grouped)
+        .sort((a, b) => b[1].length - a[1].length);
+
+      const toggleGroup = (key) => {
+        setExpandedAlertGroups(prev => {
+          const next = new Set(prev);
+          if (next.has(key)) next.delete(key);
+          else next.add(key);
+          return next;
+        });
+      };
+
       return (
         <div className="space-y-3">
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
-            <table className="table-modern">
-              <thead><tr>
-                <th>Датум</th><th>Параметар</th>
-                <th className="text-right">Вредност</th>
-                <th className="text-right">Мин</th><th className="text-right">Макс</th>
-              </tr></thead>
-              <tbody>
-                {(previewData.data || []).map((d, i) => (
-                  <tr key={i}>
-                    <td>{fmtDate(d.date)}</td>
-                    <td>{PARAM_LABELS[d.parameter_name] || d.parameter_name}</td>
-                    <td className="text-right text-[var(--danger)] font-bold">{d.value}</td>
-                    <td className="text-right">{d.min_norm ?? '–'}</td>
-                    <td className="text-right">{d.max_norm ?? '–'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-2">
+            {sortedGroups.map(([paramKey, alerts]) => {
+              const isOpen = expandedAlertGroups.has(paramKey);
+              const label = PARAM_LABELS[paramKey] || paramKey;
+              return (
+                <div key={paramKey} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+                  {/* Accordion header */}
+                  <button
+                    onClick={() => toggleGroup(paramKey)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle size={14} className="text-[var(--danger)] flex-shrink-0" />
+                      <span className="text-sm font-semibold text-[var(--text-primary)] truncate"
+                        style={{ fontFamily: 'Sora, sans-serif' }}>
+                        {label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="pill pill-danger text-[10px]">{alerts.length}</span>
+                      <ChevronDown
+                        size={16}
+                        className={`text-[var(--text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+                  </button>
+                  {/* Accordion body */}
+                  {isOpen && (
+                    <div className="border-t border-[var(--border)]">
+                      <table className="table-modern">
+                        <thead><tr>
+                          <th>Датум</th>
+                          <th className="text-right">Вредност</th>
+                          <th className="text-right">Мин</th>
+                          <th className="text-right">Макс</th>
+                        </tr></thead>
+                        <tbody>
+                          {alerts.map((d, i) => (
+                            <tr key={i}>
+                              <td>{fmtDate(d.date)}</td>
+                              <td className="text-right text-[var(--danger)] font-bold">{d.value}</td>
+                              <td className="text-right">{d.min_norm ?? '–'}</td>
+                              <td className="text-right">{d.max_norm ?? '–'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="info-box font-semibold text-sm">
-            Вкупно аларми: {previewData.total}
+            Вкупно аларми: {previewData.total} ({sortedGroups.length} параметри)
           </div>
         </div>
       );
