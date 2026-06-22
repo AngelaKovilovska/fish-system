@@ -93,6 +93,8 @@ export default function Reports() {
   const [expandedAlertGroups, setExpandedAlertGroups] = useState(new Set());
   // Sorting table "show all" toggle
   const [showAllSortings, setShowAllSortings] = useState(false);
+  // Accordion state for purchase groups
+  const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState(new Set());
 
   // Food inventory state (lazy loaded)
   const [inventory, setInventory] = useState([]);
@@ -424,10 +426,15 @@ ${tableHTML}
       );
     }
 
-    // ── Purchases bar chart ──
+    // ── Purchases: summary cards + conditional chart ──
     if (activeReport === 'purchases' && (previewData.data || []).length > 0) {
+      const data = previewData.data;
+      const totalKg = parseFloat(previewData.totalKg || data.reduce((s, d) => s + parseFloat(d.change_kg), 0)).toFixed(1);
+      const totalCount = previewData.total || data.length;
+      const lastDate = fmtDate(data[data.length - 1]?.purchased_at || data[data.length - 1]?.created_at);
+
       const typeMap = {};
-      for (const d of previewData.data) {
+      for (const d of data) {
         if (!typeMap[d.food_type]) typeMap[d.food_type] = 0;
         typeMap[d.food_type] += parseFloat(d.change_kg);
       }
@@ -436,17 +443,44 @@ ${tableHTML}
         .sort((a, b) => b.Количина - a.Количина);
 
       return (
-        <div className="card mb-4 animate-in">
-          <h3 className="section-title text-sm mb-4">Набавки по тип храна (kg)</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="30%">
-              <CartesianGrid vertical={false} {...gridStyle} />
-              <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
-              <YAxis tick={axisSmall} axisLine={false} tickLine={false} />
-              <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
-              <Bar dataKey="Количина" fill="#10b981" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="card mb-4 animate-in space-y-4">
+          <p className="text-xs text-[var(--text-secondary)]">
+            Преглед на набавки на храна во избраниот период по тип и количина.
+          </p>
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-[var(--success)]">{totalKg} kg</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Набавки</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{totalCount}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Последна</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{lastDate}</div>
+            </div>
+          </div>
+
+          {/* Bar chart — only when 2+ food types */}
+          {chartData.length >= 2 && (
+            <div>
+              <h3 className="section-title text-sm mb-3">Набавки по тип храна (kg)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="30%">
+                  <CartesianGrid vertical={false} {...gridStyle} />
+                  <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisSmall} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
+                  <Bar dataKey="Количина" fill="#10b981" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       );
     }
@@ -744,36 +778,94 @@ ${tableHTML}
     }
 
     if (activeReport === 'purchases') {
+      const data = previewData.data || [];
+      // Group by food type
+      const grouped = {};
+      for (const d of data) {
+        const key = d.food_type;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(d);
+      }
+      const sortedGroups = Object.entries(grouped)
+        .map(([type, items]) => ({
+          type,
+          items,
+          totalKg: items.reduce((s, d) => s + parseFloat(d.change_kg), 0),
+        }))
+        .sort((a, b) => b.totalKg - a.totalKg);
+
+      const togglePurchaseGroup = (key) => {
+        setExpandedPurchaseGroups(prev => {
+          const next = new Set(prev);
+          if (next.has(key)) next.delete(key);
+          else next.add(key);
+          return next;
+        });
+      };
+
+      if (data.length === 0) {
+        return (
+          <div className="info-box text-sm text-[var(--text-muted)]">
+            Нема набавки во овој период.
+          </div>
+        );
+      }
+
       return (
-        <div className="space-y-3">
-          <p className="text-xs text-[var(--text-muted)]">
-            Период: {from} — {to}
-          </p>
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
-            <table className="table-modern">
-              <thead><tr>
-                <th>Датум</th><th>Тип храна</th>
-                <th className="text-right">Количина (kg)</th>
-                <th>Внесено од</th>
-              </tr></thead>
-              <tbody>
-                {(previewData.data || []).map((d, i) => (
-                  <tr key={i}>
-                    <td>{fmtDate(d.purchased_at || d.created_at)}</td>
-                    <td>{d.food_type}</td>
-                    <td className="text-right font-semibold text-[var(--success)]">{parseFloat(d.change_kg).toFixed(2)}</td>
-                    <td className="text-[var(--text-muted)]">{d.created_by_name || '–'}</td>
-                  </tr>
-                ))}
-                {(previewData.data || []).length === 0 && (
-                  <tr><td colSpan={4} className="p-4 text-center text-[var(--text-muted)]">Нема набавки во овој период.</td></tr>
+        <div className="space-y-2">
+          {sortedGroups.map(({ type, items, totalKg }) => {
+            const isOpen = expandedPurchaseGroups.has(type);
+            return (
+              <div key={type} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+                {/* Accordion header */}
+                <button
+                  onClick={() => togglePurchaseGroup(type)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package size={14} className="text-[var(--success)] flex-shrink-0" />
+                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate"
+                      style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs font-semibold text-[var(--success)]">
+                      {totalKg.toFixed(1)} kg
+                    </span>
+                    <span className="pill pill-blue text-[10px]">{items.length}</span>
+                    <ChevronDown
+                      size={16}
+                      className={`text-[var(--text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                </button>
+                {/* Accordion body */}
+                {isOpen && (
+                  <div className="border-t border-[var(--border)]">
+                    <table className="table-modern">
+                      <thead><tr>
+                        <th>Датум</th>
+                        <th className="text-right">Количина (kg)</th>
+                        <th>Внесено од</th>
+                      </tr></thead>
+                      <tbody>
+                        {items.map((d, i) => (
+                          <tr key={i}>
+                            <td>{fmtDate(d.purchased_at || d.created_at)}</td>
+                            <td className="text-right font-semibold text-[var(--success)]">
+                              {parseFloat(d.change_kg).toFixed(2)}
+                            </td>
+                            <td className="text-[var(--text-muted)]">{d.created_by_name || '–'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
-          <div className="info-box font-semibold text-sm">
-            Вкупно набавки: {previewData.total} | Вкупно количина: {previewData.totalKg} kg
-          </div>
+              </div>
+            );
+          })}
         </div>
       );
     }
