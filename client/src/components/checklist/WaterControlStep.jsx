@@ -116,6 +116,7 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
                 ref={el => { inputRefs.current[key] = el; }}
                 type="text"
                 inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 autoComplete="off"
                 value={data[key] ?? ''}
                 onChange={(e) => handleChange(key, e.target.value)}
@@ -150,6 +151,7 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
             ref={el => { inputRefs.current['water_exchange_m3'] = el; }}
             type="text"
             inputMode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
             autoComplete="off"
             value={data.water_exchange_m3 ?? ''}
             onChange={(e) => handleChange('water_exchange_m3', e.target.value)}
