@@ -94,7 +94,7 @@ export default function Layout() {
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
                 <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
                 <line x1="19.5" y1="10" x2="22" y2="8.5" />
@@ -107,7 +107,8 @@ export default function Layout() {
           </Link>
           <button onClick={toggleTheme}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
-            title={theme === 'dark' ? 'Светла тема' : 'Темна тема'}>
+            title={theme === 'dark' ? 'Светла тема' : 'Темна тема'}
+            aria-label={theme === 'dark' ? 'Светла тема' : 'Темна тема'}>
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
@@ -192,7 +193,7 @@ export default function Layout() {
         <Link to="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
               <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
             </svg>
@@ -203,6 +204,7 @@ export default function Layout() {
 
         <div className="flex items-center gap-2">
           <button onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Светла тема' : 'Темна тема'}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--primary-muted)]">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -219,7 +221,8 @@ export default function Layout() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold"
                     style={{ fontFamily: 'Sora, sans-serif' }}>Профил</p>
-                  <button onClick={() => setShowProfile(false)} className="text-[var(--text-muted)] p-0.5">
+                  <button onClick={() => setShowProfile(false)} className="text-[var(--text-muted)] p-0.5"
+                    aria-label="Затвори профил">
                     <X size={14} />
                   </button>
                 </div>
@@ -344,7 +347,7 @@ export default function Layout() {
             {showMore && (
               <div className="absolute bottom-[calc(100%+8px)] right-0 w-48 bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] py-1.5 animate-slide-down z-50"
                 style={{ boxShadow: 'var(--sh-elevated)' }}>
-                {moreMoreItems(moreItems, location.pathname)}
+                {renderMoreDropdown(moreItems, location.pathname)}
               </div>
             )}
           </div>
@@ -355,7 +358,7 @@ export default function Layout() {
 }
 
 /* Render the "More" dropdown items */
-function moreMoreItems(items, pathname) {
+function renderMoreDropdown(items, pathname) {
   // Group admin items separately
   const regular = items.filter(i => !i.path.startsWith('/admin'));
   const admin = items.filter(i => i.path.startsWith('/admin'));

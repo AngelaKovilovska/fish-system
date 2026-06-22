@@ -106,8 +106,8 @@ export default function ManageUsers() {
         </form>
       )}
 
-      {/* Users table */}
-      <div className="bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
+      {/* Users table — desktop */}
+      <div className="hidden sm:block bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
         <table className="table-modern">
           <thead>
             <tr>
@@ -145,7 +145,7 @@ export default function ManageUsers() {
                   {u.id !== currentUser.id && (
                     <button onClick={() => handleDelete(u.id, u.full_name)}
                       className="btn-ghost text-[var(--danger)] hover:bg-red-50 p-2"
-                      title="Избриши">
+                      aria-label={`Избриши ${u.full_name}`}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -154,6 +154,40 @@ export default function ManageUsers() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Users cards — mobile */}
+      <div className="sm:hidden space-y-3 animate-in-delay-1">
+        {users.map((u) => (
+          <div key={u.id} className="card !p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                style={{
+                  background: u.role === 'admin'
+                    ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                    : 'linear-gradient(135deg, var(--primary), var(--primary-deep))',
+                }}>
+                {u.full_name?.[0] || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-[var(--text-primary)] truncate" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {u.full_name}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>
+              </div>
+              <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
+                {u.role === 'admin' ? 'Админ' : 'Оператор'}
+              </span>
+              {u.id !== currentUser.id && (
+                <button onClick={() => handleDelete(u.id, u.full_name)}
+                  className="btn-ghost text-[var(--danger)] p-2"
+                  aria-label={`Избриши ${u.full_name}`}>
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

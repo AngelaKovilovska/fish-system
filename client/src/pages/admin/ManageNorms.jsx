@@ -63,7 +63,8 @@ export default function ManageNorms() {
         </button>
       </div>
 
-      <div className="bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
+      {/* Desktop table */}
+      <div className="hidden sm:block bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
         <table className="table-modern">
           <thead>
             <tr>
@@ -104,6 +105,39 @@ export default function ManageNorms() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="sm:hidden space-y-3 animate-in-delay-1">
+        {norms.map((norm) => {
+          const info = PARAMETER_LABELS[norm.parameter_name];
+          return (
+            <div key={norm.id} className="card !p-4">
+              <p className="font-semibold text-sm text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+                {info?.label || norm.parameter_name}
+                {info?.unit && <span className="text-[var(--text-muted)] font-normal text-xs ml-1">({info.unit})</span>}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">Минимум</label>
+                  <input type="number" step="any"
+                    value={norm.min_value ?? ''}
+                    onChange={(e) => updateLocal(norm.id, 'min_value', e.target.value || null)}
+                    className="input-base !py-2 !text-sm"
+                    placeholder="--" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">Максимум</label>
+                  <input type="number" step="any"
+                    value={norm.max_value ?? ''}
+                    onChange={(e) => updateLocal(norm.id, 'max_value', e.target.value || null)}
+                    className="input-base !py-2 !text-sm"
+                    placeholder="--" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

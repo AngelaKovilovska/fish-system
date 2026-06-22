@@ -20,109 +20,57 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center px-5 py-8"
-      style={{
-        background: 'var(--bg)',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}>
+    <div className="min-h-screen flex justify-center items-center px-5 py-8 bg-[var(--bg)]">
 
       {/* ── Card container ── */}
-      <div className="w-full"
-        style={{
-          maxWidth: 420,
-          background: 'var(--surface)',
-          borderRadius: 20,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '50px 40px',
-          border: '1px solid var(--border)',
-        }}>
+      <div className="w-full max-w-[420px] bg-[var(--surface)] rounded-[var(--r-lg)] p-[50px_40px] max-[400px]:p-[40px_24px] border border-[var(--border)]"
+        style={{ boxShadow: 'var(--sh-card)' }}>
 
         {/* ── Logo ── */}
-        <div className="flex justify-center" style={{ marginBottom: 30 }}>
+        <div className="flex justify-center mb-8">
           <img
             src="/pwa-512x512.png"
             alt="CLARIO"
-            style={{ width: 200, height: 200, objectFit: 'contain' }}
+            className="w-[200px] h-[200px] object-contain"
           />
         </div>
 
         {/* ── Error display ── */}
         {error && (
-          <div style={{
-            background: 'var(--danger-muted, #fef2f2)',
-            border: '1px solid var(--danger)',
-            borderRadius: 10,
-            padding: '12px 16px',
-            marginBottom: 20,
-            color: 'var(--danger)',
-            fontSize: 13,
-            fontWeight: 500,
-            textAlign: 'center',
-          }}>
+          <div className="alert-danger text-center text-[13px] mb-5">
             {error}
           </div>
         )}
 
         {/* ── Form ── */}
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 18 }}>
+          <div className="mb-4">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              placeholder="Е-пошта"
               required
-              className="login-input"
-              style={{
-                width: '100%',
-                padding: '16px 18px',
-                border: '1.5px solid var(--border)',
-                borderRadius: 10,
-                fontSize: 15,
-                color: 'var(--text-primary)',
-                background: 'var(--surface)',
-                outline: 'none',
-                transition: 'all 0.3s ease',
-              }}
+              aria-label="Е-пошта"
+              className="input-base w-full !py-4 !px-[18px] !text-[15px]"
             />
           </div>
 
-          <div style={{ marginBottom: 18, position: 'relative' }}>
+          <div className="mb-4 relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              placeholder="Лозинка"
               required
-              className="login-input"
-              style={{
-                width: '100%',
-                padding: '16px 48px 16px 18px',
-                border: '1.5px solid var(--border)',
-                borderRadius: 10,
-                fontSize: 15,
-                color: 'var(--text-primary)',
-                background: 'var(--surface)',
-                outline: 'none',
-                transition: 'all 0.3s ease',
-              }}
+              aria-label="Лозинка"
+              className="input-base w-full !py-4 !pl-[18px] !pr-12 !text-[15px]"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: 'absolute',
-                right: 14,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 4,
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
+              aria-label={showPassword ? 'Сокриј лозинка' : 'Покажи лозинка'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 btn-ghost p-1.5 text-[var(--text-muted)]"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -131,24 +79,15 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="login-btn"
-            style={{
-              width: '100%',
-              padding: 16,
-              border: 'none',
-              borderRadius: 10,
-              background: 'var(--primary)',
-              color: '#ffffff',
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: loading ? 'default' : 'pointer',
-              marginTop: 10,
-              opacity: loading ? 0.7 : 1,
-              transition: 'all 0.3s ease',
-              fontFamily: 'Sora, -apple-system, sans-serif',
-            }}
+            className="btn-primary w-full !py-4 !text-base mt-2.5"
+            style={{ fontFamily: 'Sora, -apple-system, sans-serif' }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="wave-loader"><span /><span /><span /><span /></div>
+                Се најавува...
+              </span>
+            ) : 'Најави се'}
           </button>
         </form>
       </div>

@@ -343,7 +343,7 @@ export default function AICalculator() {
                 <input type="number" min="1"
                   value={calcInputs.fishCount}
                   onChange={e => setCalcInputs(p => ({ ...p, fishCount: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                  className="input-base"
                   placeholder="нпр. 500"
                 />
               </div>
@@ -353,7 +353,7 @@ export default function AICalculator() {
                 <input type="number" min="0.1" step="0.1"
                   value={calcInputs.avgWeight}
                   onChange={e => setCalcInputs(p => ({ ...p, avgWeight: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                  className="input-base"
                   placeholder="нпр. 250"
                 />
               </div>
@@ -363,19 +363,15 @@ export default function AICalculator() {
                 <input type="number" min="0" max="45" step="0.1"
                   value={calcInputs.temperature}
                   onChange={e => setCalcInputs(p => ({ ...p, temperature: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"
+                  className="input-base"
                   placeholder="нпр. 27"
                 />
               </div>
 
               <button onClick={handleCalculate}
                 disabled={calcLoading || !calcInputs.fishCount || !calcInputs.avgWeight}
-                className="w-full py-3 rounded-[var(--r-sm)] text-sm font-semibold text-white transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{
-                  background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                  boxShadow: '0 2px 10px rgba(139,92,246,0.3)',
-                  fontFamily: 'Sora, sans-serif',
-                }}>
+                className="btn-primary w-full !py-3"
+                style={{ fontFamily: 'Sora, sans-serif' }}>
                 <Calculator size={16} />
                 {calcLoading ? 'Пресметува...' : 'Пресметај'}
               </button>

@@ -61,9 +61,9 @@ export default function ChecklistForm() {
   stepRef.current = step;
 
   useEffect(() => {
-    api.getNorms().then(d => setNorms(d.norms)).catch(console.error);
-    api.getPoolMeasurements().then(d => setPoolMeasurements(d.measurements)).catch(console.error);
-    api.getPoolFishInventory().then(d => setFishInventory(d.inventory)).catch(console.error);
+    api.getNorms().then(d => setNorms(d.norms)).catch(() => setError('Не може да се вчитаат нормите.'));
+    api.getPoolMeasurements().then(d => setPoolMeasurements(d.measurements)).catch(() => setError('Не може да се вчитаат мерењата.'));
+    api.getPoolFishInventory().then(d => setFishInventory(d.inventory)).catch(() => setError('Не може да се вчита инвентарот.'));
   }, []);
 
   // Check if a record already exists for the selected date (not just today)
@@ -456,7 +456,7 @@ export default function ChecklistForm() {
                   }>
                   {state === 'completed' ? <Check size={12} strokeWidth={3} /> : i + 1}
                 </div>
-                <span className={`text-[8px] mt-1 font-medium whitespace-nowrap ${
+                <span className={`text-[10px] mt-1 font-medium whitespace-nowrap ${
                   state === 'active' ? 'text-[var(--primary)]' :
                   state === 'error' ? 'text-[var(--danger)]' :
                   state === 'completed' ? 'text-[var(--success)]' :
