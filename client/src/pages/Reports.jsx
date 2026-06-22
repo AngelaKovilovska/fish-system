@@ -475,6 +475,9 @@ ${tableHTML}
 
       return (
         <div className="card mb-4 animate-in space-y-4">
+          <p className="text-xs text-[var(--text-secondary)]">
+            Преглед на сите сортирања во избраниот период со просечен интервал помеѓу нив.
+          </p>
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
