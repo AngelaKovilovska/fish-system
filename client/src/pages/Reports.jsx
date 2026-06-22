@@ -1132,16 +1132,18 @@ ${tableHTML}
         {/* Preview data */}
         {!isInventory && previewData && (
           <div className="animate-in space-y-0">
+            {/* Back button above chart */}
+            <div className="flex items-center gap-3 mb-4">
+              <button onClick={handleBackFromPreview} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
+                <ChevronLeft size={20} />
+              </button>
+              <h2 className="section-title !mb-0">{report.label}</h2>
+            </div>
+
             {/* Chart visualization ABOVE the table */}
             {renderChart()}
 
             <div className="card space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="section-title">{report.label}</h2>
-              <button onClick={handleBackFromPreview} className="btn-ghost text-sm">
-                <ChevronLeft size={16} /> Филтри
-              </button>
-            </div>
 
             {renderPreview()}
 
