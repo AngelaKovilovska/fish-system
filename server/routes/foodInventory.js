@@ -24,9 +24,21 @@ router.get('/', authMiddleware, async (req, res) => {
         GROUP BY food_type
       ) p ON p.food_type = fi.food_type
       LEFT JOIN (
-        SELECT food_type, SUM(food_quantity_gr) / 1000.0 as consumed_kg
-        FROM pool_meals
-        WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        SELECT food_type, SUM(consumed_gr) / 1000.0 as consumed_kg
+        FROM (
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_meals
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT pf.food_type, pf.food_quantity_gr
+          FROM pool_feeding pf
+          JOIN daily_records dr ON pf.daily_record_id = dr.id
+          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+            AND NOT EXISTS (
+              SELECT 1 FROM pool_meals pm
+              WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+            )
+        ) all_consumption
         GROUP BY food_type
       ) c ON c.food_type = fi.food_type
       ORDER BY CASE fi.food_type
@@ -62,26 +74,55 @@ router.get('/debug', authMiddleware, async (req, res) => {
       ORDER BY food_type
     `);
 
-    // All consumption from pool_meals grouped by food_type with dates
+    // All consumption from pool_meals + pool_feeding (combined, deduped)
     const consumption = await pool.query(`
       SELECT food_type,
-        (SUM(food_quantity_gr) / 1000.0)::numeric(10,2) as total_kg,
+        (SUM(consumed_gr) / 1000.0)::numeric(10,2) as total_kg,
         COUNT(*) as entries,
-        MIN(date) as first_meal,
-        MAX(date) as last_meal,
-        COUNT(DISTINCT date) as active_days
-      FROM pool_meals
-      WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        MIN(meal_date) as first_meal,
+        MAX(meal_date) as last_meal,
+        COUNT(DISTINCT meal_date) as active_days
+      FROM (
+        SELECT food_type, food_quantity_gr as consumed_gr, date as meal_date
+        FROM pool_meals
+        WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        UNION ALL
+        SELECT pf.food_type, pf.food_quantity_gr, dr.date
+        FROM pool_feeding pf
+        JOIN daily_records dr ON pf.daily_record_id = dr.id
+        WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+          AND NOT EXISTS (
+            SELECT 1 FROM pool_meals pm
+            WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+          )
+      ) all_consumption
       GROUP BY food_type
       ORDER BY food_type
     `);
 
-    // Also check if legacy pool_feeding has any data
-    const legacyCount = await pool.query(`
-      SELECT COUNT(*) as total,
-        COUNT(DISTINCT food_type) as food_types
-      FROM pool_feeding
-      WHERE food_quantity_gr > 0 AND food_type IS NOT NULL
+    // Breakdown: pool_meals only
+    const mealsOnly = await pool.query(`
+      SELECT food_type,
+        (SUM(food_quantity_gr) / 1000.0)::numeric(10,2) as total_kg,
+        COUNT(*) as entries
+      FROM pool_meals
+      WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+      GROUP BY food_type ORDER BY food_type
+    `);
+
+    // Breakdown: pool_feeding only (legacy, not overlapping with pool_meals)
+    const feedingOnly = await pool.query(`
+      SELECT pf.food_type,
+        (SUM(pf.food_quantity_gr) / 1000.0)::numeric(10,2) as total_kg,
+        COUNT(*) as entries
+      FROM pool_feeding pf
+      JOIN daily_records dr ON pf.daily_record_id = dr.id
+      WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM pool_meals pm
+          WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+        )
+      GROUP BY pf.food_type ORDER BY pf.food_type
     `);
 
     // Current food_inventory.quantity_kg (live-updated field, NOT the recalculated one)
@@ -93,10 +134,11 @@ router.get('/debug', authMiddleware, async (req, res) => {
 
     res.json({
       purchases: purchases.rows,
-      consumption: consumption.rows,
+      consumption_total: consumption.rows,
+      consumption_pool_meals: mealsOnly.rows,
+      consumption_pool_feeding_legacy: feedingOnly.rows,
       liveInventoryField: liveStock.rows,
-      legacyPoolFeeding: legacyCount.rows[0],
-      note: 'stock = purchases.total_kg - consumption.total_kg за секој food_type',
+      note: 'stock = purchases - (pool_meals + pool_feeding без дупликати)',
     });
   } catch (err) {
     console.error('Debug food inventory error:', err);
@@ -322,25 +364,51 @@ router.get('/projection', authMiddleware, async (req, res) => {
         GROUP BY food_type
       ) p ON p.food_type = fi.food_type
       LEFT JOIN (
-        SELECT food_type, SUM(food_quantity_gr) / 1000.0 as consumed_kg
-        FROM pool_meals
-        WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+        SELECT food_type, SUM(consumed_gr) / 1000.0 as consumed_kg
+        FROM (
+          SELECT food_type, food_quantity_gr as consumed_gr
+          FROM pool_meals
+          WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT pf.food_type, pf.food_quantity_gr
+          FROM pool_feeding pf
+          JOIN daily_records dr ON pf.daily_record_id = dr.id
+          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+            AND NOT EXISTS (
+              SELECT 1 FROM pool_meals pm
+              WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+            )
+        ) all_consumption
         GROUP BY food_type
       ) c ON c.food_type = fi.food_type
     `);
 
-    // 2. Actual consumption from pool_meals over the last N days
+    // 2. Actual consumption from pool_meals + pool_feeding over the last N days
     const consumptionResult = await pool.query(`
       SELECT
         food_type,
-        SUM(food_quantity_gr) / 1000.0 as total_consumed_kg,
-        COUNT(DISTINCT date) as active_days,
-        MIN(date) as first_date,
-        MAX(date) as last_date
-      FROM pool_meals
-      WHERE food_quantity_gr > 0
-        AND food_type IS NOT NULL AND food_type != ''
-        AND date >= CURRENT_DATE - $1::int
+        SUM(consumed_gr) / 1000.0 as total_consumed_kg,
+        COUNT(DISTINCT meal_date) as active_days,
+        MIN(meal_date) as first_date,
+        MAX(meal_date) as last_date
+      FROM (
+        SELECT food_type, food_quantity_gr as consumed_gr, date as meal_date
+        FROM pool_meals
+        WHERE food_quantity_gr > 0
+          AND food_type IS NOT NULL AND food_type != ''
+          AND date >= CURRENT_DATE - $1::int
+        UNION ALL
+        SELECT pf.food_type, pf.food_quantity_gr, dr.date
+        FROM pool_feeding pf
+        JOIN daily_records dr ON pf.daily_record_id = dr.id
+        WHERE pf.food_quantity_gr > 0
+          AND pf.food_type IS NOT NULL AND pf.food_type != ''
+          AND dr.date >= CURRENT_DATE - $1::int
+          AND NOT EXISTS (
+            SELECT 1 FROM pool_meals pm
+            WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
+          )
+      ) combined
       GROUP BY food_type
     `, [periodDays]);
 

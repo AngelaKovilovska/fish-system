@@ -886,34 +886,29 @@ ${tableHTML}
 
     return (
       <div className="space-y-4">
-        {/* Inventory bar chart */}
+        {/* Inventory stacked bar chart — purchased vs consumed vs remaining */}
         {inventory.length > 0 && (
           <div className="card animate-in">
-            <h3 className="section-title text-sm mb-4">Залихи по тип храна (kg)</h3>
-            <ResponsiveContainer width="100%" height={Math.max(150, inventory.length * 40 + 30)}>
+            <h3 className="section-title text-sm mb-1">Залихи по тип храна</h3>
+            <p className="text-xs text-[var(--text-muted)] mb-4">Преглед на набавено, потрошено и остаток за секој тип храна.</p>
+            <ResponsiveContainer width="100%" height={Math.max(150, inventory.length * 45 + 30)}>
               <BarChart
                 data={inventory.map(item => ({
                   name: item.food_type,
-                  Залиха: parseFloat(parseFloat(item.quantity_kg).toFixed(2)),
-                  _qty: parseFloat(item.quantity_kg),
+                  Потрошено: parseFloat(parseFloat(item.total_consumed_kg || 0).toFixed(2)),
+                  Остаток: parseFloat(parseFloat(item.quantity_kg).toFixed(2)),
                 }))}
                 layout="vertical"
                 margin={{ top: 0, right: 15, left: 5, bottom: 0 }}
                 barCategoryGap="25%"
               >
                 <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
-                <XAxis type="number" tick={{ fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
-                <Bar dataKey="Залиха" radius={[0, 6, 6, 0]}>
-                  {inventory.map((item, i) => (
-                    <Cell key={i} fill={
-                      parseFloat(item.quantity_kg) <= 5 ? '#ef4444' :
-                      parseFloat(item.quantity_kg) <= 15 ? '#f59e0b' :
-                      '#10b981'
-                    } />
-                  ))}
-                </Bar>
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'Sora, sans-serif' }} />
+                <Bar dataKey="Потрошено" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Остаток" stackId="a" fill="#10b981" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -931,40 +926,55 @@ ${tableHTML}
               <thead>
                 <tr>
                   <th>Тип храна</th>
-                  <th className="text-right">Залиха (kg)</th>
-                  <th className="text-right">Последно ажурирано</th>
+                  <th className="text-right">Набавено (kg)</th>
+                  <th className="text-right">Потрошено (kg)</th>
+                  <th className="text-right">Остаток (kg)</th>
                 </tr>
               </thead>
               <tbody>
-                {inventory.map(item => (
-                  <tr key={item.id}>
-                    <td className="font-medium">{item.food_type}</td>
-                    <td className="text-right">
-                      <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                        {parseFloat(item.quantity_kg).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="text-right text-[var(--text-muted)]">
-                      {fmtDate(item.updated_at)}
-                    </td>
-                  </tr>
-                ))}
+                {inventory.map(item => {
+                  const purchased = parseFloat(item.total_purchased_kg || 0);
+                  const consumed = parseFloat(item.total_consumed_kg || 0);
+                  const stock = parseFloat(item.quantity_kg);
+                  return (
+                    <tr key={item.id}>
+                      <td className="font-medium">{item.food_type}</td>
+                      <td className="text-right text-[var(--success)] font-medium">{purchased.toFixed(2)}</td>
+                      <td className="text-right text-[var(--danger)] font-medium">{consumed.toFixed(2)}</td>
+                      <td className="text-right">
+                        <span className={`font-bold ${stock <= 5 ? 'text-[var(--danger)]' : stock <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                          {stock.toFixed(2)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {inventory.length === 0 && (
-                  <tr><td colSpan={3} className="p-4 text-center text-[var(--text-muted)]">Нема залихи.</td></tr>
+                  <tr><td colSpan={4} className="p-4 text-center text-[var(--text-muted)]">Нема залихи.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
           {/* Mobile list */}
           <div className="lg:hidden space-y-2">
-            {inventory.map(item => (
-              <div key={item.id} className="flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
-                <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-                <span className={`font-bold ${parseFloat(item.quantity_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(item.quantity_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
-                  {parseFloat(item.quantity_kg).toFixed(2)} kg
-                </span>
-              </div>
-            ))}
+            {inventory.map(item => {
+              const purchased = parseFloat(item.total_purchased_kg || 0);
+              const consumed = parseFloat(item.total_consumed_kg || 0);
+              const stock = parseFloat(item.quantity_kg);
+              return (
+                <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
+                  <div className="flex justify-between items-center text-xs mb-1">
+                    <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
+                    <span className={`font-bold ${stock <= 5 ? 'text-[var(--danger)]' : stock <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                      {stock.toFixed(2)} kg
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-[var(--text-muted)]">
+                    <span><span className="text-[var(--success)]">+{purchased.toFixed(1)}</span>{' / '}<span className="text-[var(--danger)]">-{consumed.toFixed(1)}</span> kg</span>
+                  </div>
+                </div>
+              );
+            })}
             {inventory.length === 0 && (
               <p className="text-center text-xs text-[var(--text-muted)] py-4">Нема залихи.</p>
             )}
