@@ -91,6 +91,8 @@ export default function Reports() {
 
   // Accordion state for alert groups
   const [expandedAlertGroups, setExpandedAlertGroups] = useState(new Set());
+  // Sorting table "show all" toggle
+  const [showAllSortings, setShowAllSortings] = useState(false);
 
   // Food inventory state (lazy loaded)
   const [inventory, setInventory] = useState([]);
@@ -449,32 +451,69 @@ ${tableHTML}
       );
     }
 
-    // ── Sorting timeline ──
+    // ── Sorting: summary cards + conditional chart ──
     if (activeReport === 'sorting' && (previewData.dates || []).length > 0) {
       const dates = previewData.dates;
-      const chartData = dates.map((d, i) => {
-        const current = parseDDMMYYYY(d);
-        const prev = i > 0 ? parseDDMMYYYY(dates[i - 1]) : null;
-        const gap = prev && !isNaN(current) && !isNaN(prev) ? Math.round((current - prev) / (1000 * 60 * 60 * 24)) : 0;
-        return { date: d, Денови: gap };
-      });
-
-      if (chartData.length > 1) {
-        return (
-          <div className="card mb-4 animate-in">
-            <h3 className="section-title text-sm mb-4">Денови помеѓу сортирања</h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={chartData.slice(1)} margin={{ top: 5, right: 15, left: 5, bottom: 5 }} barCategoryGap="25%">
-                <CartesianGrid vertical={false} {...gridStyle} />
-                <XAxis dataKey="date" tick={axisSmall} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={axisSmall} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltipContent suffix=" дена" />} />
-                <Bar dataKey="Денови" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        );
+      const intervals = [];
+      for (let i = 1; i < dates.length; i++) {
+        const curr = parseDDMMYYYY(dates[i]);
+        const prev = parseDDMMYYYY(dates[i - 1]);
+        if (!isNaN(curr) && !isNaN(prev)) {
+          intervals.push(Math.round((curr - prev) / (1000 * 60 * 60 * 24)));
+        }
       }
+      const avgInterval = intervals.length > 0
+        ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length)
+        : null;
+      const lastDate = dates[dates.length - 1];
+
+      // Chart data for line chart (only used when 5+ sortings)
+      const chartData = dates.slice(1).map((d, i) => ({
+        date: d,
+        Денови: intervals[i] ?? 0,
+      }));
+
+      return (
+        <div className="card mb-4 animate-in space-y-4">
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Последно</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{lastDate}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Просечно</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">
+                {avgInterval != null ? `${avgInterval} дена` : '–'}
+              </div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+                style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{dates.length}</div>
+            </div>
+          </div>
+
+          {/* Line chart — only when 5+ sortings */}
+          {chartData.length >= 4 && (
+            <div>
+              <h3 className="section-title text-sm mb-3">Тренд на интервали</h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+                  <CartesianGrid vertical={false} {...gridStyle} />
+                  <XAxis dataKey="date" tick={axisSmall} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={axisSmall} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTooltipContent suffix=" дена" />} />
+                  <Line type="monotone" dataKey="Денови" stroke="#8b5cf6" strokeWidth={2}
+                    dot={{ fill: '#8b5cf6', r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      );
     }
 
     return null;
@@ -641,25 +680,62 @@ ${tableHTML}
     }
 
     if (activeReport === 'sorting') {
+      const dates = previewData.dates || [];
+      // Build rows with day gaps, newest first
+      const rows = dates.map((d, i) => {
+        let gap = null;
+        if (i > 0) {
+          const curr = parseDDMMYYYY(d);
+          const prev = parseDDMMYYYY(dates[i - 1]);
+          if (!isNaN(curr) && !isNaN(prev)) {
+            gap = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+          }
+        }
+        return { date: d, index: i + 1, gap };
+      }).reverse();
+
+      const VISIBLE_COUNT = 10;
+      const displayRows = rows.length > VISIBLE_COUNT && !showAllSortings
+        ? rows.slice(0, VISIBLE_COUNT)
+        : rows;
+      const hasMore = rows.length > VISIBLE_COUNT && !showAllSortings;
+
       return (
         <div className="space-y-3">
           <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
             <table className="table-modern">
               <thead><tr>
-                <th>Бр.</th><th>Датум на сортирање</th>
+                <th>Бр.</th>
+                <th>Датум на сортирање</th>
+                <th className="text-right">Денови од претходно</th>
               </tr></thead>
               <tbody>
-                {(previewData.dates || []).map((d, i) => (
-                  <tr key={i}>
-                    <td className="font-semibold">{i + 1}</td><td>{d}</td>
+                {displayRows.map((r) => (
+                  <tr key={r.index}>
+                    <td className="font-semibold">{r.index}</td>
+                    <td>{r.date}</td>
+                    <td className="text-right">
+                      {r.gap != null ? (
+                        <span className={`font-semibold ${r.gap <= 3 ? 'text-[var(--success)]' : r.gap >= 30 ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                          {r.gap}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-muted)]">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="info-box font-semibold text-sm">
-            Вкупно сортирања: {previewData.total}
-          </div>
+          {hasMore && (
+            <button
+              onClick={() => setShowAllSortings(true)}
+              className="btn-ghost w-full text-sm py-2"
+            >
+              Прикажи ги сите ({rows.length - VISIBLE_COUNT} повеќе)
+            </button>
+          )}
         </div>
       );
     }
