@@ -227,7 +227,7 @@ export default function Reports() {
         `<tr><td>${item.food_type}</td><td class="r" style="font-weight:700;${parseFloat(item.quantity_kg) <= 5 ? 'color:#dc2626' : parseFloat(item.quantity_kg) <= 15 ? 'color:#d97706' : ''}">${parseFloat(item.quantity_kg).toFixed(2)}</td><td class="r">${fmtDate(item.updated_at)}</td></tr>`
       ).join('');
       const logRows = inventoryLog.slice(0, 30).map(entry =>
-        `<tr><td>${entry.food_type}</td><td class="r" style="font-weight:700;${entry.reason === 'purchase' ? 'color:#16a34a' : 'color:#dc2626'}">${entry.reason === 'purchase' ? '+' : ''}${parseFloat(entry.change_kg).toFixed(2)} kg</td><td>${entry.reason === 'purchase' ? 'Набавка' : 'Потрошувачка'}</td><td class="r">${fmtDate(entry.purchased_at || entry.created_at)}</td></tr>`
+        `<tr><td>${entry.food_type}</td><td class="r" style="font-weight:700;${entry.reason === 'purchase' ? 'color:#16a34a' : 'color:#dc2626'}">${entry.reason === 'purchase' ? '+' : ''}${parseFloat(entry.change_kg).toFixed(2)} kg</td><td>${entry.reason === 'purchase' ? 'Набавка' : 'Потрошувачка'}</td><td class="r">${fmtDate(entry.date || entry.purchased_at || entry.created_at)}</td></tr>`
       ).join('');
       tableHTML = `<h3>Тековни залихи</h3>
         <table><thead><tr><th>Тип храна</th><th class="r">Залиха (kg)</th><th class="r">Ажурирано</th></tr></thead><tbody>${invRows}</tbody></table>
@@ -1004,7 +1004,7 @@ ${tableHTML}
                       {entry.reason === 'purchase' ? '+' : ''}{parseFloat(entry.change_kg).toFixed(2)} kg
                     </span>
                     <span className="text-[var(--text-muted)] text-[10px] w-16 text-right">
-                      {fmtDate(entry.purchased_at || entry.created_at)}
+                      {fmtDate(entry.date || entry.purchased_at || entry.created_at)}
                     </span>
                   </div>
                 </div>
