@@ -286,11 +286,12 @@ export default function MealForm() {
       <div className="card mb-4 animate-in-delay-1 !py-3">
         <div className="flex items-center gap-3">
           <Calendar size={16} className="text-[var(--primary)] flex-shrink-0" />
-          <label className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
+          <label htmlFor="meal-date" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             Датум
           </label>
           <input
+            id="meal-date"
             type="date"
             value={selectedDate}
             onChange={(e) => handleDateChange(e.target.value)}
@@ -424,19 +425,21 @@ export default function MealForm() {
                       Храна {fi + 1}
                     </span>
                     <button type="button" onClick={() => removeFood(activePool, fi)}
-                      className="text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full p-0.5 transition-colors">
+                      className="text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full p-0.5 transition-colors"
+                      aria-label="Тргни храна">
                       <X size={14} />
                     </button>
                   </div>
                 )}
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+                    <label htmlFor={`food-type-${activePool}-${fi}`} className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
                       <UtensilsCrossed size={12} className="text-[var(--primary)]" />
                       Тип на храна <span className="text-[var(--danger)]">*</span>
                     </label>
                     <select
+                      id={`food-type-${activePool}-${fi}`}
                       value={food.food_type ?? ''}
                       onChange={(e) => updateFood(activePool, fi, 'food_type', e.target.value)}
                       className={`input-base ${!hasType && hasQty ? 'border-[var(--danger)]' : ''}`}

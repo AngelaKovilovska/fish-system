@@ -8,6 +8,12 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('./db/connection');
 
+// ── Startup validation ──
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET must be set and at least 32 characters.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -149,7 +155,11 @@ async function seedAdmin() {
 
     const bcrypt = require('bcryptjs');
     const email = process.env.ADMIN_EMAIL || 'admin@clario.mk';
-    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 12);
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn('ADMIN_PASSWORD not set — skipping admin seed. Set ADMIN_PASSWORD to create an admin user.');
+      return;
+    }
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
 
     await pool.query(
       'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',

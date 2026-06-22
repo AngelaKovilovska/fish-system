@@ -282,7 +282,7 @@ export default function Dashboard() {
                   </div>
                   <button onClick={() => handleAcknowledge(alert.id)}
                     className="btn-ghost text-[var(--success)] flex-shrink-0 text-xs"
-                    title="Потврди">
+                    title="Потврди" aria-label="Потврди">
                     <CheckCircle size={16} />
                   </button>
                 </div>

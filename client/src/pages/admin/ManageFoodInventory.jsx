@@ -218,7 +218,7 @@ export default function ManageFoodInventory() {
     <div className="max-w-[700px] mx-auto">
       <div className="mb-5 animate-in">
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5">
+          <button onClick={() => navigate('/admin')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
             <ChevronLeft size={20} />
           </button>
           <h1 className="page-title mb-1">Залихи на храна</h1>

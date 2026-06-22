@@ -88,7 +88,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 });
 
 // POST /api/auth/change-password
-router.post('/change-password', authMiddleware, async (req, res) => {
+router.post('/change-password', loginLimiter, authMiddleware, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 

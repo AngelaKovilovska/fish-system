@@ -126,7 +126,7 @@ export default function ChecklistHistory() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/reports')} className="btn-ghost p-1.5 -ml-1.5">
+        <button onClick={() => navigate('/reports')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <h1 className="page-title">Историја на записи</h1>
@@ -176,7 +176,7 @@ export default function ChecklistHistory() {
       <div className="card !p-3 mb-4 animate-in-delay-1">
         <div className="flex items-center justify-between">
           <button onClick={() => goMonth(-1)}
-            className="btn-ghost p-2 rounded-xl">
+            className="btn-ghost p-2 rounded-xl" aria-label="Претходен месец">
             <ChevronLeft size={20} />
           </button>
           <div className="text-center">
@@ -192,7 +192,7 @@ export default function ChecklistHistory() {
             )}
           </div>
           <button onClick={() => goMonth(1)}
-            className="btn-ghost p-2 rounded-xl"
+            className="btn-ghost p-2 rounded-xl" aria-label="Следен месец"
             disabled={year === today.getFullYear() && month >= today.getMonth()}>
             <ChevronRight size={20} />
           </button>
@@ -333,7 +333,7 @@ export default function ChecklistHistory() {
                   {new Date(year, month, selectedDay).toLocaleDateString('mk-MK', { weekday: 'long' })}
                 </span>
               </h3>
-              <button onClick={() => setSelectedDay(null)} className="btn-ghost p-1 rounded-lg">
+              <button onClick={() => setSelectedDay(null)} className="btn-ghost p-1 rounded-lg" aria-label="Затвори">
                 <X size={16} />
               </button>
             </div>

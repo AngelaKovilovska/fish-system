@@ -16,8 +16,11 @@ async function seedAdmin() {
     }
 
     const email = process.env.ADMIN_EMAIL || 'admin@clario.mk';
-    const password = process.env.ADMIN_PASSWORD || 'admin123';
-    const hashedPassword = await bcrypt.hash(password, 12);
+    if (!process.env.ADMIN_PASSWORD) {
+      console.error('ADMIN_PASSWORD environment variable is required.');
+      process.exit(1);
+    }
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
 
     await pool.query(
       'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',

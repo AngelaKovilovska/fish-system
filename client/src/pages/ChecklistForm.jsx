@@ -325,8 +325,8 @@ export default function ChecklistForm() {
               Едитирај го постоечкиот запис
             </button>
             <div className="mt-2">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Или избери друг датум:</label>
-              <input type="date" value={formData.date}
+              <label htmlFor="cl-alt-date" className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Или избери друг датум:</label>
+              <input id="cl-alt-date" type="date" value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className="input-base" />
             </div>
@@ -365,8 +365,8 @@ export default function ChecklistForm() {
 
       {/* Date */}
       <div className="mb-4 animate-in-delay-1">
-        <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Датум</label>
-        <input type="date" value={formData.date}
+        <label htmlFor="cl-date" className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Датум</label>
+        <input id="cl-date" type="date" value={formData.date}
           onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           className="input-base" />
       </div>

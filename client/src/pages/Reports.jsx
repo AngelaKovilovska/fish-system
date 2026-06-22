@@ -1026,7 +1026,7 @@ ${tableHTML}
         {/* Header with back button */}
         <div className="flex items-center gap-3 mb-5 animate-in">
           <button onClick={handleBackToList}
-            className="btn-ghost text-sm flex-shrink-0 !px-2.5">
+            className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад кон листа">
             <ChevronLeft size={18} />
           </button>
           <div className="flex items-center gap-2.5">
@@ -1134,7 +1134,7 @@ ${tableHTML}
           <div className="animate-in space-y-0">
             {/* Back button above chart */}
             <div className="flex items-center gap-3 mb-4">
-              <button onClick={handleBackFromPreview} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
+              <button onClick={handleBackFromPreview} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0" aria-label="Назад">
                 <ChevronLeft size={20} />
               </button>
               <h2 className="section-title !mb-0">{report.label}</h2>
@@ -1176,7 +1176,7 @@ ${tableHTML}
   return (
     <div className="max-w-[900px] mx-auto">
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5">
+        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <h1 className="page-title !mb-0">Извештаи</h1>

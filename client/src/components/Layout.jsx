@@ -211,7 +211,8 @@ export default function Layout() {
           <div className="relative" ref={profileRef}>
             <button onClick={() => setShowProfile(!showProfile)}
               className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-transform active:scale-95"
-              style={{ background: isAdmin ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
+              style={{ background: isAdmin ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+              aria-label="Профил мени">
               {user?.full_name?.[0] || 'U'}
             </button>
 

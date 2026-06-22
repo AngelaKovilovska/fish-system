@@ -41,7 +41,7 @@ export default function MealHistory() {
   return (
     <div className="overflow-hidden">
       <div className="flex items-center gap-3 mb-4 animate-in">
-        <button onClick={() => navigate('/entry')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0">
+        <button onClick={() => navigate('/entry')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <div className="icon-box"
@@ -57,20 +57,20 @@ export default function MealHistory() {
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4 animate-in-delay-1
         bg-[var(--surface)] rounded-[var(--r-md)] px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
-        <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
-          style={{ fontFamily: 'Sora, sans-serif' }}>Од:</span>
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+        <label htmlFor="mh-from" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
+          style={{ fontFamily: 'Sora, sans-serif' }}>Од:</label>
+        <input id="mh-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
           className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
-        <span className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
-          style={{ fontFamily: 'Sora, sans-serif' }}>До:</span>
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+        <label htmlFor="mh-to" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
+          style={{ fontFamily: 'Sora, sans-serif' }}>До:</label>
+        <input id="mh-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
           className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
         <div className="flex gap-2">
           <button onClick={handleSearch} className="btn-primary py-2 px-4 text-sm">
             <Search size={15} /> Пребарај
           </button>
           {(dateFrom || dateTo) && (
-            <button onClick={handleClear} className="btn-secondary py-2 px-3 text-sm">
+            <button onClick={handleClear} className="btn-secondary py-2 px-3 text-sm" aria-label="Исчисти филтри">
               <X size={15} />
             </button>
           )}
@@ -222,7 +222,7 @@ export default function MealHistory() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
           <button onClick={() => handlePageChange(page - 1)} disabled={page === 0}
-            className="btn-secondary py-2 px-3 text-sm disabled:opacity-30">
+            className="btn-secondary py-2 px-3 text-sm disabled:opacity-30" aria-label="Претходна страница">
             <ChevronLeft size={16} />
           </button>
           <div className="flex gap-1.5">
@@ -248,7 +248,7 @@ export default function MealHistory() {
             })}
           </div>
           <button onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages - 1}
-            className="btn-secondary py-2 px-3 text-sm disabled:opacity-30">
+            className="btn-secondary py-2 px-3 text-sm disabled:opacity-30" aria-label="Следна страница">
             <ChevronRight size={16} />
           </button>
         </div>
