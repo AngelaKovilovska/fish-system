@@ -39,7 +39,7 @@ export default function ManagePoolMeasurements() {
       ]);
       setMeasurements(measData.measurements);
       setFishInventory(invData.inventory);
-    } catch (err) { console.error(err); }
+    } catch { setMeasurements([]); setFishInventory([]); }
     finally { setLoading(false); }
   };
 
@@ -50,7 +50,7 @@ export default function ManagePoolMeasurements() {
     try {
       const data = await api.getPoolMeasurementHistory(poolNum);
       setHistory(data.measurements);
-    } catch (err) { console.error(err); }
+    } catch { setHistory([]); }
     finally { setLoadingHistory(false); }
   };
 

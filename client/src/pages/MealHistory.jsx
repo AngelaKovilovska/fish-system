@@ -26,7 +26,7 @@ export default function MealHistory() {
       const data = await api.getMealHistory({ limit: PER_PAGE, offset: p * PER_PAGE, from, to });
       setDates(data.dates);
       setTotal(data.total);
-    } catch (err) { console.error(err); }
+    } catch { setDates([]); setTotal(0); }
     finally { setLoading(false); }
   };
 
@@ -127,11 +127,12 @@ export default function MealHistory() {
                                 <Link
                                   key={mt}
                                   to={`/meal/${mt}?date=${entry.date}`}
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 ${
-                                    filled
-                                      ? 'bg-green-50 text-green-700 border border-green-200'
-                                      : 'bg-gray-50 text-gray-400 border border-gray-200'
-                                  }`}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all hover:scale-105 border"
+                                  style={{
+                                    background: filled ? 'rgba(34,197,94,0.08)' : 'var(--bg)',
+                                    color: filled ? 'var(--success)' : 'var(--text-muted)',
+                                    borderColor: filled ? 'rgba(34,197,94,0.25)' : 'var(--border)',
+                                  }}
                                   title={`${filled ? 'Измени' : 'Додај'} ${MEAL_INFO[mt].label}`}
                                 >
                                   {MEAL_INFO[mt].icon}
@@ -192,17 +193,17 @@ export default function MealHistory() {
                           <Link
                             key={mt}
                             to={`/meal/${mt}?date=${entry.date}`}
-                            className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-[var(--r-sm)] transition-all active:scale-95 ${
-                              filled
-                                ? 'bg-green-50 border border-green-200'
-                                : 'bg-gray-50 border border-gray-200'
-                            }`}
+                            className="flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-[var(--r-sm)] transition-all active:scale-95 border"
+                            style={{
+                              background: filled ? 'rgba(34,197,94,0.08)' : 'var(--bg)',
+                              borderColor: filled ? 'rgba(34,197,94,0.25)' : 'var(--border)',
+                            }}
                           >
                             {MEAL_INFO[mt].icon}
-                            <span className={`text-[10px] font-medium ${filled ? 'text-green-700' : 'text-gray-400'}`}>
+                            <span className={`text-[10px] font-medium ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>
                               {MEAL_INFO[mt].label}
                             </span>
-                            <span className={`text-[9px] ${filled ? 'text-green-600' : 'text-gray-300'}`}>
+                            <span className={`text-[9px] ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)] opacity-50'}`}>
                               {filled ? '✓ Измени' : '+ Додај'}
                             </span>
                           </Link>

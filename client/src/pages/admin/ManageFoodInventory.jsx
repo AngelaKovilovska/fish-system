@@ -73,7 +73,7 @@ export default function ManageFoodInventory() {
       setInventory(invData.inventory);
       setLog(logData.log);
       setStockProjection(projData);
-    } catch (err) { console.error(err); }
+    } catch { setInventory([]); setLog([]); }
     finally { setLoading(false); }
   };
 
@@ -187,7 +187,7 @@ export default function ManageFoodInventory() {
       });
       cancelEdit();
       await load();
-    } catch (err) { console.error(err); }
+    } catch { setMessage('Грешка при зачувување.'); }
     finally { setEditSaving(false); }
   };
 
@@ -196,7 +196,7 @@ export default function ManageFoodInventory() {
       await api.deleteFoodPurchase(id);
       setDeleteConfirmId(null);
       await load();
-    } catch (err) { console.error(err); }
+    } catch { setMessage('Грешка при бришење.'); }
   };
 
   // Load purchases for a date from log into the form

@@ -94,8 +94,8 @@ export default function MealForm() {
       // Fields stay empty for new meals — user can click button to load last values
       setPoolMeasurements(measurementsData.measurements || []);
       setFishInventory(fishInvData.inventory || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError('Грешка при вчитување на податоците.');
     } finally {
       setLoading(false);
     }

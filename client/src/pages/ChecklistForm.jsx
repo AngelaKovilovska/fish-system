@@ -78,7 +78,7 @@ export default function ChecklistForm() {
           setDuplicateRecord(d.records[0]);
         }
       })
-      .catch(console.error);
+      .catch(() => {});
   }, [isEdit, formData.date]);
 
   useEffect(() => {

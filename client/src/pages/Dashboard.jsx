@@ -73,7 +73,7 @@ export default function Dashboard() {
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
       api.getFoodProjection(14).then(d => setStockProjection(d)).catch(() => setStockProjection(null)),
     ])
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -81,14 +81,14 @@ export default function Dashboard() {
     try {
       await api.acknowledgeAlert(alertId);
       setAlerts(prev => prev.filter(a => a.id !== alertId));
-    } catch (err) { console.error(err); }
+    } catch { /* alert stays visible — user can retry */ }
   };
 
   const handleAcknowledgeAll = async () => {
     try {
       await api.acknowledgeAllAlerts();
       setAlerts([]);
-    } catch (err) { console.error(err); }
+    } catch { /* alerts stay visible — user can retry */ }
   };
 
   if (loading) {
@@ -131,7 +131,7 @@ export default function Dashboard() {
             style={{ borderLeft: '4px solid var(--warning)' }}>
             <div className="px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.1)' }}>
                   <ClipboardList size={20} className="text-amber-500" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -139,7 +139,7 @@ export default function Dashboard() {
                     style={{ fontFamily: 'Sora, sans-serif' }}>
                     Денешна чеклиста
                   </p>
-                  <p className="text-[12px] text-amber-600 mt-0.5">
+                  <p className="text-[12px] text-amber-600 dark:text-amber-400 mt-0.5">
                     Чеклистата за денес не е пополнета
                   </p>
                 </div>
@@ -162,7 +162,7 @@ export default function Dashboard() {
             style={{ borderLeft: '4px solid var(--success)' }}>
             <div className="px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50 flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(34,197,94,0.1)' }}>
                   <CheckCircle size={20} className="text-[var(--success)]" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -170,7 +170,7 @@ export default function Dashboard() {
                     style={{ fontFamily: 'Sora, sans-serif' }}>
                     Денешна чеклиста
                   </p>
-                  <p className="text-[12px] text-green-600 mt-0.5">
+                  <p className="text-[12px] text-green-600 dark:text-green-400 mt-0.5">
                     Пополнета
                     {todayRecord.checked_by_name && (
                       <span className="text-[var(--text-muted)]">
@@ -281,7 +281,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <button onClick={() => handleAcknowledge(alert.id)}
-                    className="btn-ghost text-[var(--success)] hover:bg-green-50 flex-shrink-0 text-xs"
+                    className="btn-ghost text-[var(--success)] flex-shrink-0 text-xs"
                     title="Потврди">
                     <CheckCircle size={16} />
                   </button>
@@ -335,7 +335,7 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-1.5">
                 {aiRec.summary.foodTypeNeeds.map((ft, i) => (
                   <span key={i} className="text-[10px] px-2 py-1 rounded-full font-semibold"
-                    style={{ background: 'rgba(139,92,246,0.18)', color: '#6d28d9' }}>
+                    style={{ background: 'rgba(139,92,246,0.18)', color: 'var(--text-primary)' }}>
                     {ft.foodType}: {ft.dailyNeedKg} kg
                   </span>
                 ))}

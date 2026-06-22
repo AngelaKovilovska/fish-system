@@ -47,7 +47,7 @@ export default function RecordDetail() {
       return api.getMeals(recordDate);
     }).then(mealsData => {
       setMeals(mealsData.meals || []);
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(() => setData(null)).finally(() => setLoading(false));
   }, [id]);
 
   const handleDelete = async () => {
@@ -273,7 +273,7 @@ ${html}
             <Pencil size={12} /> Едитирај
           </Link>
           <button onClick={handleDelete}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-50 text-[var(--danger)] border border-red-200 active:scale-95 transition-transform">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--danger)] border border-[var(--border)] active:scale-95 transition-transform" style={{ background: 'rgba(239,68,68,0.08)' }}>
             <Trash2 size={12} /> Избриши
           </button>
           <button onClick={handleSendReport} disabled={sending}
@@ -290,7 +290,7 @@ ${html}
 
       {/* Alerts Banner */}
       {alerts.length > 0 && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-3 animate-in-delay-1">
+        <div className="rounded-2xl p-3 animate-in-delay-1" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
           <h3 className="flex items-center gap-1.5 font-bold text-xs text-[var(--danger)] mb-2"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             <AlertTriangle size={14} /> {alerts.length} {alerts.length === 1 ? 'Аларм' : 'Аларми'}
@@ -301,7 +301,7 @@ ${html}
               const hasNorms = a.min_norm != null || a.max_norm != null;
               const unit = PARAMETER_LABELS[a.parameter_name]?.unit || '';
               return (
-                <div key={a.id} className="flex items-center justify-between bg-white/60 rounded-lg px-2.5 py-1.5">
+                <div key={a.id} className="flex items-center justify-between bg-[var(--surface)]/60 rounded-lg px-2.5 py-1.5">
                   <span className="text-[11px] text-[var(--danger)] font-medium">{label}</span>
                   <span className="text-[11px] font-bold text-[var(--danger)]">
                     {hasNorms ? (
@@ -477,7 +477,7 @@ ${html}
                     <div key={meal.type}
                       className={`rounded-lg px-2 py-1.5 text-center ${
                         meal.has_data
-                          ? 'bg-white border border-[var(--border)]'
+                          ? 'bg-[var(--surface)] border border-[var(--border)]'
                           : 'bg-[var(--bg-secondary)] opacity-40'
                       }`}>
                       <div className="flex items-center justify-center gap-1 mb-0.5">

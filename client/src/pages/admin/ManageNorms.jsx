@@ -12,7 +12,7 @@ export default function ManageNorms() {
   const [savedAll, setSavedAll] = useState(false);
 
   useEffect(() => {
-    api.getNorms().then(d => setNorms(d.norms)).catch(console.error).finally(() => setLoading(false));
+    api.getNorms().then(d => setNorms(d.norms)).catch(() => setNorms([])).finally(() => setLoading(false));
   }, []);
 
   const handleSaveAll = async () => {

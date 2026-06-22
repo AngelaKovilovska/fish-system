@@ -19,7 +19,7 @@ export default function ManageUsers() {
   const loadUsers = () => {
     api.getUsers()
       .then(d => setUsers(d.users))
-      .catch(console.error)
+      .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   };
 

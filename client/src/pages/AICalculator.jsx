@@ -45,7 +45,7 @@ export default function AICalculator() {
   const [calcResult, setCalcResult] = useState(null);
 
   useEffect(() => {
-    api.getAIRecommendations().then(d => setAiData(d)).catch(() => {}).finally(() => setLoading(false));
+    api.getAIRecommendations().then(d => setAiData(d)).catch(() => setAiData(null)).finally(() => setLoading(false));
   }, []);
 
   // Load water prediction + ML forecast when water tab is opened
@@ -107,8 +107,8 @@ export default function AICalculator() {
         temperature: calcInputs.temperature ? parseFloat(calcInputs.temperature) : null,
       });
       setCalcResult(result);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setCalcResult(null);
     } finally {
       setCalcLoading(false);
     }

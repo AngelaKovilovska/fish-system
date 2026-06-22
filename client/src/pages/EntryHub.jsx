@@ -39,8 +39,8 @@ export default function EntryHub() {
         if (mealsRes?.status) {
           setMealStatus(mealsRes.status);
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        /* status cards will show default unfilled state */
       } finally {
         setLoading(false);
       }

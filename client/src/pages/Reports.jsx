@@ -5,7 +5,7 @@ import { POOL_NUMBERS } from '../lib/constants';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-  ResponsiveContainer, Cell, Legend,
+  ResponsiveContainer, Legend,
 } from 'recharts';
 
 const REPORT_TYPES = [
@@ -41,9 +41,9 @@ function ChartTooltipContent({ active, payload, label, suffix = '' }) {
 }
 
 const PARAM_LABELS = {
-  temperature: 'Температура', ph: 'pH', total_alkalinity: 'Total Alkalinity',
-  hardness: 'Total Hardness', nitrates: 'Нитрати (NO₃⁻)', nitrites: 'Нитрити (NO₂⁻)',
-  total_chlorine: 'Total Chlorine', ammonium: 'Амониум (NH₄⁺/NH₃)', bio_filter_foam: 'Пена во Био филтер',
+  temperature: 'Температура', ph: 'pH', total_alkalinity: 'Вкупна алкалност',
+  hardness: 'Вкупна тврдост', nitrates: 'Нитрати (NO₃⁻)', nitrites: 'Нитрити (NO₂⁻)',
+  total_chlorine: 'Вкупен хлор', ammonium: 'Амониум (NH₄⁺/NH₃)', bio_filter_foam: 'Пена во Био филтер',
   bio_filter_level: 'Био филтер ниво', mechanical_filter: 'Механички филтер',
   circulation_pump: 'Циркулациона пумпа', thermo_pump: 'Термо пумпа',
   aeration: 'Аерација', sieve_filter: 'Сито филтер',
@@ -121,7 +121,7 @@ export default function Reports() {
         setInventory(invData.inventory);
         setInventoryLog(logData.log);
       })
-      .catch(console.error)
+      .catch(() => { setInventory([]); setInventoryLog([]); })
       .finally(() => setInventoryLoading(false));
   }, [activeReport]);
 
