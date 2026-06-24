@@ -570,125 +570,6 @@ export default function AICalculator() {
                 </div>
               )}
 
-              {/* ── ML Random Forest Forecast ── */}
-              {waterForecast && waterForecast.available && (() => {
-                const forecasts = waterForecast.forecasts || {};
-                const availableForecasts = Object.values(forecasts).filter(f => f.available);
-                if (availableForecasts.length === 0) return null;
-
-                return (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Cpu size={13} className="text-purple-500" />
-                      <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                        ML Предикција (Random Forest)
-                      </p>
-                    </div>
-
-                    <div className="card !p-0 overflow-hidden">
-                      {/* Header */}
-                      <div className="grid grid-cols-5 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
-                        style={{ fontFamily: 'Sora, sans-serif', background: 'linear-gradient(135deg, rgba(139,92,246,0.06), transparent)' }}>
-                        <span className="col-span-1">Параметар</span>
-                        <span className="text-right">Сега</span>
-                        <span className="text-right">Утре</span>
-                        <span className="text-right">За 2д</span>
-                        <span className="text-right">За 3д</span>
-                      </div>
-
-                      {/* Rows */}
-                      {availableForecasts.map((f, i) => {
-                        const preds = f.predictions || [];
-                        const norm = waterPrediction?.parameters?.[f.parameter]?.norm;
-
-                        const valColor = (val) => {
-                          if (!norm || val == null) return '';
-                          const out = (norm.max !== null && val > norm.max) || (norm.min !== null && val < norm.min);
-                          return out ? 'text-[var(--danger)] font-bold' : '';
-                        };
-
-                        // R² badge color
-                        const r2 = f.metrics?.r2 || 0;
-                        const r2Color = r2 >= 0.7 ? 'text-[var(--success)]' : r2 >= 0.5 ? 'text-amber-500' : 'text-[var(--text-muted)]';
-
-                        return (
-                          <div key={f.parameter}
-                            className={`grid grid-cols-5 gap-0 px-3 py-2 items-center ${
-                              i < availableForecasts.length - 1 ? 'border-b border-[var(--border)]' : ''
-                            }`}>
-                            {/* Name + R² */}
-                            <div className="flex items-center gap-1 min-w-0 col-span-1">
-                              <span className="text-[11px] font-medium text-[var(--text-primary)] truncate">{f.label}</span>
-                              <span className={`text-[8px] font-semibold ${r2Color}`} title={`R² = ${r2}`}>
-                                {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
-                              </span>
-                            </div>
-
-                            {/* Current */}
-                            <span className={`text-[11px] text-right font-semibold text-[var(--text-primary)]`}>
-                              {f.currentValue != null ? f.currentValue : '–'}
-                            </span>
-
-                            {/* Day 1, 2, 3 */}
-                            {[0, 1, 2].map(dayIdx => {
-                              const pred = preds[dayIdx];
-                              if (!pred || pred.error) return <span key={dayIdx} className="text-[11px] text-right text-[var(--text-muted)]">–</span>;
-                              return (
-                                <span key={dayIdx} className={`text-[11px] text-right font-medium ${valColor(pred.value)} ${pred.outOfNorm ? '' : 'text-[var(--text-primary)]'}`}>
-                                  {pred.value}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* ML Warnings */}
-                    {waterForecast.warnings?.length > 0 && (
-                      <div className="space-y-1.5">
-                        {waterForecast.warnings.map((w, i) => (
-                          <div key={i} className="card !p-2.5 flex items-start gap-2"
-                            style={{
-                              borderLeft: `3px solid ${w.severity === 'critical' ? 'var(--danger)' : w.severity === 'warning' ? 'var(--warning)' : 'var(--primary)'}`,
-                              background: w.severity === 'critical' ? 'rgba(239,68,68,0.04)' : w.severity === 'warning' ? 'rgba(245,158,11,0.04)' : 'rgba(37,99,235,0.04)',
-                            }}>
-                            <Cpu size={12} className={`mt-0.5 flex-shrink-0 ${w.severity === 'critical' ? 'text-[var(--danger)]' : w.severity === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--primary)]'}`} />
-                            <p className="text-[11px] text-[var(--text-secondary)]">
-                              <span className="font-semibold text-[var(--text-primary)]">{w.label}</span>
-                              {' '}RF предвидува {w.predicted}{w.unit} за {w.day} ден{w.day > 1 ? 'а' : ''} ({w.direction === 'high' ? 'над' : 'под'} нормата {w.boundary})
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Summary footer */}
-                    <div className="flex items-center justify-between text-[9px] text-[var(--text-muted)]">
-                      <span>
-                        {waterForecast.summary?.availableModels}/{waterForecast.summary?.totalParameters} модели · Просечен R² = {waterForecast.summary?.avgR2}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-[var(--success)]">●</span> R²≥0.7
-                        <span className="text-amber-500">◐</span> R²≥0.5
-                        <span>○</span> R²&lt;0.5
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Not enough data for ML */}
-              {waterForecast && !waterForecast.available && (
-                <div className="card !p-3 flex items-center gap-2.5 opacity-60">
-                  <Cpu size={14} className="text-[var(--text-muted)]" />
-                  <div>
-                    <p className="text-xs font-medium text-[var(--text-secondary)]">ML предикција недостапна</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">{waterForecast.reason}</p>
-                  </div>
-                </div>
-              )}
-
               {/* Warnings */}
               {waterPrediction.warnings?.length > 0 && (
                 <div className="space-y-1.5">
@@ -710,18 +591,18 @@ export default function AICalculator() {
                 </div>
               )}
 
-              {/* ── Predictions — ALL params with trend ── */}
+              {/* ── ПРИМАРНА ПРЕДИКЦИЈА (Линеарна регресија) ── */}
               {(() => {
                 const predictions = [];
+                const modelSel = waterPrediction.modelSelection || {};
                 Object.values(waterPrediction.parameters || {}).forEach(param => {
                   if (param.noData || !param.trend) return;
                   const { trend, currentValue, label, unit, norm, parameter } = param;
-                  if (!trend.isSignificant && Math.abs(trend.slope) < 0.005) return; // skip truly flat
+                  if (!trend.isSignificant && Math.abs(trend.slope) < 0.005) return;
 
                   const pred3 = Math.round((currentValue + trend.slope * 3) * 100) / 100;
                   const pred7 = Math.round((currentValue + trend.slope * 7) * 100) / 100;
 
-                  // Determine status relative to norm
                   const isCurrentlyOut = norm && (
                     (norm.max !== null && currentValue > norm.max) ||
                     (norm.min !== null && currentValue < norm.min)
@@ -735,7 +616,6 @@ export default function AICalculator() {
                     (norm.min !== null && pred7 < norm.min)
                   );
 
-                  // Severity: already out & worsening > approaching norm > stable
                   let severity = 'stable';
                   if (isCurrentlyOut) {
                     const gettingWorse = (norm.max !== null && currentValue > norm.max && trend.slope > 0)
@@ -745,30 +625,42 @@ export default function AICalculator() {
                     severity = willBeOut3 ? 'warning' : 'caution';
                   }
 
+                  // Дали RF е подобар за овој параметар?
+                  const sel = modelSel[parameter];
+                  const rfIsPrimary = sel?.primary === 'rf';
+                  const lrIsWeak = sel?.primary === 'lr_weak';
+
                   predictions.push({
                     parameter, label, unit, currentValue, pred3, pred7, norm,
                     slope: trend.slope, r2: trend.r2, direction: trend.direction,
                     daysAnalyzed: trend.daysAnalyzed,
                     isCurrentlyOut, willBeOut3, willBeOut7, severity,
                     crossing: trend.crossing,
+                    linearFitValid: trend.linearFitValid,
+                    fitDiagnostics: trend.fitDiagnostics,
+                    rfIsPrimary,
+                    lrIsWeak,
                   });
                 });
 
-                // Sort: critical > warning > caution > recovering > stable
                 const sevOrder = { critical: 0, warning: 1, caution: 2, recovering: 3, stable: 4 };
                 predictions.sort((a, b) => (sevOrder[a.severity] ?? 9) - (sevOrder[b.severity] ?? 9));
 
                 if (predictions.length === 0) return null;
 
+                const weakFitParams = predictions.filter(p => p.lrIsWeak || p.rfIsPrimary);
+
                 return (
                   <div className="space-y-2">
-                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                      Предвидувања — ако трендот продолжи
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={13} className="text-[var(--success)]" />
+                      <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        Примарна предикција — Линеарна регресија
+                      </p>
+                    </div>
 
                     {/* Prediction table */}
                     <div className="card !p-0 overflow-hidden">
-                      {/* Header */}
                       <div className="grid grid-cols-4 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
                         style={{ fontFamily: 'Sora, sans-serif', background: 'var(--surface)' }}>
                         <span>Параметар</span>
@@ -777,7 +669,6 @@ export default function AICalculator() {
                         <span className="text-right">За 7 дена</span>
                       </div>
 
-                      {/* Rows */}
                       {predictions.map((p, i) => {
                         const TIcon = p.direction === 'rising' ? TrendingUp
                           : p.direction === 'falling' ? TrendingDown : Minus;
@@ -786,7 +677,6 @@ export default function AICalculator() {
                           : p.severity === 'warning' || p.severity === 'caution' ? 'text-[var(--warning)]'
                           : 'text-[var(--text-muted)]';
 
-                        // Color helpers for predicted values
                         const valColor = (val) => {
                           if (!p.norm) return 'text-[var(--text-primary)]';
                           const out = (p.norm.max !== null && val > p.norm.max)
@@ -805,24 +695,22 @@ export default function AICalculator() {
                                 : p.severity === 'recovering' ? 'rgba(34,197,94,0.04)'
                                 : 'transparent',
                             }}>
-
-                            {/* Parameter name + trend icon */}
                             <div className="flex items-center gap-1.5 min-w-0">
                               <TIcon size={12} className={trendColor} />
                               <span className="text-xs font-medium text-[var(--text-primary)] truncate">{p.label}</span>
+                              {(p.lrIsWeak || p.rfIsPrimary) && (
+                                <span className="text-[7px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold flex-shrink-0"
+                                  title={p.fitDiagnostics?.reasons?.join(', ') || 'Слаб фит'}>
+                                  {p.rfIsPrimary ? 'RF' : '⚠'}
+                                </span>
+                              )}
                             </div>
-
-                            {/* Current */}
                             <span className={`text-xs text-right font-semibold ${p.isCurrentlyOut ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
                               {p.currentValue}{p.unit}
                             </span>
-
-                            {/* 3-day prediction */}
                             <span className={`text-xs text-right ${valColor(p.pred3)}`}>
                               {p.pred3}{p.unit}
                             </span>
-
-                            {/* 7-day prediction */}
                             <span className={`text-xs text-right ${valColor(p.pred7)}`}>
                               {p.pred7}{p.unit}
                             </span>
@@ -831,7 +719,7 @@ export default function AICalculator() {
                       })}
                     </div>
 
-                    {/* Crossing warnings — specific alerts for params about to leave norm */}
+                    {/* Crossing warnings */}
                     {predictions.filter(p => p.crossing && p.crossing.daysUntil > 0 && p.crossing.daysUntil <= 7 && !p.crossing.alreadyExceeded).map((p, i) => (
                       <div key={`cross-${i}`} className="card !p-3 flex items-start gap-2.5"
                         style={{
@@ -846,7 +734,7 @@ export default function AICalculator() {
                       </div>
                     ))}
 
-                    {/* Already exceeded — getting better or worse */}
+                    {/* Already exceeded */}
                     {predictions.filter(p => p.isCurrentlyOut && p.direction !== 'stable').map((p, i) => {
                       const isWorse = p.severity === 'critical';
                       return (
@@ -866,12 +754,110 @@ export default function AICalculator() {
                       );
                     })}
 
+                    {/* Weak fit notice */}
+                    {weakFitParams.length > 0 && (
+                      <div className="card !p-2.5 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.04)', borderLeft: '3px solid var(--warning)' }}>
+                        <Info size={12} className="text-[var(--warning)] mt-0.5 flex-shrink-0" />
+                        <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                          {weakFitParams.map(p => p.label).join(', ')}: линеарниот модел не е идеален фит (ненормални резидуали или автокорелација). Погледнете ја алтернативната предикција подолу.
+                        </p>
+                      </div>
+                    )}
+
                     <p className="text-[9px] text-[var(--text-muted)] italic">
-                      * Базирано на линеарна регресија од последните {predictions[0]?.daysAnalyzed || '?'} дена. R² = {predictions[0]?.r2 || '?'}.
+                      * Линеарна регресија · последни {predictions[0]?.daysAnalyzed || '?'} дена · R² = {predictions[0]?.r2 || '?'}
+                      {predictions[0]?.fitDiagnostics?.durbinWatson != null && ` · DW = ${predictions[0].fitDiagnostics.durbinWatson}`}
                     </p>
                   </div>
                 );
               })()}
+
+              {/* ── АЛТЕРНАТИВНА ПРЕДИКЦИЈА (Random Forest) — „Моделот учи" ── */}
+              {waterForecast && waterForecast.available && (() => {
+                const forecasts = waterForecast.forecasts || {};
+                const availableForecasts = Object.values(forecasts).filter(f => f.available);
+                if (availableForecasts.length === 0) return null;
+
+                return (
+                  <div className="space-y-2" style={{ opacity: 0.85 }}>
+                    <div className="flex items-center gap-2">
+                      <Cpu size={13} className="text-purple-400" />
+                      <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        Алтернативна предикција (Random Forest)
+                      </p>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                        style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}>
+                        Моделот учи
+                      </span>
+                    </div>
+
+                    <div className="card !p-0 overflow-hidden" style={{ borderColor: 'rgba(139,92,246,0.2)' }}>
+                      <div className="grid grid-cols-5 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
+                        style={{ fontFamily: 'Sora, sans-serif', background: 'linear-gradient(135deg, rgba(139,92,246,0.04), transparent)' }}>
+                        <span className="col-span-1">Параметар</span>
+                        <span className="text-right">Сега</span>
+                        <span className="text-right">Утре</span>
+                        <span className="text-right">За 2д</span>
+                        <span className="text-right">За 3д</span>
+                      </div>
+
+                      {availableForecasts.map((f, i) => {
+                        const preds = f.predictions || [];
+                        const norm = waterPrediction?.parameters?.[f.parameter]?.norm;
+                        const valColor = (val) => {
+                          if (!norm || val == null) return '';
+                          const out = (norm.max !== null && val > norm.max) || (norm.min !== null && val < norm.min);
+                          return out ? 'text-[var(--danger)] font-bold' : '';
+                        };
+                        const r2 = f.metrics?.r2 || 0;
+                        const r2Color = r2 >= 0.7 ? 'text-[var(--success)]' : r2 >= 0.5 ? 'text-amber-500' : 'text-[var(--text-muted)]';
+
+                        return (
+                          <div key={f.parameter}
+                            className={`grid grid-cols-5 gap-0 px-3 py-2 items-center ${
+                              i < availableForecasts.length - 1 ? 'border-b border-[var(--border)]' : ''
+                            }`}>
+                            <div className="flex items-center gap-1 min-w-0 col-span-1">
+                              <span className="text-[11px] font-medium text-[var(--text-primary)] truncate">{f.label}</span>
+                              <span className={`text-[8px] font-semibold ${r2Color}`} title={`R² = ${r2}`}>
+                                {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-right font-semibold text-[var(--text-primary)]">
+                              {f.currentValue != null ? f.currentValue : '–'}
+                            </span>
+                            {[0, 1, 2].map(dayIdx => {
+                              const pred = preds[dayIdx];
+                              if (!pred || pred.error) return <span key={dayIdx} className="text-[11px] text-right text-[var(--text-muted)]">–</span>;
+                              return (
+                                <span key={dayIdx} className={`text-[11px] text-right font-medium ${valColor(pred.value)} ${pred.outOfNorm ? '' : 'text-[var(--text-primary)]'}`}>
+                                  {pred.value}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[9px] text-[var(--text-muted)] italic">
+                      * Овој модел е во фаза на учење. Следете ги примарните предвидувања погоре.
+                      {' · '}{waterForecast.summary?.availableModels}/{waterForecast.summary?.totalParameters} модели · Просечен R² = {waterForecast.summary?.avgR2}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Not enough data for ML */}
+              {waterForecast && !waterForecast.available && (
+                <div className="card !p-3 flex items-center gap-2.5 opacity-60">
+                  <Cpu size={14} className="text-[var(--text-muted)]" />
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text-secondary)]">ML предикција недостапна</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{waterForecast.reason}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Causal Chains */}
               {waterPrediction.causalChains?.length > 0 && (
@@ -1248,7 +1234,7 @@ export default function AICalculator() {
       {/* Footer note */}
       <div className="text-center py-4">
         <p className="text-[10px] text-[var(--text-muted)]">
-          * Храна: Coppens 2025-2026. Вода: Rule-based + Random Forest ML анализа.
+          * Храна: Coppens 2025-2026. Вода: Линеарна регресија (примарна) + Random Forest (алтернативна).
         </p>
       </div>
     </div>
