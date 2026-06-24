@@ -84,6 +84,7 @@ export const api = {
   sendAlertsReport: (from, to) => request('/reports/alerts', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+  sendInventoryReport: () => request('/reports/inventory', { method: 'POST', body: JSON.stringify({ sendEmail: true }) }),
 
   // Pool fish inventory
   getPoolFishInventory: () => request('/pool-fish-inventory'),

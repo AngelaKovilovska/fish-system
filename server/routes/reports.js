@@ -839,4 +839,108 @@ router.post('/food-purchases', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/reports/inventory - food inventory report (current stock + recent changes)
+router.post('/inventory', authMiddleware, async (req, res) => {
+  try {
+    const { sendEmail } = req.body;
+
+    // Get current inventory
+    const invResult = await pool.query(
+      'SELECT * FROM food_inventory ORDER BY food_type'
+    );
+    const inventory = invResult.rows;
+
+    // Get recent log entries (last 30)
+    const logResult = await pool.query(
+      `SELECT fil.*, u.full_name as created_by_name
+       FROM food_inventory_log fil
+       LEFT JOIN users u ON fil.created_by = u.id
+       WHERE fil.reason IN ('purchase', 'consumption')
+       ORDER BY fil.created_at DESC
+       LIMIT 30`
+    );
+    const log = logResult.rows;
+
+    if (sendEmail) {
+      const now = new Date();
+      const dateStr = fmtDate(now);
+
+      // Excel
+      const headers = ['Тип храна', 'Залиха (kg)', 'Последно ажурирано'];
+      const rows = inventory.map(item => [
+        item.food_type,
+        parseFloat(item.quantity_kg).toFixed(2),
+        fmtDate(item.updated_at),
+      ]);
+
+      const excelBuffer = generateExcel('Залихи на храна', headers, rows);
+
+      // PDF
+      const pdfSections = [
+        { table: { headers, rows } },
+      ];
+      if (log.length > 0) {
+        const logHeaders = ['Тип храна', 'Промена (kg)', 'Тип', 'Датум'];
+        const logRows = log.slice(0, 20).map(entry => [
+          entry.food_type,
+          `${entry.reason === 'purchase' ? '+' : ''}${parseFloat(entry.change_kg).toFixed(2)}`,
+          entry.reason === 'purchase' ? 'Набавка' : 'Потрошувачка',
+          fmtDate(entry.created_at),
+        ]);
+        pdfSections.push({ heading: 'Последни промени', table: { headers: logHeaders, rows: logRows } });
+      }
+
+      const pdfBuffer = await generatePDF(`Залихи на храна - ${dateStr}`, pdfSections);
+
+      const recipientEmail = getRequesterEmail(req);
+      if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
+
+      // Email sections
+      const emailSections = [
+        { type: 'keyvalue', heading: 'Тековни залихи', items: inventory.map(item => {
+          const qty = parseFloat(item.quantity_kg);
+          return {
+            label: item.food_type,
+            value: `${qty.toFixed(2)} kg`,
+            danger: qty <= 5,
+          };
+        })},
+      ];
+
+      // Low stock warning
+      const lowStock = inventory.filter(item => parseFloat(item.quantity_kg) <= 5);
+      if (lowStock.length > 0) {
+        emailSections.unshift({
+          type: 'alert',
+          text: `⚠ ${lowStock.length} тип/а храна со ниски залихи (≤ 5 kg)`,
+        });
+      }
+
+      const emailResult = await sendReportEmail({
+        to: recipientEmail,
+        subject: `Залихи на храна - Фамаком - ${dateStr}`,
+        html: buildEmailHTML({
+          title: 'Залихи на храна',
+          subtitle: `Генерирано: ${dateStr}`,
+          sections: emailSections,
+          footerNote: 'Детален извештај е во прилог (Excel и PDF).',
+        }),
+        attachments: [
+          { filename: `zalihi-hrana-${dateStr}.xlsx`, content: excelBuffer },
+          { filename: `zalihi-hrana-${dateStr}.pdf`, content: pdfBuffer },
+        ],
+      });
+
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
+
+      return res.json({ message: 'Извештајот е испратен на вашиот email', sent: true });
+    }
+
+    res.json({ inventory, log });
+  } catch (err) {
+    console.error('Inventory report error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 module.exports = router;

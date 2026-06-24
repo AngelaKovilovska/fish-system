@@ -153,6 +153,19 @@ export default function Reports() {
     finally { setSending(false); }
   };
 
+  const handleSendInventoryEmail = async () => {
+    setError(''); setSending(true); setEmailSent(false);
+    try {
+      const result = await api.sendInventoryReport();
+      if (result?.sent === false) {
+        setError(result.message || 'Email не е испратен');
+      } else {
+        setEmailSent(true);
+      }
+    } catch (err) { setError(err.message || 'Грешка при испраќање'); }
+    finally { setSending(false); }
+  };
+
   const handleBackFromPreview = () => { setPreviewData(null); setEmailSent(false); setError(''); };
   const handleBackToList = () => {
     setActiveReport(null); setPreviewData(null); setError('');
@@ -1041,12 +1054,24 @@ ${tableHTML}
           <>
             {renderInventory()}
             {!inventoryLoading && inventory.length > 0 && (
-              <div className="mt-4">
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <button onClick={handlePrint} className="btn-secondary w-full py-3">
-                  <Printer size={18} /> Принтај извештај
+                  <Printer size={18} /> Принтај
+                </button>
+                <button onClick={handleSendInventoryEmail} disabled={sending} className="btn-primary w-full py-3">
+                  {sending ? (
+                    <span className="flex items-center gap-2">
+                      <div className="wave-loader"><span /><span /><span /><span /></div>
+                      Се испраќа...
+                    </span>
+                  ) : (
+                    <><Mail size={18} /> Испрати на email</>
+                  )}
                 </button>
               </div>
             )}
+            {emailSent && <div className="alert-success text-xs mt-3">Извештајот е испратен на вашиот email.</div>}
+            {error && <div className="alert-danger text-xs mt-3">{error}</div>}
           </>
         )}
 
