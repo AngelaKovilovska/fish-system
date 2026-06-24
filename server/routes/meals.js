@@ -293,7 +293,9 @@ router.delete('/', authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const { date, meal_type } = req.body;
+    // Поддржи и query params и body (некои HTTP клиенти не праќаат body со DELETE)
+    const date = req.query.date || req.body?.date;
+    const meal_type = req.query.meal_type || req.body?.meal_type;
 
     if (!date || !meal_type) {
       return res.status(400).json({ error: 'Потребни се датум и тип на оброк' });

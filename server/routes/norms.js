@@ -22,6 +22,20 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { min_value, max_value } = req.body;
 
+    // Валидација на вредности
+    const minVal = min_value !== null && min_value !== '' ? parseFloat(min_value) : null;
+    const maxVal = max_value !== null && max_value !== '' ? parseFloat(max_value) : null;
+
+    if (minVal !== null && isNaN(minVal)) {
+      return res.status(400).json({ error: 'Невалидна минимална вредност' });
+    }
+    if (maxVal !== null && isNaN(maxVal)) {
+      return res.status(400).json({ error: 'Невалидна максимална вредност' });
+    }
+    if (minVal !== null && maxVal !== null && minVal >= maxVal) {
+      return res.status(400).json({ error: 'Минималната вредност мора да биде помала од максималната' });
+    }
+
     const result = await pool.query(
       'UPDATE parameter_norms SET min_value = $1, max_value = $2, updated_by = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
       [min_value, max_value, req.user.id, id]

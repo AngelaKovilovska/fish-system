@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { POOL_NUMBERS } from '../lib/constants';
+import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -40,17 +40,8 @@ function ChartTooltipContent({ active, payload, label, suffix = '' }) {
   );
 }
 
-const PARAM_LABELS = {
-  temperature: 'Температура', ph: 'pH', total_alkalinity: 'Вкупна алкалност',
-  hardness: 'Вкупна тврдост', nitrates: 'Нитрати (NO₃⁻)', nitrites: 'Нитрити (NO₂⁻)',
-  total_chlorine: 'Вкупен хлор', ammonium: 'Амониум (NH₄⁺/NH₃)', bio_filter_foam: 'Пена во Био филтер',
-  bio_filter_level: 'Био филтер ниво', mechanical_filter: 'Механички филтер',
-  circulation_pump: 'Циркулациона пумпа', thermo_pump: 'Термо пумпа',
-  aeration: 'Аерација', sieve_filter: 'Сито филтер',
-  normal_swimming: 'Нормално пливање', no_injuries: 'Нема повреди',
-  no_infection: 'Нема инфекција', normal_appetite: 'Нормален апетит',
-  no_dead: 'Нема угинати',
-};
+// Ги користиме ALL_PARAM_LABELS од constants.js (единствен извор)
+const PARAM_LABELS = ALL_PARAM_LABELS;
 
 // Format date as DD.MM.YYYY
 function fmtDate(dateVal) {

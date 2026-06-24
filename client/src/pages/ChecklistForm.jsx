@@ -7,12 +7,11 @@ import FishControlStep from '../components/checklist/FishControlStep';
 import FeedingStep from '../components/checklist/FeedingStep';
 import ActivitiesStep from '../components/checklist/ActivitiesStep';
 import SummaryStep from '../components/checklist/SummaryStep';
-import { POOL_NUMBERS, FILTRATION_LABELS, FISH_VISUAL_LABELS } from '../lib/constants';
+import { POOL_NUMBERS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS } from '../lib/constants';
 import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pencil, X, RotateCcw } from 'lucide-react';
 
 const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности', 'Резиме'];
 const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites', 'ammonium'];
-const MK_MONTHS = ['Јануари','Февруари','Март','Април','Мај','Јуни','Јули','Август','Септември','Октомври','Ноември','Декември'];
 const DRAFT_KEY = 'clario_checklist_draft';
 
 const hasMeaningfulData = (fd) => {

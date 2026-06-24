@@ -5,11 +5,7 @@ import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
   ClipboardList, Sunrise, Sun, Moon, X, Flame,
 } from 'lucide-react';
-
-const MK_MONTHS = [
-  'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
-  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
-];
+import { MK_MONTHS } from '../lib/constants';
 const MK_DAYS_SHORT = ['Пон', 'Вто', 'Сре', 'Чет', 'Пет', 'Саб', 'Нед'];
 
 function getMonthStr(date) {

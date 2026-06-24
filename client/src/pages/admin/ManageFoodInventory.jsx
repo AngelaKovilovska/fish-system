@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { FOOD_TYPES } from '../../lib/constants';
+import { FOOD_TYPES, MK_MONTHS } from '../../lib/constants';
 import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search, ChevronLeft } from 'lucide-react';
-
-const MK_MONTHS = [
-  'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
-  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
-];
 
 function formatDateShortMK(dateStr) {
   const d = new Date(dateStr);

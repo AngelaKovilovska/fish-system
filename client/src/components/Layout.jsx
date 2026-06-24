@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, Scale, Package, X, Moon, Sun, BarChart3, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, MoreHorizontal } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── 4 main sections: Дома, Внес, Извештаи, Проекции ───
@@ -33,17 +33,10 @@ const mobilePrimaryTabs = [
   { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
 ];
 
-const mobileMoreItems = [];
-
 const mobileAdminItems = [
   { path: '/admin/norms', label: 'Норми', icon: Settings },
   { path: '/admin/users', label: 'Корисници', icon: Users },
 ];
-
-// Helper to check if any item in section is active
-function isSectionActive(items, pathname) {
-  return items.some(item => pathname === item.path || pathname.startsWith(item.path + '/'));
-}
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -80,8 +73,8 @@ export default function Layout() {
     setShowMore(false);
   }, [location.pathname]);
 
-  // Check if "More" section has an active item
-  const moreItems = [...mobileMoreItems, ...(isAdmin ? mobileAdminItems : [])];
+  // Check if "More" section has an active item (admin-only items)
+  const moreItems = isAdmin ? mobileAdminItems : [];
   const isMoreActive = moreItems.some(item =>
     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
   );

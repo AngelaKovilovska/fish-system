@@ -6,12 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
-
-/* ── Macedonian formatting ── */
-const MK_MONTHS = [
-  'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
-  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
-];
+import { MK_MONTHS } from '../lib/constants';
 
 function formatDateMK(dateStr) {
   if (!dateStr) return '';

@@ -15,11 +15,11 @@ const PARAMETER_LABELS = {
   // Water control
   temperature: 'Температура',
   ph: 'pH',
-  total_alkalinity: 'Total Alkalinity',
-  hardness: 'Total Hardness',
+  total_alkalinity: 'Вкупна алкалност',
+  hardness: 'Вкупна тврдост',
   nitrates: 'Нитрати (NO₃⁻)',
   nitrites: 'Нитрити (NO₂⁻)',
-  total_chlorine: 'Total Chlorine',
+  total_chlorine: 'Вкупен хлор',
   ammonium: 'Амониум (NH₄⁺/NH₃)',
   // Filtration
   bio_filter_level: 'Био филтер ниво',
@@ -95,7 +95,7 @@ async function getDailyReportData(recordId) {
 
   // Food per pool (sum of all meals per pool)
   const food_per_pool = [];
-  for (let p = 1; p <= 6; p++) {
+  for (let p = 1; p <= 8; p++) {
     if (hasMeals) {
       const poolMeals = mealsRows.filter(m => m.pool_number === p);
       food_per_pool.push({

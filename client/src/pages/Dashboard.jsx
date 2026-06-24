@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { PARAMETER_LABELS } from '../lib/constants';
+import { PARAMETER_LABELS, MK_MONTHS } from '../lib/constants';
 import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
@@ -33,11 +33,6 @@ function getAlertInfo(alert) {
   };
 }
 
-/* ── Macedonian month names ── */
-const MK_MONTHS = [
-  'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
-  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
-];
 
 function formatDateMK(date) {
   return `${date.getDate()} ${MK_MONTHS[date.getMonth()]} ${date.getFullYear()}`;

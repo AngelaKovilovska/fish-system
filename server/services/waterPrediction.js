@@ -83,7 +83,11 @@ function calcStats(values) {
   if (!values || values.length === 0) return { mean: 0, stdDev: 0, median: 0 };
   const n = values.length;
   const mean = values.reduce((a, b) => a + b, 0) / n;
-  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  // Bessel's correction (n-1): примерочна варијанса наместо популациска
+  // При мали примероци (7-30 мерења) ова дава точна проценка на вистинската стандардна девијација
+  const variance = n > 1
+    ? values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / (n - 1)
+    : 0;
   const sorted = [...values].sort((a, b) => a - b);
   const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
   return {

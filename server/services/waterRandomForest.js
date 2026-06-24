@@ -261,6 +261,7 @@ async function generateWaterForecast(dbPool) {
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Провери кеш — ре-тренирај само еднаш дневно
+  // Чисти стари кеш податоци (спречува неограничен раст на меморија)
   const needsTraining = !modelCache.trainedDate || modelCache.trainedDate !== todayStr;
 
   // 1. Земи историски податоци (сите записи) со хранење
@@ -364,6 +365,9 @@ async function generateWaterForecast(dbPool) {
 
         // Проектирана вредност = моментална + акумулирана delta
         projectedValue += predictedDelta;
+        // Clamp: физички вредностите не можат да бидат негативни
+        // (температура, pH, концентрации — сите се ≥ 0)
+        if (projectedValue < 0) projectedValue = 0;
         projectedDeltas.push(predictedDelta);
         const roundedPred = Math.round(projectedValue * 1000) / 1000;
 
