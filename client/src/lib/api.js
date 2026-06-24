@@ -75,6 +75,9 @@ export const api = {
   previewSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to }) }),
   previewPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to }) }),
 
+  // Test SMTP connection (admin only)
+  testEmailConnection: () => request('/reports/test-email'),
+
   // Send email
   sendFoodReport: (from, to, pool_number) => request('/reports/food-consumption', { method: 'POST', body: JSON.stringify({ from, to, pool_number: pool_number || undefined, sendEmail: true }) }),
   sendAvgWeightReport: (pool_number, measurement_date) => request('/reports/avg-weight', { method: 'POST', body: JSON.stringify({ pool_number: pool_number || undefined, measurement_date: measurement_date || undefined, sendEmail: true }) }),

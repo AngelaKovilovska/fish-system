@@ -21,9 +21,9 @@
     "jsonwebtoken": "^9.0.3",
     "ml-matrix": "^6.12.2",
     "ml-random-forest": "^2.1.0",
-    "nodemailer": "^8.0.1",
     "pdfkit": "^0.17.2",
     "pg": "^8.19.0",
+    "sib-api-v3-sdk": "^8.5.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

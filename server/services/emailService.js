@@ -1,110 +1,107 @@
-const nodemailer = require('nodemailer');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 
-let transporter = null;
+const SENDER_EMAIL = process.env.EMAIL_FROM || 'famakom@t.mk';
+const SENDER_NAME = 'Фамаком Аквакултура';
 
-function getTransporter() {
-  if (transporter) return transporter;
-
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT) || 465;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (!host || !user || !pass) {
-    console.error('Email config missing: SMTP_HOST, SMTP_USER, or SMTP_PASS not set');
+/**
+ * Иницијализација на Brevo (Sendinblue) API клиент.
+ * Користи HTTPS (порт 443) наместо SMTP — Railway го блокира SMTP.
+ */
+function getApiClient() {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
     return null;
   }
 
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    family: 4,                 // Force IPv4 (Railway lacks IPv6)
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  defaultClient.authentications['api-key'].apiKey = apiKey;
 
-  return transporter;
+  return new SibApiV3Sdk.TransactionalEmailsApi();
 }
 
+/**
+ * Испраќа email со извештај преку Brevo HTTP API.
+ * Интерфејсот е ист како претходно — sendReportEmail({ to, subject, html, attachments })
+ */
 async function sendReportEmail({ to, subject, html, attachments }) {
-  const t = getTransporter();
-  if (!t) {
-    return { success: false, error: 'Email не е конфигуриран (SMTP)' };
+  const api = getApiClient();
+  if (!api) {
+    return { success: false, error: 'Email не е конфигуриран (BREVO_API_KEY)' };
   }
 
   const recipients = Array.isArray(to) ? to : [to];
-  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+  sendSmtpEmail.sender = { email: SENDER_EMAIL, name: SENDER_NAME };
+  sendSmtpEmail.to = recipients.map(email => ({ email }));
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+
+  // Прилози (PDF, Excel) — Brevo бара base64
+  if (attachments && attachments.length > 0) {
+    sendSmtpEmail.attachment = attachments
+      .filter(a => a.content)
+      .map(a => ({
+        name: a.filename,
+        content: Buffer.isBuffer(a.content)
+          ? a.content.toString('base64')
+          : Buffer.from(a.content).toString('base64'),
+      }));
+  }
 
   try {
-    const mailOptions = {
-      from: `Фамаком Аквакултура <${from}>`,
-      to: recipients.join(', '),
-      subject,
-      html,
-    };
-
-    if (attachments && attachments.length > 0) {
-      mailOptions.attachments = attachments.map(a => ({
-        filename: a.filename,
-        content: a.content,
-      })).filter(a => a.content);
-    }
-
-    const info = await t.sendMail(mailOptions);
-    console.log(`Email sent OK via SMTP -> ${recipients.join(', ')} (messageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
+    const result = await api.sendTransacEmail(sendSmtpEmail);
+    const messageId = result.messageId || result.body?.messageId || 'OK';
+    console.log(`Email sent OK via Brevo -> ${recipients.join(', ')} (messageId: ${messageId})`);
+    return { success: true, messageId };
   } catch (err) {
-    console.error('Email send error:', err.message);
-    // Reset transporter on auth/connection errors so it retries fresh
-    if (err.code === 'EAUTH' || err.responseCode === 535 || err.code === 'ESOCKET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ECONNECTION') {
-      transporter = null;
-    }
-    return { success: false, error: err.message };
+    const errorMsg = err.response?.body?.message || err.message || 'Непозната грешка';
+    console.error('Email send error (Brevo):', errorMsg);
+    return { success: false, error: errorMsg };
   }
 }
 
+/**
+ * Тестирање на Brevo конекцијата — проверува API key валидност.
+ */
 async function testConnection() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT) || 465;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const apiKey = process.env.BREVO_API_KEY;
 
   const config = {
-    host: host || 'NOT SET',
-    port,
-    user: user || 'NOT SET',
-    passSet: !!pass,
-    secure: port === 465,
+    provider: 'Brevo (HTTP API)',
+    apiKeySet: !!apiKey,
+    senderEmail: SENDER_EMAIL,
+    senderName: SENDER_NAME,
   };
 
-  if (!host || !user || !pass) {
-    return { ok: false, step: 'config', error: 'Missing env vars', config };
+  if (!apiKey) {
+    return { ok: false, step: 'config', error: 'BREVO_API_KEY не е поставен', config };
   }
 
   try {
-    const testTransporter = nodemailer.createTransport({
-      host, port,
-      secure: port === 465,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      family: 4,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-    });
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    defaultClient.authentications['api-key'].apiKey = apiKey;
 
-    await testTransporter.verify();
-    return { ok: true, step: 'verify', message: 'SMTP connection successful', config };
+    const accountApi = new SibApiV3Sdk.AccountApi();
+    const account = await accountApi.getAccount();
+
+    return {
+      ok: true,
+      step: 'verify',
+      message: 'Brevo конекцијата е успешна',
+      config: {
+        ...config,
+        companyName: account.companyName || '–',
+        plan: account.plan?.[0]?.type || 'free',
+        credits: account.plan?.[0]?.credits ?? '–',
+      },
+    };
   } catch (err) {
+    const errorMsg = err.response?.body?.message || err.message || 'Непозната грешка';
     return {
       ok: false,
       step: 'verify',
-      error: err.message,
-      code: err.code,
-      responseCode: err.responseCode,
+      error: errorMsg,
       config,
     };
   }

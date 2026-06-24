@@ -130,11 +130,11 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
     const WATER_PARAMS = [
       ['temperature', 'Температура', '°C'],
       ['ph', 'pH', ''],
-      ['total_alkalinity', 'Total Alkalinity', 'mg/L'],
-      ['hardness', 'Total Hardness', 'mg/L'],
+      ['total_alkalinity', 'Вкупна алкалност', 'mg/L'],
+      ['hardness', 'Вкупна тврдост', 'mg/L'],
       ['nitrates', 'Нитрати (NO₃⁻)', 'mg/L'],
       ['nitrites', 'Нитрити (NO₂⁻)', 'mg/L'],
-      ['total_chlorine', 'Total Chlorine', 'mg/L'],
+      ['total_chlorine', 'Вкупен хлор', 'mg/L'],
       ['ammonium', 'Амониум (NH₄⁺/NH₃)', 'mg/L'],
     ];
     const FILTRATION_FIELDS = [

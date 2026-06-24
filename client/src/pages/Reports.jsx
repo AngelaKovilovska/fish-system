@@ -136,15 +136,20 @@ export default function Reports() {
     setError(''); setSending(true); setEmailSent(false);
     try {
       const pool = poolNumber || null;
+      let result;
       switch (activeReport) {
-        case 'food': await api.sendFoodReport(from, to, pool); break;
-        case 'weight': await api.sendAvgWeightReport(pool, measurementDate || null); break;
-        case 'alerts': await api.sendAlertsReport(from, to); break;
-        case 'sorting': await api.sendSortingReport(from, to); break;
-        case 'purchases': await api.sendPurchasesReport(from, to); break;
+        case 'food': result = await api.sendFoodReport(from, to, pool); break;
+        case 'weight': result = await api.sendAvgWeightReport(pool, measurementDate || null); break;
+        case 'alerts': result = await api.sendAlertsReport(from, to); break;
+        case 'sorting': result = await api.sendSortingReport(from, to); break;
+        case 'purchases': result = await api.sendPurchasesReport(from, to); break;
       }
-      setEmailSent(true);
-    } catch (err) { setError(err.message); }
+      if (result?.sent === false) {
+        setError(result.message || 'Email не е испратен');
+      } else {
+        setEmailSent(true);
+      }
+    } catch (err) { setError(err.message || 'Грешка при испраќање'); }
     finally { setSending(false); }
   };
 
