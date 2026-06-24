@@ -119,11 +119,11 @@ const MIN_READINGS_TREND = 5;
 /**
  * Линеарна регресија: y = slope * x + intercept
  * @param {number[]} values - вредности (хронолошки)
- * @returns {{ slope: number, intercept: number, r2: number }}
+ * @returns {{ slope: number, intercept: number, r2: number, residuals: number[] }}
  */
 function linearRegression(values) {
   const n = values.length;
-  if (n < 2) return { slope: 0, intercept: values[0] || 0, r2: 0 };
+  if (n < 2) return { slope: 0, intercept: values[0] || 0, r2: 0, residuals: [] };
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   for (let i = 0; i < n; i++) {
     sumX += i;
@@ -132,22 +132,154 @@ function linearRegression(values) {
     sumX2 += i * i;
   }
   const denom = n * sumX2 - sumX * sumX;
-  if (denom === 0) return { slope: 0, intercept: values[0], r2: 0 };
+  if (denom === 0) return { slope: 0, intercept: values[0], r2: 0, residuals: [] };
   const slope = (n * sumXY - sumX * sumY) / denom;
   const intercept = (sumY - slope * sumX) / n;
-  // R²
+  // R² и резидуали
   const meanY = sumY / n;
   let ssTot = 0, ssRes = 0;
+  const residuals = [];
   for (let i = 0; i < n; i++) {
     const predicted = slope * i + intercept;
+    const residual = values[i] - predicted;
+    residuals.push(residual);
     ssTot += Math.pow(values[i] - meanY, 2);
-    ssRes += Math.pow(values[i] - predicted, 2);
+    ssRes += Math.pow(residual, 2);
   }
   const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
   return {
     slope: Math.round(slope * 10000) / 10000,
     intercept: Math.round(intercept * 1000) / 1000,
     r2: Math.round(Math.max(0, r2) * 100) / 100,
+    residuals,
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// КОМПОНЕНТА 2б: Валидација на линеарен фит
+// Durbin-Watson, Jarque-Bera (нормалност), хомоскедастичност
+// ═══════════════════════════════════════════════════
+
+/**
+ * Валидира дали линеарната регресија е соодветен модел за податоците.
+ *
+ * Проверува 3 критериуми:
+ *   1. Durbin-Watson тест за автокорелација на резидуалите
+ *      DW ≈ 2 = нема автокорелација (добро)
+ *      DW < 1.5 = позитивна автокорелација (лошо — податоците имаат образец
+ *                  што линеарниот модел не го фаќа)
+ *      DW > 2.5 = негативна автокорелација (лошо)
+ *
+ *   2. Jarque-Bera тест за нормалност на резидуалите
+ *      Ако резидуалите НЕ се нормално дистрибуирани, стандардните
+ *      confidence интервали и p-вредности се невалидни.
+ *      JB = (n/6) * (S² + K²/4) каде S=skewness, K=excess kurtosis
+ *      Критична вредност χ²(2, 0.05) ≈ 5.99
+ *
+ *   3. Хомоскедастичност (константна варијанса)
+ *      Ја споредуваме варијансата на резидуалите во првата и втората
+ *      половина. Ако односот е > 3, варијансата не е константна.
+ *
+ * @param {number[]} residuals - резидуали од linearRegression()
+ * @param {number} r2 - R² од linearRegression()
+ * @returns {{ isGoodFit: boolean, r2: number, durbinWatson: number,
+ *             skewness: number, kurtosis: number, isNormal: boolean,
+ *             isHomoscedastic: boolean, varianceRatio: number,
+ *             reasons: string[] }}
+ */
+function validateLinearFit(residuals, r2) {
+  const n = residuals.length;
+  const reasons = [];
+
+  // Минимум 6 точки за валидна статистика
+  if (n < 6) {
+    return {
+      isGoodFit: false,
+      r2,
+      durbinWatson: null,
+      skewness: null,
+      kurtosis: null,
+      isNormal: false,
+      isHomoscedastic: false,
+      varianceRatio: null,
+      reasons: ['Премалку податоци за валидација (потребни ≥6)'],
+    };
+  }
+
+  // ── 1. Durbin-Watson ──
+  let sumDiffSq = 0, sumSq = 0;
+  for (let i = 0; i < n; i++) {
+    sumSq += residuals[i] * residuals[i];
+    if (i > 0) {
+      sumDiffSq += Math.pow(residuals[i] - residuals[i - 1], 2);
+    }
+  }
+  const dw = sumSq > 0 ? sumDiffSq / sumSq : 2;
+  // DW < 1.5 → позитивна автокорелација; DW > 2.5 → негативна
+  const dwOk = dw >= 1.5 && dw <= 2.5;
+  if (!dwOk) {
+    reasons.push(
+      dw < 1.5
+        ? `Автокорелација во резидуалите (DW=${dw.toFixed(2)}, потребно ≥1.5)`
+        : `Негативна автокорелација (DW=${dw.toFixed(2)}, потребно ≤2.5)`
+    );
+  }
+
+  // ── 2. Jarque-Bera (нормалност) ──
+  const mean = residuals.reduce((a, b) => a + b, 0) / n;
+  let m2 = 0, m3 = 0, m4 = 0;
+  for (let i = 0; i < n; i++) {
+    const d = residuals[i] - mean;
+    m2 += d * d;
+    m3 += d * d * d;
+    m4 += d * d * d * d;
+  }
+  m2 /= n;
+  m3 /= n;
+  m4 /= n;
+
+  const sd = Math.sqrt(m2);
+  const skewness = sd > 0 ? m3 / Math.pow(sd, 3) : 0;
+  const kurtosis = sd > 0 ? (m4 / Math.pow(sd, 4)) - 3 : 0; // excess kurtosis
+  const jb = (n / 6) * (skewness * skewness + (kurtosis * kurtosis) / 4);
+  // χ²(2, 0.05) = 5.991
+  const isNormal = jb <= 5.991;
+  if (!isNormal) {
+    reasons.push(`Резидуалите не се нормално дистрибуирани (JB=${jb.toFixed(2)}, skew=${skewness.toFixed(2)}, kurt=${kurtosis.toFixed(2)})`);
+  }
+
+  // ── 3. Хомоскедастичност ──
+  const half = Math.floor(n / 2);
+  const var1 = residuals.slice(0, half).reduce((s, r) => s + r * r, 0) / half;
+  const var2 = residuals.slice(half).reduce((s, r) => s + r * r, 0) / (n - half);
+  const varianceRatio = (var1 > 0 && var2 > 0)
+    ? Math.max(var1 / var2, var2 / var1)
+    : 1;
+  const isHomoscedastic = varianceRatio <= 3;
+  if (!isHomoscedastic) {
+    reasons.push(`Нехомогена варијанса (однос=${varianceRatio.toFixed(1)}, потребно ≤3)`);
+  }
+
+  // ── R² праг ──
+  if (r2 < 0.3) {
+    reasons.push(`Слаб коефициент на детерминација (R²=${r2})`);
+  }
+
+  // Финална одлука: фитот е добар ако R² >= 0.3 И барем 2 од 3 дијагностики поминуваат
+  const diagnosticsPassed = [dwOk, isNormal, isHomoscedastic].filter(Boolean).length;
+  const isGoodFit = r2 >= 0.3 && diagnosticsPassed >= 2;
+
+  return {
+    isGoodFit,
+    r2,
+    durbinWatson: Math.round(dw * 100) / 100,
+    skewness: Math.round(skewness * 100) / 100,
+    kurtosis: Math.round(kurtosis * 100) / 100,
+    isNormal,
+    isHomoscedastic,
+    varianceRatio: Math.round(varianceRatio * 10) / 10,
+    diagnosticsPassed,
+    reasons,
   };
 }
 
@@ -678,6 +810,9 @@ async function analyzeWaterPrediction(dbPool) {
       // Тренд е значаен само ако R² > 0.3
       const isSignificant = regression.r2 > 0.3 && Math.abs(regression.slope) > 0.001;
 
+      // Валидација на линеарниот фит (Durbin-Watson, нормалност, хомоскедастичност)
+      const fitValidation = validateLinearFit(regression.residuals, regression.r2);
+
       // Предикција за пречекорување на нормата
       const norm = norms[param];
       const crossing = norm ? predictThresholdCrossing(currentValue, regression.slope, norm) : null;
@@ -692,6 +827,18 @@ async function analyzeWaterPrediction(dbPool) {
         isSignificant,
         crossing,
         daysAnalyzed: trendValues.length,
+        // Валидација на линеарен фит
+        linearFitValid: fitValidation.isGoodFit,
+        fitDiagnostics: {
+          durbinWatson: fitValidation.durbinWatson,
+          skewness: fitValidation.skewness,
+          kurtosis: fitValidation.kurtosis,
+          isNormal: fitValidation.isNormal,
+          isHomoscedastic: fitValidation.isHomoscedastic,
+          varianceRatio: fitValidation.varianceRatio,
+          diagnosticsPassed: fitValidation.diagnosticsPassed,
+          reasons: fitValidation.reasons,
+        },
       };
       trends[param] = trendResult;
     }
@@ -861,6 +1008,68 @@ async function analyzeWaterPredictionEnhanced(dbPool) {
         return (sev[a.severity] || 9) - (sev[b.severity] || 9) || (a.daysUntil || 0) - (b.daysUntil || 0);
       });
     }
+
+    // ── Паметен избор на модел по параметар ──
+    // За секој параметар одредуваме кој модел е примарен:
+    //   - Ако LR isGoodFit → LR е примарна
+    //   - Ако LR NOT isGoodFit И RF R² >= 0.5 → RF станува примарна
+    //   - Ако ниеден не е добар → LR со предупредување
+    const modelSelection = {};
+    const rfForecasts = rfResult.forecasts || {};
+
+    for (const param of PARAMETERS) {
+      const paramData = ruleBasedResult.parameters?.[param];
+      const trend = paramData?.trend;
+      const rfForecast = rfForecasts[param];
+
+      if (!paramData || paramData.noData) {
+        modelSelection[param] = { primary: null, reason: 'Нема податоци' };
+        continue;
+      }
+
+      const lrValid = trend?.linearFitValid === true;
+      const lrR2 = trend?.r2 || 0;
+      const rfAvailable = rfForecast?.available === true;
+      const rfR2 = rfForecast?.metrics?.r2 || 0;
+
+      if (lrValid && lrR2 >= 0.3) {
+        // LR е добар фит — примарна предикција
+        modelSelection[param] = {
+          primary: 'lr',
+          reason: 'Линеарна регресија е валиден модел за овој параметар',
+          lrR2,
+          rfR2: rfAvailable ? rfR2 : null,
+        };
+      } else if (!lrValid && rfAvailable && rfR2 >= 0.5) {
+        // LR не е добар фит, но RF е — RF станува примарна
+        modelSelection[param] = {
+          primary: 'rf',
+          reason: trend?.fitDiagnostics?.reasons?.join('; ') || 'Линеарниот модел не е соодветен',
+          lrR2,
+          rfR2,
+          lrIssues: trend?.fitDiagnostics?.reasons || [],
+        };
+      } else if (!lrValid) {
+        // Ниеден модел не е доволно добар — покажи LR со предупредување
+        modelSelection[param] = {
+          primary: 'lr_weak',
+          reason: 'Линеарниот модел не е идеален, но Random Forest нема подобар фит',
+          lrR2,
+          rfR2: rfAvailable ? rfR2 : null,
+          lrIssues: trend?.fitDiagnostics?.reasons || [],
+        };
+      } else {
+        // LR е валиден но R² < 0.3 — слаб тренд
+        modelSelection[param] = {
+          primary: 'lr',
+          reason: 'Слаб но валиден тренд',
+          lrR2,
+          rfR2: rfAvailable ? rfR2 : null,
+        };
+      }
+    }
+
+    ruleBasedResult.modelSelection = modelSelection;
   }
 
   return ruleBasedResult;
