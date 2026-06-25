@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── 4 main sections: Дома, Внес, Извештаи, Проекции ───
@@ -20,12 +20,14 @@ const sidebarSections = [
 const adminSection = {
   title: 'Админ',
   items: [
+    { path: '/admin/measurements', label: 'Мерења', icon: Scale },
+    { path: '/admin/inventory', label: 'Залихи', icon: Package },
     { path: '/admin/norms', label: 'Норми', icon: Settings },
     { path: '/admin/users', label: 'Корисници', icon: Users },
   ],
 };
 
-// ─── Mobile: 4 tabs, admin in profile dropdown ───
+// ─── Mobile: 4 tabs (+ 5th "Админ" tab for admin users) ───
 const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
@@ -33,51 +35,38 @@ const mobilePrimaryTabs = [
   { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
 ];
 
-const mobileAdminItems = [
-  { path: '/admin/norms', label: 'Норми', icon: Settings },
-  { path: '/admin/users', label: 'Корисници', icon: Users },
-];
-
 export default function Layout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const profileRef = useRef(null);
-  const moreRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
 
   // Routes that belong to the "Внес" section for active state highlighting
-  const entryPaths = ['/entry', '/checklist', '/meal/', '/meals', '/admin/measurements', '/admin/inventory'];
+  const entryPaths = ['/entry', '/checklist', '/meal/', '/meals'];
   const isEntryActive = entryPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   // Routes that belong to "Извештаи" section
   const reportPaths = ['/reports', '/history'];
   const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
+  // Routes that belong to "Админ" section
+  const isAdminActive = location.pathname.startsWith('/admin');
 
-  // Close dropdowns on outside click
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false);
-      if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false);
     };
-    if (showProfile || showMore) document.addEventListener('mousedown', handleClickOutside);
+    if (showProfile) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfile, showMore]);
+  }, [showProfile]);
 
   // Close on navigation
   useEffect(() => {
     setShowProfile(false);
-    setShowMore(false);
   }, [location.pathname]);
-
-  // Check if "More" section has an active item (admin-only items)
-  const moreItems = isAdmin ? mobileAdminItems : [];
-  const isMoreActive = moreItems.some(item =>
-    location.pathname === item.path || location.pathname.startsWith(item.path + '/')
-  );
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
@@ -235,21 +224,6 @@ export default function Layout() {
                     {isAdmin ? 'Админ' : 'Оператор'}
                   </span>
                 </div>
-                {isAdmin && (
-                  <>
-                    <div className="h-px bg-[var(--border)] mb-2" />
-                    <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-semibold px-3 mb-1"
-                      style={{ fontFamily: 'Sora, sans-serif' }}>Админ</p>
-                    {adminSection.items.map(item => (
-                      <Link key={item.path} to={item.path}
-                        className="flex items-center gap-2 px-3 py-2 rounded-[var(--r-sm)] text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)] transition-colors"
-                        style={{ fontFamily: 'Sora, sans-serif' }}>
-                        <item.icon size={14} />
-                        {item.label}
-                      </Link>
-                    ))}
-                  </>
-                )}
                 <div className="h-px bg-[var(--border)] my-2" />
                 <button onClick={logout}
                   className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--r-sm)] text-[var(--danger)] text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
@@ -329,74 +303,15 @@ export default function Layout() {
           );
         })}
 
-        {/* More button */}
-        {moreItems.length > 0 && (
-          <div className="relative" ref={moreRef}>
-            <button onClick={() => setShowMore(!showMore)}
-              className={`tab-item ${isMoreActive ? 'active' : ''}`}>
-              <MoreHorizontal size={20} strokeWidth={isMoreActive ? 2.2 : 1.6} />
-              <span>Повеќе</span>
-            </button>
-
-            {showMore && (
-              <div className="absolute bottom-[calc(100%+8px)] right-0 w-48 bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] py-1.5 animate-slide-down z-50"
-                style={{ boxShadow: 'var(--sh-elevated)' }}>
-                {renderMoreDropdown(moreItems, location.pathname)}
-              </div>
-            )}
-          </div>
+        {/* Admin tab (admin only) */}
+        {isAdmin && (
+          <Link to="/admin"
+            className={`tab-item ${isAdminActive ? 'active' : ''}`}>
+            <Shield size={20} strokeWidth={isAdminActive ? 2.2 : 1.6} />
+            <span>Админ</span>
+          </Link>
         )}
       </nav>
     </div>
-  );
-}
-
-/* Render the "More" dropdown items */
-function renderMoreDropdown(items, pathname) {
-  // Group admin items separately
-  const regular = items.filter(i => !i.path.startsWith('/admin'));
-  const admin = items.filter(i => i.path.startsWith('/admin'));
-
-  return (
-    <>
-      {regular.map(item => {
-        const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
-        return (
-          <Link key={item.path} to={item.path}
-            className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors ${
-              isActive
-                ? 'text-[var(--primary)] bg-[var(--primary-muted)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)]'
-            }`}
-            style={{ fontFamily: 'Sora, sans-serif' }}>
-            <item.icon size={16} strokeWidth={isActive ? 2.2 : 1.6} />
-            {item.label}
-          </Link>
-        );
-      })}
-
-      {admin.length > 0 && (
-        <>
-          <div className="h-px bg-[var(--border)] my-1.5 mx-2" />
-          <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-semibold px-3 py-1"
-            style={{ fontFamily: 'Sora, sans-serif' }}>Админ</p>
-          {admin.map(item => {
-            const isActive = pathname === item.path;
-            return (
-              <Link key={item.path} to={item.path}
-                className={`flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium transition-colors ${
-                  isActive
-                    ? 'text-[var(--primary)] bg-[var(--primary-muted)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--primary-muted)] hover:text-[var(--text-primary)]'
-                }`}
-                style={{ fontFamily: 'Sora, sans-serif' }}>
-                <item.icon size={16} strokeWidth={isActive ? 2.2 : 1.6} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </>
-      )}
-    </>
   );
 }
