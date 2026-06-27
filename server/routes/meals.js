@@ -386,15 +386,15 @@ async function checkAndAutoSendReport(date, req) {
     [recordId, req.user.id]
   );
 
-  // Send the full daily report (PDF + Excel + email) automatically
+  // Send the full daily report (PDF + Excel + email) to all admins
   try {
-    const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
-    const recipientEmail = userResult.rows[0]?.email;
-    if (!recipientEmail) return;
+    const adminsResult = await pool.query("SELECT email FROM users WHERE role = 'admin' AND email IS NOT NULL");
+    const adminEmails = adminsResult.rows.map(r => r.email).filter(Boolean);
+    if (adminEmails.length === 0) return;
 
     const { buildAndSendDailyReport } = require('./reports');
-    const result = await buildAndSendDailyReport(recordId, recipientEmail);
-    console.log(`Auto-send daily report for ${date}: ${result.success ? 'OK' : 'FAILED'}`);
+    const result = await buildAndSendDailyReport(recordId, adminEmails);
+    console.log(`Auto-send daily report for ${date} to ${adminEmails.length} admin(s): ${result.success ? 'OK' : 'FAILED'}`);
   } catch (e) {
     console.error('Auto-send report error:', e);
   }
