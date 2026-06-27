@@ -598,7 +598,7 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
       FROM pool_measurements
       WHERE pool_number = $1
         ${lastSortingDate ? 'AND DATE(measured_at) >= $2' : ''}
-      ORDER BY DATE(measured_at) ASC, measured_at DESC
+      ORDER BY DATE(measured_at) DESC, measured_at DESC
     `, lastSortingDate ? [poolNumber, lastSortingDate] : [poolNumber]);
 
     const measurements = measRes.rows.map(m => ({
