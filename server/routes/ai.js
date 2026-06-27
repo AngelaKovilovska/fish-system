@@ -607,8 +607,32 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
       fishCount: m.fish_count,
     }));
 
-    // 2. Get daily feed data between first measurement and today
-    const firstDate = measurements[0].date;
+    // Мерења со тежина > 0 (0g = празен базен, не реално мерење)
+    const activeMeasurements = measurements.filter(m => m.weight > 0);
+    const emptyPeriod = activeMeasurements.length < measurements.length
+      ? {
+          from: measurements[0].date,
+          until: activeMeasurements.length > 0 ? activeMeasurements[0].date : null,
+          emptyCount: measurements.length - activeMeasurements.length,
+        }
+      : null;
+
+    // Ако сите мерења се 0g → базенот е празен
+    if (activeMeasurements.length === 0) {
+      return res.json({
+        poolNumber,
+        hasData: false,
+        message: 'Базенот е празен — нема внесено риби',
+        measurementDates: allDatesRes.rows.map(r => ({
+          date: r.date.toISOString().split('T')[0],
+          weight: parseFloat(r.avg_weight_gr),
+        })),
+        sortingInfo: lastSortingDate ? { lastSortingDate, filtered: filteredBySorting } : null,
+      });
+    }
+
+    // 2. Get daily feed data between first ACTIVE measurement and today
+    const firstDate = activeMeasurements[0].date;
     const today = new Date().toISOString().split('T')[0];
 
     const feedRes = await pool.query(`
@@ -641,11 +665,12 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
     // ─── BUILD SGR PROJECTION ───
     // Between consecutive measurements, calculate daily SGR and interpolate.
     // After the last measurement, project forward using feed data.
+    // Користи activeMeasurements (без 0g записи од празен базен)
     const sgrProjection = [];
 
-    for (let mi = 0; mi < measurements.length; mi++) {
-      const curr = measurements[mi];
-      const next = measurements[mi + 1];
+    for (let mi = 0; mi < activeMeasurements.length; mi++) {
+      const curr = activeMeasurements[mi];
+      const next = activeMeasurements[mi + 1];
 
       if (next) {
         // Interpolate between two known measurements using SGR
@@ -702,16 +727,17 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
       }
     }
 
-    // Add the last measurement point if only 1 measurement
-    if (measurements.length === 1 && sgrProjection.length === 0) {
-      sgrProjection.push({ date: measurements[0].date, weight: measurements[0].weight });
+    // Add the last measurement point if only 1 active measurement
+    if (activeMeasurements.length === 1 && sgrProjection.length === 0) {
+      sgrProjection.push({ date: activeMeasurements[0].date, weight: activeMeasurements[0].weight });
     }
 
     // ─── BUILD COPPENS IDEAL CURVE ───
     // Find the feeding day on the Coppens curve that matches W0,
     // then trace the ideal growth from there.
+    // Користи прво активно мерење (не 0g)
     const coppensIdeal = [];
-    const startWeight = measurements[0].weight;
+    const startWeight = activeMeasurements[0].weight;
 
     // Find the corresponding feedingDay on the Coppens curve for startWeight
     let startFeedingDay = 0;
@@ -748,7 +774,7 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
     }
 
     // ─── STATS ───
-    const lastMeasurement = measurements[measurements.length - 1];
+    const lastMeasurement = activeMeasurements[activeMeasurements.length - 1];
     const lastSgrPoint = sgrProjection[sgrProjection.length - 1];
     const lastCoppensPoint = coppensIdeal[coppensIdeal.length - 1];
 
@@ -758,12 +784,12 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
       ? Math.round(((currentWeight - coppensExpected) / coppensExpected) * 1000) / 10
       : 0;
 
-    // Calculate overall SGR across all measurements
-    const overallSGR = measurements.length >= 2
+    // Calculate overall SGR across active measurements (без 0g)
+    const overallSGR = activeMeasurements.length >= 2
       ? calculateSGR(
-          measurements[0].weight,
-          measurements[measurements.length - 1].weight,
-          Math.round((new Date(measurements[measurements.length - 1].date) - new Date(measurements[0].date)) / (1000 * 60 * 60 * 24))
+          activeMeasurements[0].weight,
+          activeMeasurements[activeMeasurements.length - 1].weight,
+          Math.round((new Date(activeMeasurements[activeMeasurements.length - 1].date) - new Date(activeMeasurements[0].date)) / (1000 * 60 * 60 * 24))
         )
       : 0;
 
@@ -783,9 +809,10 @@ router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
         deviationPercent,
         avgSGR: Math.round(overallSGR * 1000) / 1000,
         daysTracked: totalDays,
-        measurementCount: measurements.length,
+        measurementCount: activeMeasurements.length,
         lastMeasured: lastMeasurement.date,
       },
+      emptyPeriod,
       sortingInfo: lastSortingDate ? {
         lastSortingDate,
         filtered: filteredBySorting,

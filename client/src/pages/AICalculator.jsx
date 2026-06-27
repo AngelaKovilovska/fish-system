@@ -1052,15 +1052,24 @@ export default function AICalculator() {
             </div>
           )}
 
-          {/* Sorting info banner */}
-          {!growthLoading && growthData?.sortingInfo?.filtered && (
+          {/* Info banners: empty period + last measurement */}
+          {!growthLoading && growthData?.hasData && (growthData?.emptyPeriod || growthData?.stats?.lastMeasured) && (
             <div className="card !p-3 flex items-center gap-2.5"
-              style={{ borderLeft: '3px solid #f59e0b', background: 'rgba(245,158,11,0.05)' }}>
-              <Info size={14} className="text-amber-500 flex-shrink-0" />
+              style={{ borderLeft: '3px solid var(--primary)', background: 'rgba(59,130,246,0.05)' }}>
+              <Info size={14} className="text-[var(--primary)] flex-shrink-0" />
               <p className="text-[11px] text-[var(--text-secondary)]">
-                Прикажан раст после последното сортирање
+                {growthData.emptyPeriod && (
+                  <>
+                    Базенот бил празен до
+                    <span className="font-semibold text-[var(--text-primary)] mx-1">
+                      {new Date(growthData.emptyPeriod.until).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    ·{' '}
+                  </>
+                )}
+                Последно мерење:
                 <span className="font-semibold text-[var(--text-primary)] ml-1">
-                  ({new Date(growthData.sortingInfo.lastSortingDate).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })})
+                  {new Date(growthData.stats.lastMeasured).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </p>
             </div>
