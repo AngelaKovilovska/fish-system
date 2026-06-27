@@ -116,14 +116,12 @@ function buildEmailHTML({ title, subtitle, sections = [], footerNote }) {
   </html>`;}
 
 
-// POST /api/reports/daily/:recordId - send daily report to all users
-router.post('/daily/:recordId', authMiddleware, async (req, res) => {
-  try {
-    const data = await getDailyReportData(req.params.recordId);
-    if (!data.record) {
-      return res.status(404).json({ error: 'Записот не е пронајден' });
-    }
+// ── Standalone: build and send daily report (used by route handler + auto-send from meals) ──
+async function buildAndSendDailyReport(recordId, recipientEmail) {
+  const data = await getDailyReportData(recordId);
+  if (!data.record) return { success: false, notFound: true };
 
+  try {
     const dateStr = fmtDate(data.record.date);
 
     // ── Section-specific labels (matching preview) ──
@@ -409,12 +407,6 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
 
     const pdfBuffer = await generatePDF(`Дневен извештај - ${dateStr}`, pdfSections);
 
-    // Send to requesting user's email
-    const recipientEmail = getRequesterEmail(req);
-    if (!recipientEmail) {
-      return res.json({ message: 'Вашиот профил нема email адреса', sent: false });
-    }
-
     const emailSections = [];
 
     // Alerts
@@ -530,7 +522,25 @@ router.post('/daily/:recordId', authMiddleware, async (req, res) => {
       ],
     });
 
-    res.json({ message: 'Дневниот извештај е испратен', sent: emailResult.success });
+    return { success: emailResult.success };
+  } catch (err) {
+    console.error('Daily report build/send error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// POST /api/reports/daily/:recordId - send daily report
+router.post('/daily/:recordId', authMiddleware, async (req, res) => {
+  try {
+    const recipientEmail = getRequesterEmail(req);
+    if (!recipientEmail) {
+      return res.json({ message: 'Вашиот профил нема email адреса', sent: false });
+    }
+    const result = await buildAndSendDailyReport(req.params.recordId, recipientEmail);
+    if (result.notFound) {
+      return res.status(404).json({ error: 'Записот не е пронајден' });
+    }
+    res.json({ message: 'Дневниот извештај е испратен', sent: result.success });
   } catch (err) {
     console.error('Daily report error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
@@ -944,3 +954,4 @@ router.post('/inventory', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.buildAndSendDailyReport = buildAndSendDailyReport;

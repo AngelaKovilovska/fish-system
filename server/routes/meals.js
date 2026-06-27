@@ -386,25 +386,15 @@ async function checkAndAutoSendReport(date, req) {
     [recordId, req.user.id]
   );
 
-  // Send report
-  const { sendReportEmail } = require('../services/emailService');
-  const reportService = require('../services/reportService');
-  const reportsModule = require('./reports');
-
-  // Use internal report sending - call the endpoint logic directly
+  // Send the full daily report (PDF + Excel + email) automatically
   try {
-    const { getDailyReportData, generateExcel, generatePDF, PARAMETER_LABELS } = reportService;
-    const data = await getDailyReportData(recordId);
-    if (!data.record) return;
-
-    // Get user email
     const userResult = await pool.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
     const recipientEmail = userResult.rows[0]?.email;
     if (!recipientEmail) return;
 
-    // We'll rely on the report endpoint being called manually or via the dashboard
-    // For now, just log that the report is ready
-    console.log(`Daily report ready for ${date} (record ${recordId}) - all meals complete`);
+    const { buildAndSendDailyReport } = require('./reports');
+    const result = await buildAndSendDailyReport(recordId, recipientEmail);
+    console.log(`Auto-send daily report for ${date}: ${result.success ? 'OK' : 'FAILED'}`);
   } catch (e) {
     console.error('Auto-send report error:', e);
   }
