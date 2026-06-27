@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Brain, Fish, Thermometer, Calculator, ChevronLeft, ChevronDown, AlertTriangle, CheckCircle, Droplets, TrendingUp, TrendingDown, Minus, Info, Activity, Clock, BarChart3, Cpu, Sprout } from 'lucide-react';
@@ -31,6 +31,7 @@ export default function AICalculator() {
   const [growthFrom, setGrowthFrom] = useState(''); // '' = all measurements
   const [growthData, setGrowthData] = useState(null);
   const [growthLoading, setGrowthLoading] = useState(false);
+  const growthRequestId = useRef(0);
 
   // Calculator inputs
   const [calcInputs, setCalcInputs] = useState({
@@ -61,11 +62,12 @@ export default function AICalculator() {
   // Load growth data when growth tab is opened or pool/date changes
   useEffect(() => {
     if (tab !== 'growth') return;
+    const thisRequest = ++growthRequestId.current;
     setGrowthLoading(true);
     api.getGrowthHistory(growthPool, growthFrom || undefined)
-      .then(d => setGrowthData(d))
-      .catch(() => setGrowthData(null))
-      .finally(() => setGrowthLoading(false));
+      .then(d => { if (thisRequest === growthRequestId.current) setGrowthData(d); })
+      .catch(() => { if (thisRequest === growthRequestId.current) setGrowthData(null); })
+      .finally(() => { if (thisRequest === growthRequestId.current) setGrowthLoading(false); });
   }, [tab, growthPool, growthFrom]);
 
   // Merge all 3 curves into one dataset for recharts
@@ -1028,13 +1030,21 @@ export default function AICalculator() {
                   <option value="">Сите мерења</option>
                   {(growthData?.measurementDates || []).map(md => (
                     <option key={md.date} value={md.date}>
-                      {new Date(md.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })} · {md.weight}g
+                      {new Date(md.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })} · {md.weight > 0 ? `${md.weight}g` : 'Празен базен'}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
           </div>
+
+          {/* Empty period note */}
+          {!growthLoading && growthData?.emptyPeriod && (
+            <p className="text-[11px] text-[var(--text-muted)] -mt-1 mb-2 px-1">
+              <Info size={12} className="inline -mt-0.5 mr-1 opacity-60" />
+              Базенот бил празен на {new Date(growthData.emptyPeriod.from).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          )}
 
           {/* Loading */}
           {growthLoading && (
