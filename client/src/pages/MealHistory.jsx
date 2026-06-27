@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { MK_MONTHS, MK_DAYS } from '../lib/constants';
 import { UtensilsCrossed, Search, X, ChevronLeft, ChevronRight, Sunrise, Sun, Moon, Calendar } from 'lucide-react';
 
 const PER_PAGE = 15;
@@ -114,10 +115,10 @@ export default function MealHistory() {
                     return (
                       <tr key={entry.date} className="group">
                         <td className="font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                          {d.toLocaleDateString('mk-MK', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                          {`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`}
                         </td>
                         <td className="text-[var(--text-secondary)]">
-                          {d.toLocaleDateString('mk-MK', { weekday: 'long' })}
+                          {MK_DAYS[d.getDay()]}
                         </td>
                         <td>
                           <div className="flex gap-1.5">
@@ -175,9 +176,7 @@ export default function MealHistory() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <span className="font-semibold text-sm text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                          {d.toLocaleDateString('mk-MK', {
-                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                          })}
+                          {`${MK_DAYS[d.getDay()]}, ${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`}
                         </span>
                         {entry.total_food_gr > 0 && (
                           <p className="text-[11px] text-[var(--text-muted)] mt-0.5">

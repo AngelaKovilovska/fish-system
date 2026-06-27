@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { MK_MONTHS, MK_DAYS } from '../lib/constants';
 import {
   ClipboardList, Sunrise, Sun, Moon,
   Check, ChevronRight, ChevronLeft, Calendar, Scale, Package,
@@ -48,12 +49,8 @@ export default function EntryHub() {
     loadStatus();
   }, [today]);
 
-  const todayFormatted = new Date().toLocaleDateString('mk-MK', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const _now = new Date();
+  const todayFormatted = `${MK_DAYS[_now.getDay()]}, ${_now.getDate()} ${MK_MONTHS[_now.getMonth()]} ${_now.getFullYear()}`;
 
   if (loading) {
     return (

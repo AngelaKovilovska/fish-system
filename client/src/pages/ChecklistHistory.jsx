@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
   ClipboardList, Sunrise, Sun, Moon, X, Flame,
 } from 'lucide-react';
-import { MK_MONTHS } from '../lib/constants';
+import { MK_MONTHS, MK_DAYS } from '../lib/constants';
 const MK_DAYS_SHORT = ['Пон', 'Вто', 'Сре', 'Чет', 'Пет', 'Саб', 'Нед'];
 
 function getMonthStr(date) {
@@ -326,7 +326,7 @@ export default function ChecklistHistory() {
                 style={{ fontFamily: 'Sora, sans-serif' }}>
                 {selectedDay} {MK_MONTHS[month]} {year}
                 <span className="text-[var(--text-muted)] font-normal text-xs ml-2">
-                  {new Date(year, month, selectedDay).toLocaleDateString('mk-MK', { weekday: 'long' })}
+                  {MK_DAYS[new Date(year, month, selectedDay).getDay()]}
                 </span>
               </h3>
               <button onClick={() => setSelectedDay(null)} className="btn-ghost p-1 rounded-lg" aria-label="Затвори">

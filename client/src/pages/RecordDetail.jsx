@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS } from '../lib/constants';
+import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS, MK_DAYS } from '../lib/constants';
 import {
   AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X,
   ChevronLeft, Printer, Droplets, Filter, Fish, Warehouse,
@@ -66,7 +66,8 @@ export default function RecordDetail() {
   const handlePrintDaily = () => {
     if (!data) return;
     const { record, water_control: wc, filtration_checks: fc, fish_visual: fv, pool_feeding: pf, activities: act, alerts: al } = data;
-    const date = new Date(record.date).toLocaleDateString('mk-MK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const _d = new Date(record.date);
+    const date = `${MK_DAYS[_d.getDay()]}, ${_d.getDate()} ${MK_MONTHS[_d.getMonth()]} ${_d.getFullYear()}`;
     const now = new Date();
     const printDate = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
@@ -213,9 +214,8 @@ ${html}
   );
 
   const { record, water_control, filtration_checks, fish_visual, pool_feeding, activities, alerts } = data;
-  const dateStr = new Date(record.date).toLocaleDateString('mk-MK', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  });
+  const _rd = new Date(record.date);
+  const dateStr = `${MK_DAYS[_rd.getDay()]}, ${_rd.getDate()} ${MK_MONTHS[_rd.getMonth()]} ${_rd.getFullYear()}`;
 
   // Prepare pool/meal summary data
   const totalFish = pool_feeding.reduce((s, p) => s + ((parseInt(p.fish_count)||0)-(parseInt(p.dead_count)||0)-(parseInt(p.sold_count)||0)), 0);
