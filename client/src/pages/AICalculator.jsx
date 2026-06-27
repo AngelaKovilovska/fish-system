@@ -22,6 +22,7 @@ export default function AICalculator() {
   const [predictionLoading, setPredictionLoading] = useState(false);
   const [predictionError, setPredictionError] = useState(null);
   const [expandedRec, setExpandedRec] = useState(null);
+  const [rfExpanded, setRfExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [calcLoading, setCalcLoading] = useState(false);
 
@@ -767,78 +768,93 @@ export default function AICalculator() {
                 );
               })()}
 
-              {/* ── АЛТЕРНАТИВНА ПРЕДИКЦИЈА (Random Forest) — „Моделот учи" ── */}
+              {/* ── АЛТЕРНАТИВНА ПРЕДИКЦИЈА (Random Forest) — Accordion ── */}
               {waterForecast && waterForecast.available && (() => {
                 const forecasts = waterForecast.forecasts || {};
                 const availableForecasts = Object.values(forecasts).filter(f => f.available);
                 if (availableForecasts.length === 0) return null;
 
                 return (
-                  <div className="space-y-2" style={{ opacity: 0.85 }}>
-                    <div className="flex items-center gap-2">
-                      <Cpu size={13} className="text-purple-400" />
-                      <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  <div className="space-y-0">
+                    {/* Accordion header — затворен по default */}
+                    <button
+                      onClick={() => setRfExpanded(!rfExpanded)}
+                      className="w-full card !p-3 flex items-center gap-2 cursor-pointer transition-all hover:bg-[var(--surface-hover)]"
+                      style={{ borderColor: 'rgba(139,92,246,0.15)' }}
+                    >
+                      <Cpu size={14} className="text-purple-400 flex-shrink-0" />
+                      <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold flex-1 text-left" style={{ fontFamily: 'Sora, sans-serif' }}>
                         Алтернативна предикција (Random Forest)
-                      </p>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                      </span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex-shrink-0"
                         style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}>
                         Моделот учи
                       </span>
-                    </div>
+                      <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform duration-200 flex-shrink-0 ${rfExpanded ? 'rotate-180' : ''}`} />
+                    </button>
 
-                    <div className="card !p-0 overflow-hidden" style={{ borderColor: 'rgba(139,92,246,0.2)' }}>
-                      <div className="grid grid-cols-5 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
-                        style={{ fontFamily: 'Sora, sans-serif', background: 'linear-gradient(135deg, rgba(139,92,246,0.04), transparent)' }}>
-                        <span className="col-span-1">Параметар</span>
-                        <span className="text-right">Сега</span>
-                        <span className="text-right">Утре</span>
-                        <span className="text-right">За 2д</span>
-                        <span className="text-right">За 3д</span>
-                      </div>
+                    {/* Accordion content — се покажува само кога е отворен */}
+                    {rfExpanded && (
+                      <div className="space-y-2 mt-2 animate-in">
+                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed px-1">
+                          Random Forest моделот е во фаза на тренирање и собирање податоци. Овие предвидувања се алтернативни — за примарна анализа користете ја линеарната регресија погоре.
+                        </p>
 
-                      {availableForecasts.map((f, i) => {
-                        const preds = f.predictions || [];
-                        const norm = waterPrediction?.parameters?.[f.parameter]?.norm;
-                        const valColor = (val) => {
-                          if (!norm || val == null) return '';
-                          const out = (norm.max !== null && val > norm.max) || (norm.min !== null && val < norm.min);
-                          return out ? 'text-[var(--danger)] font-bold' : '';
-                        };
-                        const r2 = f.metrics?.r2 || 0;
-                        const r2Color = r2 >= 0.7 ? 'text-[var(--success)]' : r2 >= 0.5 ? 'text-amber-500' : 'text-[var(--text-muted)]';
-
-                        return (
-                          <div key={f.parameter}
-                            className={`grid grid-cols-5 gap-0 px-3 py-2 items-center ${
-                              i < availableForecasts.length - 1 ? 'border-b border-[var(--border)]' : ''
-                            }`}>
-                            <div className="flex items-center gap-1 min-w-0 col-span-1">
-                              <span className="text-[11px] font-medium text-[var(--text-primary)] truncate">{f.label}</span>
-                              <span className={`text-[8px] font-semibold ${r2Color}`} title={`R² = ${r2}`}>
-                                {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-right font-semibold text-[var(--text-primary)]">
-                              {f.currentValue != null ? f.currentValue : '–'}
-                            </span>
-                            {[0, 1, 2].map(dayIdx => {
-                              const pred = preds[dayIdx];
-                              if (!pred || pred.error) return <span key={dayIdx} className="text-[11px] text-right text-[var(--text-muted)]">–</span>;
-                              return (
-                                <span key={dayIdx} className={`text-[11px] text-right font-medium ${valColor(pred.value)} ${pred.outOfNorm ? '' : 'text-[var(--text-primary)]'}`}>
-                                  {pred.value}
-                                </span>
-                              );
-                            })}
+                        <div className="card !p-0 overflow-hidden" style={{ borderColor: 'rgba(139,92,246,0.2)' }}>
+                          <div className="grid grid-cols-5 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
+                            style={{ fontFamily: 'Sora, sans-serif', background: 'linear-gradient(135deg, rgba(139,92,246,0.04), transparent)' }}>
+                            <span className="col-span-1">Параметар</span>
+                            <span className="text-right">Сега</span>
+                            <span className="text-right">Утре</span>
+                            <span className="text-right">За 2д</span>
+                            <span className="text-right">За 3д</span>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    <p className="text-[9px] text-[var(--text-muted)] italic">
-                      * Овој модел е во фаза на учење. Следете ги примарните предвидувања погоре.
-                      {' · '}{waterForecast.summary?.availableModels}/{waterForecast.summary?.totalParameters} модели · Просечен R² = {waterForecast.summary?.avgR2}
-                    </p>
+                          {availableForecasts.map((f, i) => {
+                            const preds = f.predictions || [];
+                            const norm = waterPrediction?.parameters?.[f.parameter]?.norm;
+                            const valColor = (val) => {
+                              if (!norm || val == null) return '';
+                              const out = (norm.max !== null && val > norm.max) || (norm.min !== null && val < norm.min);
+                              return out ? 'text-[var(--danger)] font-bold' : '';
+                            };
+                            const r2 = f.metrics?.r2 || 0;
+                            const r2Color = r2 >= 0.7 ? 'text-[var(--success)]' : r2 >= 0.5 ? 'text-amber-500' : 'text-[var(--text-muted)]';
+
+                            return (
+                              <div key={f.parameter}
+                                className={`grid grid-cols-5 gap-0 px-3 py-2 items-center ${
+                                  i < availableForecasts.length - 1 ? 'border-b border-[var(--border)]' : ''
+                                }`}>
+                                <div className="flex items-center gap-1 min-w-0 col-span-1">
+                                  <span className="text-[11px] font-medium text-[var(--text-primary)] truncate">{f.label}</span>
+                                  <span className={`text-[8px] font-semibold ${r2Color}`} title={`R² = ${r2}`}>
+                                    {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-right font-semibold text-[var(--text-primary)]">
+                                  {f.currentValue != null ? f.currentValue : '–'}
+                                </span>
+                                {[0, 1, 2].map(dayIdx => {
+                                  const pred = preds[dayIdx];
+                                  if (!pred || pred.error) return <span key={dayIdx} className="text-[11px] text-right text-[var(--text-muted)]">–</span>;
+                                  return (
+                                    <span key={dayIdx} className={`text-[11px] text-right font-medium ${valColor(pred.value)} ${pred.outOfNorm ? '' : 'text-[var(--text-primary)]'}`}>
+                                      {pred.value}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <p className="text-[9px] text-[var(--text-muted)] italic">
+                          * Моделот е во рана фаза — точноста се подобрува со повеќе податоци.
+                          {' · '}{waterForecast.summary?.availableModels}/{waterForecast.summary?.totalParameters} модели · Просечен R² = {waterForecast.summary?.avgR2}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
