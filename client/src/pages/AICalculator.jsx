@@ -1052,29 +1052,6 @@ export default function AICalculator() {
             </div>
           )}
 
-          {/* Info banners: empty period + last measurement */}
-          {!growthLoading && growthData?.hasData && (growthData?.emptyPeriod || growthData?.stats?.lastMeasured) && (
-            <div className="card !p-3 flex items-center gap-2.5"
-              style={{ borderLeft: '3px solid var(--primary)', background: 'rgba(59,130,246,0.05)' }}>
-              <Info size={14} className="text-[var(--primary)] flex-shrink-0" />
-              <p className="text-[11px] text-[var(--text-secondary)]">
-                {growthData.emptyPeriod && (
-                  <>
-                    Базенот бил празен до
-                    <span className="font-semibold text-[var(--text-primary)] mx-1">
-                      {new Date(growthData.emptyPeriod.until).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                    ·{' '}
-                  </>
-                )}
-                Последно мерење:
-                <span className="font-semibold text-[var(--text-primary)] ml-1">
-                  {new Date(growthData.stats.lastMeasured).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </span>
-              </p>
-            </div>
-          )}
-
           {/* Chart + Stats */}
           {!growthLoading && growthData?.hasData && (
             <>
