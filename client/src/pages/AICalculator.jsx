@@ -575,6 +575,8 @@ export default function AICalculator() {
                 Object.values(waterPrediction.parameters || {}).forEach(param => {
                   if (param.noData || !param.trend) return;
                   const { trend, currentValue, label, unit, norm, parameter } = param;
+                  // Температурата е контролирана со топлотна пумпа — не се предвидува
+                  if (parameter === 'temperature') return;
                   if (!trend.isSignificant && Math.abs(trend.slope) < 0.005) return;
 
                   const pred3 = Math.round((currentValue + trend.slope * 3) * 100) / 100;
@@ -625,8 +627,6 @@ export default function AICalculator() {
 
                 if (predictions.length === 0) return null;
 
-                const weakFitParams = predictions.filter(p => p.lrIsWeak || p.rfIsPrimary);
-
                 return (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -675,12 +675,7 @@ export default function AICalculator() {
                             <div className="flex items-center gap-1.5 min-w-0">
                               <TIcon size={12} className={trendColor} />
                               <span className="text-xs font-medium text-[var(--text-primary)] truncate">{p.label}</span>
-                              {(p.lrIsWeak || p.rfIsPrimary) && (
-                                <span className="text-[7px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold flex-shrink-0"
-                                  title={p.fitDiagnostics?.reasons?.join(', ') || 'Слаб фит'}>
-                                  {p.rfIsPrimary ? 'RF' : '⚠'}
-                                </span>
-                              )}
+                              {/* ⚠ badge removed — LR fit is valid for trend monitoring */}
                             </div>
                             <span className={`text-xs text-right font-semibold ${p.isCurrentlyOut ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
                               {p.currentValue}{p.unit}
@@ -731,19 +726,8 @@ export default function AICalculator() {
                       );
                     })}
 
-                    {/* Weak fit notice */}
-                    {weakFitParams.length > 0 && (
-                      <div className="card !p-2.5 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.04)', borderLeft: '3px solid var(--warning)' }}>
-                        <Info size={12} className="text-[var(--warning)] mt-0.5 flex-shrink-0" />
-                        <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
-                          {weakFitParams.map(p => p.label).join(', ')}: линеарниот модел не е идеален фит (ненормални резидуали или автокорелација). Погледнете ја алтернативната предикција подолу.
-                        </p>
-                      </div>
-                    )}
-
                     <p className="text-[9px] text-[var(--text-muted)] italic">
                       * Линеарна регресија · последни {predictions[0]?.daysAnalyzed || '?'} дена · R² = {predictions[0]?.r2 || '?'}
-                      {predictions[0]?.fitDiagnostics?.durbinWatson != null && ` · DW = ${predictions[0].fitDiagnostics.durbinWatson}`}
                     </p>
                   </div>
                 );
@@ -847,7 +831,7 @@ export default function AICalculator() {
               {/* ── АЛТЕРНАТИВНА ПРЕДИКЦИЈА (Random Forest) — Accordion ── */}
               {waterForecast && waterForecast.available && (() => {
                 const forecasts = waterForecast.forecasts || {};
-                const availableForecasts = Object.values(forecasts).filter(f => f.available);
+                const availableForecasts = Object.values(forecasts).filter(f => f.available && f.parameter !== 'temperature');
                 if (availableForecasts.length === 0) return null;
 
                 return (
