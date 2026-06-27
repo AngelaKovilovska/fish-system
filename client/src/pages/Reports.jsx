@@ -1065,12 +1065,12 @@ ${tableHTML}
                       Се испраќа...
                     </span>
                   ) : (
-                    <><Mail size={18} /> Испрати на email</>
+                    <><Mail size={18} /> Испрати на е-пошта</>
                   )}
                 </button>
               </div>
             )}
-            {emailSent && <div className="alert-success text-xs mt-3">Извештајот е испратен на вашиот email.</div>}
+            {emailSent && <div className="alert-success text-xs mt-3">Извештајот е испратен на вашата е-пошта.</div>}
             {error && <div className="alert-danger text-xs mt-3">{error}</div>}
           </>
         )}
@@ -1179,12 +1179,12 @@ ${tableHTML}
                     Се испраќа...
                   </span>
                 ) : (
-                  <><Mail size={18} /> Испрати на email</>
+                  <><Mail size={18} /> Испрати на е-пошта</>
                 )}
               </button>
             </div>
 
-            {emailSent && <div className="alert-success text-xs">Извештајот е испратен на вашиот email.</div>}
+            {emailSent && <div className="alert-success text-xs">Извештајот е испратен на вашата е-пошта.</div>}
             {error && <div className="alert-danger text-xs">{error}</div>}
             </div>
           </div>

@@ -70,8 +70,8 @@ export default function ManageUsers() {
           <h3 className="section-title">Нов корисник</h3>
           {error && <div className="alert-danger text-xs">{error}</div>}
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Email</label>
-            <input type="email" placeholder="email@example.com"
+            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Е-пошта</label>
+            <input type="email" placeholder="нпр. korisnik@firma.mk"
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="input-base" required />
           </div>
@@ -112,7 +112,7 @@ export default function ManageUsers() {
           <thead>
             <tr>
               <th>Корисник</th>
-              <th>Email</th>
+              <th>Е-пошта</th>
               <th className="text-center">Улога</th>
               <th className="text-right">Акции</th>
             </tr>

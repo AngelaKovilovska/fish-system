@@ -301,7 +301,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-2.5">
             <h2 className="section-title flex items-center gap-2 text-sm">
               <Brain size={15} className="text-purple-500" />
-              AI Препорака за храна
+              Препорака за храна
             </h2>
             <Link to="/ai-calculator" className="text-[11px] text-[var(--primary)] font-medium hover:underline flex items-center gap-1">
               Калкулатор <ArrowRight size={10} />

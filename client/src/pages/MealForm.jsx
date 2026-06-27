@@ -386,7 +386,7 @@ export default function MealForm() {
                 <div className="flex items-center gap-1.5">
                   <Brain size={13} style={{ color: '#7c3aed' }} className="flex-shrink-0" />
                   <span className="text-[11px] font-semibold"
-                    style={{ fontFamily: 'Sora, sans-serif', color: '#6d28d9' }}>AI Препорака</span>
+                    style={{ fontFamily: 'Sora, sans-serif', color: '#6d28d9' }}>Препорака</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
