@@ -74,16 +74,11 @@ export default function Layout() {
       <aside className="sidebar hidden lg:flex">
         <div className="flex items-center justify-between px-2 mb-8">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
-                <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
-                <line x1="19.5" y1="10" x2="22" y2="8.5" />
-                <line x1="19.5" y1="12" x2="23" y2="12" />
-                <line x1="19.5" y1="14" x2="22" y2="15.5" />
-              </svg>
-            </div>
+            <img
+              src="/images/clario-logo.png"
+              alt="CLARIO"
+              className="w-8 h-8 object-contain rounded-lg"
+            />
             <span className="font-bold text-[15px] text-white tracking-[0.08em]"
               style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
           </Link>
@@ -173,13 +168,11 @@ export default function Layout() {
           borderBottom: '1px solid var(--border)',
         }}>
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M6.5 12c3-5 10-5 13 0-3 5-10 5-13 0z" />
-              <path d="M3 12c-1-2-2-3-2.5-2.5.3 1 1 2.5 2 3.5-1 1-1.5 2.5-2 3.5.5.5 1.5-.5 2.5-2.5" />
-            </svg>
-          </div>
+          <img
+            src="/images/clario-logo.png"
+            alt="CLARIO"
+            className="w-7 h-7 object-contain rounded-md"
+          />
           <span className="font-bold text-sm tracking-[0.08em] text-[var(--text-primary)]"
             style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
         </Link>
