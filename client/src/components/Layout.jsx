@@ -73,14 +73,12 @@ export default function Layout() {
       {/* ═══════ DESKTOP SIDEBAR ═══════ */}
       <aside className="sidebar hidden lg:flex">
         <div className="flex items-center justify-between px-2 mb-8">
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center group">
             <img
               src="/images/clario-logo.png"
               alt="CLARIO"
-              className="w-8 h-8 object-contain rounded-lg"
+              className="h-9 object-contain"
             />
-            <span className="font-bold text-[15px] text-white tracking-[0.08em]"
-              style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
           </Link>
           <button onClick={toggleTheme}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
@@ -167,14 +165,12 @@ export default function Layout() {
           WebkitBackdropFilter: 'blur(16px)',
           borderBottom: '1px solid var(--border)',
         }}>
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center">
           <img
             src="/images/clario-logo.png"
             alt="CLARIO"
-            className="w-7 h-7 object-contain rounded-md"
+            className="h-8 object-contain"
           />
-          <span className="font-bold text-sm tracking-[0.08em] text-[var(--text-primary)]"
-            style={{ fontFamily: 'Sora, sans-serif' }}>CLARIO</span>
         </Link>
 
         <div className="flex items-center gap-2">
