@@ -2,13 +2,14 @@ const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
+const { validateId } = require('../middleware/validate');
 
 const router = express.Router();
 
 // GET /api/norms - list all norms
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM parameter_norms ORDER BY id');
+    const result = await pool.query('SELECT id, parameter_name, min_value, max_value, unit, updated_by, updated_at FROM parameter_norms ORDER BY id');
     res.json({ norms: result.rows });
   } catch (err) {
     console.error('List norms error:', err);
@@ -17,7 +18,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/norms/:id - update norm (admin only)
-router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   try {
     const { id } = req.params;
     const { min_value, max_value } = req.body;

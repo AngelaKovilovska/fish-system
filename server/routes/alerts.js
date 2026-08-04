@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const { validateId } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.put('/acknowledge-all', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/alerts/:id/acknowledge
-router.put('/:id/acknowledge', authMiddleware, async (req, res) => {
+router.put('/:id/acknowledge', authMiddleware, validateId, async (req, res) => {
   try {
     const result = await pool.query(
       'UPDATE alerts SET acknowledged = true WHERE id = $1 RETURNING *',

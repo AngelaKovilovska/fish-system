@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
+const { validateId, validatePoolNumber } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // GET /api/pool-measurements/history/:poolNumber - measurement history for a pool
-router.get('/history/:poolNumber', authMiddleware, async (req, res) => {
+router.get('/history/:poolNumber', authMiddleware, validatePoolNumber, async (req, res) => {
   try {
     const { poolNumber } = req.params;
     const result = await pool.query(
@@ -126,7 +127,7 @@ router.post('/batch', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // DELETE /api/pool-measurements/:id - delete a measurement (admin only)
-router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM pool_measurements WHERE id = $1 RETURNING *', [id]);

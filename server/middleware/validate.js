@@ -23,6 +23,26 @@ function sanitizeString(str, maxLength = 500) {
   return String(str).trim().slice(0, maxLength);
 }
 
+// Middleware: validate :id param is a positive integer
+function validateId(req, res, next) {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id) || id <= 0) {
+    return res.status(400).json({ error: 'Невалиден ID' });
+  }
+  req.params.id = id;
+  next();
+}
+
+// Middleware: validate :poolNumber param is a positive integer
+function validatePoolNumber(req, res, next) {
+  const num = parseInt(req.params.poolNumber, 10);
+  if (isNaN(num) || num <= 0) {
+    return res.status(400).json({ error: 'Невалиден број на базен' });
+  }
+  req.params.poolNumber = num;
+  next();
+}
+
 // Middleware factory: validate required date range in req.body
 function requireDateRange(req, res, next) {
   const { from, to } = req.body;
@@ -101,4 +121,6 @@ module.exports = {
   sanitizeString,
   requireDateRange,
   validateRecordBody,
+  validateId,
+  validatePoolNumber,
 };

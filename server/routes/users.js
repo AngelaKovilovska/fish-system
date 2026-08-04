@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
-const { isValidEmail, sanitizeString } = require('../middleware/validate');
+const { isValidEmail, sanitizeString, validateId } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -60,7 +60,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // PUT /api/users/:id - update user (admin only)
-router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   try {
     const { id } = req.params;
     const { email, full_name, role } = req.body;
@@ -100,7 +100,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // DELETE /api/users/:id - delete user (admin only)
-router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   try {
     const { id } = req.params;
 

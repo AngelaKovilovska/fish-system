@@ -3,7 +3,7 @@ const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
 const { checkAndCreateAlerts } = require('../services/alertService');
-const { validateRecordBody } = require('../middleware/validate');
+const { validateRecordBody, validateId, sanitizeString } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -159,7 +159,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // GET /api/records/:id - get full record with all sections
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authMiddleware, validateId, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -230,7 +230,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
         [recordId, filtration_checks.bio_filter_level, filtration_checks.bio_filter_foam,
          filtration_checks.mechanical_filter, filtration_checks.circulation_pump,
          filtration_checks.thermo_pump, filtration_checks.aeration,
-         filtration_checks.sieve_filter, filtration_checks.notes]
+         filtration_checks.sieve_filter, sanitizeString(filtration_checks.notes)]
       );
     }
 
@@ -241,7 +241,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [recordId, fish_visual.normal_swimming, fish_visual.no_injuries,
          fish_visual.no_infection, fish_visual.normal_appetite,
-         fish_visual.no_dead, fish_visual.notes]
+         fish_visual.no_dead, sanitizeString(fish_visual.notes)]
       );
     }
 
@@ -294,7 +294,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
         `INSERT INTO activities (daily_record_id, sorting_date, weight_control_date, misc_1, misc_2)
          VALUES ($1, $2, $3, $4, $5)`,
         [recordId, activities.sorting_date || null, activities.weight_control_date || null,
-         activities.misc_1, activities.misc_2]
+         sanitizeString(activities.misc_1), sanitizeString(activities.misc_2)]
       );
     }
 
@@ -327,7 +327,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
 });
 
 // PUT /api/records/:id - update full daily record
-router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
+router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -400,7 +400,7 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
         [id, filtration_checks.bio_filter_level, filtration_checks.bio_filter_foam,
          filtration_checks.mechanical_filter, filtration_checks.circulation_pump,
          filtration_checks.thermo_pump, filtration_checks.aeration,
-         filtration_checks.sieve_filter, filtration_checks.notes]
+         filtration_checks.sieve_filter, sanitizeString(filtration_checks.notes)]
       );
     }
 
@@ -411,7 +411,7 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [id, fish_visual.normal_swimming, fish_visual.no_injuries,
          fish_visual.no_infection, fish_visual.normal_appetite,
-         fish_visual.no_dead, fish_visual.notes]
+         fish_visual.no_dead, sanitizeString(fish_visual.notes)]
       );
     }
 
@@ -467,7 +467,7 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
         `INSERT INTO activities (daily_record_id, sorting_date, weight_control_date, misc_1, misc_2)
          VALUES ($1, $2, $3, $4, $5)`,
         [id, activities.sorting_date || null, activities.weight_control_date || null,
-         activities.misc_1, activities.misc_2]
+         sanitizeString(activities.misc_1), sanitizeString(activities.misc_2)]
       );
     }
 
@@ -496,7 +496,7 @@ router.put('/:id', authMiddleware, validateRecordBody, async (req, res) => {
 });
 
 // DELETE /api/records/:id - delete daily record (cascades to all sections)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, validateId, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

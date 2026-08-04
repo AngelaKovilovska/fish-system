@@ -10,6 +10,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const { validatePoolNumber } = require('../middleware/validate');
 const {
   calculatePoolRecommendation,
   calculateAllRecommendations,
@@ -251,7 +252,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
  * GET /api/ai/pool/:poolNumber
  * Single pool recommendation
  */
-router.get('/pool/:poolNumber', authMiddleware, async (req, res) => {
+router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, res) => {
   try {
     const poolNumber = parseInt(req.params.poolNumber);
     if (isNaN(poolNumber) || poolNumber < 1 || poolNumber > 8) {
@@ -538,7 +539,7 @@ router.get('/water-forecast', authMiddleware, async (req, res) => {
  * Growth chart data: actual measurements, SGR projection, Coppens ideal curve.
  * Optional query: ?from=YYYY-MM-DD (filter from a specific measurement date)
  */
-router.get('/growth-history/:poolNumber', authMiddleware, async (req, res) => {
+router.get('/growth-history/:poolNumber', authMiddleware, validatePoolNumber, async (req, res) => {
   try {
     const poolNumber = parseInt(req.params.poolNumber);
     if (isNaN(poolNumber) || poolNumber < 1 || poolNumber > 8) {

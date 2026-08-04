@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
+const { validateId } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -202,7 +203,7 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // PUT /api/food-inventory/purchase/:id - edit a purchase entry (admin only)
-router.put('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
+router.put('/purchase/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -263,7 +264,7 @@ router.put('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // DELETE /api/food-inventory/purchase/:id - delete a purchase entry (admin only)
-router.delete('/purchase/:id', authMiddleware, adminOnly, async (req, res) => {
+router.delete('/purchase/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;

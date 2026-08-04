@@ -1,11 +1,14 @@
 const { Pool } = require('pg');
 
+const sslConfig = process.env.NODE_ENV === 'production'
+  ? process.env.DATABASE_CA_CERT
+    ? { ssl: { ca: process.env.DATABASE_CA_CERT } }
+    : { ssl: { rejectUnauthorized: false } }
+  : {};
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Enable SSL in production (Railway requires it)
-  ...(process.env.NODE_ENV === 'production' && {
-    ssl: { rejectUnauthorized: false },
-  }),
+  ...sslConfig,
 });
 
 pool.on('error', (err) => {
