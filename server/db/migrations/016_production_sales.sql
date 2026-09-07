@@ -18,13 +18,13 @@ CREATE TABLE IF NOT EXISTS product_types (
 
 -- Insert default product types
 INSERT INTO product_types (code, name, price_per_unit, sort_order) VALUES
-  ('РСГ', 'Риба свежа голема', 0, 1),
-  ('РБГ', 'Риба без глава', 0, 2),
-  ('ФСК', 'Филе со кожа', 0, 3),
-  ('ФБК', 'Филе без кожа', 0, 4),
-  ('ДР',  'Димена риба', 0, 5),
-  ('ДЗЧ', 'Друго/Зачинета', 0, 6)
-ON CONFLICT (code) DO NOTHING;
+  ('РСГ', 'риба со глава', 0, 1),
+  ('РБГ', 'риба без глава', 0, 2),
+  ('ФСК', 'филета со кожа', 0, 3),
+  ('ФБК', 'филета без кожа', 0, 4),
+  ('ДР',  'димена риба', 0, 5),
+  ('ДЗЧ', 'делови за чорба / остатоци од риба', 0, 6)
+ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;
 
 -- 2. Производствени серии (LOT)
 CREATE TABLE IF NOT EXISTS production_batches (

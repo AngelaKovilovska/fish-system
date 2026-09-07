@@ -18,8 +18,7 @@ const sidebarSections = [
   {
     title: 'Производство',
     items: [
-      { path: '/production', label: 'Серии', icon: Factory },
-      { path: '/production/types', label: 'Типови', icon: Package },
+      { path: '/production', label: 'Производство', icon: Factory },
     ],
   },
   {
@@ -45,8 +44,8 @@ const adminSection = {
 const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
-  { path: '/reports', label: 'Извештаи', icon: FileBarChart },
-  { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
+  { path: '/production', label: 'Производство', icon: Factory },
+  { path: '/sales/new', label: 'Продажба', icon: ShoppingCart },
 ];
 
 export default function Layout() {
@@ -300,7 +299,8 @@ export default function Layout() {
         {mobilePrimaryTabs.map(item => {
           let isActive = location.pathname === item.path;
           if (item.path === '/entry') isActive = isEntryActive;
-          if (item.path === '/reports') isActive = isReportsActive;
+          if (item.path === '/production') isActive = isProductionActive;
+          if (item.path === '/sales/new') isActive = isSalesActive;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>

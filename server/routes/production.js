@@ -4,9 +4,6 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Status workflow order
-const STATUS_ORDER = ['чиста_вода', 'колење', 'обработка', 'пакување', 'завршено'];
-
 // Generate LOT number: LOT-YYYYMMDD-NNN
 async function generateLotNumber() {
   const today = new Date();
@@ -129,26 +126,147 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // POST /api/production - create new production batch
+// Supports creating with items and completing in one step
 router.post('/', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { source_pool, fish_count, total_weight_kg, notes } = req.body;
+    const { source_pool, fish_count, total_weight_kg, notes, items, complete } = req.body;
     const lot_number = await generateLotNumber();
 
-    const result = await pool.query(
-      `INSERT INTO production_batches (lot_number, source_pool, fish_count, total_weight_kg, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [lot_number, source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.user.id]
+    await client.query('BEGIN');
+
+    const status = complete ? 'завршено' : 'чиста_вода';
+    const finishedAt = complete ? 'NOW()' : null;
+
+    const result = await client.query(
+      `INSERT INTO production_batches (lot_number, source_pool, fish_count, total_weight_kg, notes, created_by, status, finished_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, ${complete ? 'NOW()' : 'NULL'}) RETURNING *`,
+      [lot_number, source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.user.id, status]
     );
 
+    const batchId = result.rows[0].id;
+
+    // Insert items if provided
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        const qty = parseFloat(item.quantity_kg);
+        if (qty > 0) {
+          await client.query(
+            'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
+            [batchId, item.product_type_id, qty]
+          );
+
+          // Add to inventory if completing
+          if (complete) {
+            await client.query(
+              `UPDATE product_inventory
+               SET quantity_kg = quantity_kg + $1, updated_at = NOW()
+               WHERE product_type_id = $2`,
+              [qty, item.product_type_id]
+            );
+          }
+        }
+      }
+    }
+
+    await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Create production batch error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
+// PUT /api/production/:id - update batch info and items (with inventory adjustment)
+router.put('/:id', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { source_pool, fish_count, total_weight_kg, notes, items } = req.body;
+
+    const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);
+    if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
+
+    const isFinished = batch.rows[0].status === 'завршено';
+
+    await client.query('BEGIN');
+
+    // Update batch info
+    await client.query(
+      `UPDATE production_batches
+       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, updated_at = NOW()
+       WHERE id = $5`,
+      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.params.id]
+    );
+
+    // Update items if provided
+    if (items && Array.isArray(items)) {
+      // If finished, rollback old inventory first
+      if (isFinished) {
+        const oldItems = await client.query(
+          'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1',
+          [req.params.id]
+        );
+        for (const old of oldItems.rows) {
+          await client.query(
+            `UPDATE product_inventory
+             SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW()
+             WHERE product_type_id = $2`,
+            [parseFloat(old.quantity_kg), old.product_type_id]
+          );
+        }
+      }
+
+      // Remove old items and insert new
+      await client.query('DELETE FROM production_items WHERE batch_id = $1', [req.params.id]);
+
+      for (const item of items) {
+        const qty = parseFloat(item.quantity_kg);
+        if (qty > 0) {
+          await client.query(
+            'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
+            [req.params.id, item.product_type_id, qty]
+          );
+
+          // Re-add to inventory if finished
+          if (isFinished) {
+            await client.query(
+              `UPDATE product_inventory
+               SET quantity_kg = quantity_kg + $1, updated_at = NOW()
+               WHERE product_type_id = $2`,
+              [qty, item.product_type_id]
+            );
+          }
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Return updated batch
+    const updated = await pool.query(
+      `SELECT pb.*, u.full_name as created_by_name
+       FROM production_batches pb
+       LEFT JOIN users u ON u.id = pb.created_by
+       WHERE pb.id = $1`,
+      [req.params.id]
+    );
+
+    res.json(updated.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Update production batch error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
   }
 });
 
 // PUT /api/production/:id/status - advance status
 router.put('/:id/status', authMiddleware, async (req, res) => {
+  const STATUS_ORDER = ['чиста_вода', 'колење', 'обработка', 'пакување', 'завршено'];
   const client = await pool.connect();
   try {
     const { status } = req.body;
@@ -172,7 +290,6 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Статусот може само да се унапреди' });
     }
 
-    const updates = { status, updated_at: 'NOW()' };
     let finishedClause = '';
 
     // When finishing, add products to inventory
@@ -214,17 +331,13 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
 router.post('/:id/items', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { items } = req.body; // [{ product_type_id, quantity_kg }]
+    const { items } = req.body;
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ error: 'Потребни се ставки' });
     }
 
     const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);
     if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
-
-    if (batch.rows[0].status === 'завршено') {
-      return res.status(400).json({ error: 'Не може да се менуваат ставки на завршена серија' });
-    }
 
     await client.query('BEGIN');
 
@@ -263,41 +376,40 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/production/:id - update batch info
-router.put('/:id', authMiddleware, async (req, res) => {
-  try {
-    const { source_pool, fish_count, total_weight_kg, notes } = req.body;
-
-    const batch = await pool.query('SELECT status FROM production_batches WHERE id = $1', [req.params.id]);
-    if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
-    if (batch.rows[0].status === 'завршено') return res.status(400).json({ error: 'Не може да се менува завршена серија' });
-
-    const result = await pool.query(
-      `UPDATE production_batches
-       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, updated_at = NOW()
-       WHERE id = $5 RETURNING *`,
-      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.params.id]
-    );
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Update production batch error:', err);
-    res.status(500).json({ error: 'Серверска грешка' });
-  }
-});
-
-// DELETE /api/production/:id - delete batch (only if not finished)
+// DELETE /api/production/:id - delete batch (rollback inventory if finished)
 router.delete('/:id', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const batch = await pool.query('SELECT status FROM production_batches WHERE id = $1', [req.params.id]);
+    const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);
     if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
-    if (batch.rows[0].status === 'завршено') return res.status(400).json({ error: 'Не може да се избрише завршена серија' });
 
-    await pool.query('DELETE FROM production_batches WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+
+    // Rollback inventory if batch was finished
+    if (batch.rows[0].status === 'завршено') {
+      const items = await client.query(
+        'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1',
+        [req.params.id]
+      );
+      for (const item of items.rows) {
+        await client.query(
+          `UPDATE product_inventory
+           SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW()
+           WHERE product_type_id = $2`,
+          [parseFloat(item.quantity_kg), item.product_type_id]
+        );
+      }
+    }
+
+    await client.query('DELETE FROM production_batches WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
     res.json({ message: 'Серијата е избришана' });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Delete production batch error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
   }
 });
 

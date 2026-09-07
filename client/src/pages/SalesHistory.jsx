@@ -1,39 +1,69 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ChevronLeft, Plus, FileText, Printer, Trash2, ShoppingCart } from 'lucide-react';
+import { Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
 
 export default function SalesHistory() {
   const navigate = useNavigate();
   const [sales, setSales] = useState([]);
+  const [buyers, setBuyers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [tab, setTab] = useState('sales'); // 'sales' | 'buyers'
+  const [expandedSale, setExpandedSale] = useState(null);
   const printFrameRef = useRef(null);
 
-  useEffect(() => {
-    loadSales();
-  }, []);
+  // Buyer editing
+  const [editingBuyer, setEditingBuyer] = useState(null);
+  const [buyerForm, setBuyerForm] = useState({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '' });
 
-  async function loadSales() {
+  useEffect(() => { loadData(); }, []);
+
+  async function loadData() {
     try {
-      const res = await api.getSales({ limit: 50 });
-      setSales(res.sales || []);
-    } catch {
-      setError('Грешка при вчитување');
-    } finally {
-      setLoading(false);
-    }
+      const [salesRes, buyersRes] = await Promise.all([
+        api.getSales({ limit: 50 }),
+        api.getBuyers(),
+      ]);
+      setSales(salesRes.sales || []);
+      setBuyers(buyersRes.buyers || []);
+    } catch { setError('Грешка при вчитување'); }
+    finally { setLoading(false); }
   }
 
-  async function handleDelete(id) {
+  async function handleDeleteSale(id) {
     if (!confirm('Избриши ја продажбата? Залихата ќе се врати.')) return;
     try {
       await api.deleteSale(id);
-      await loadSales();
-    } catch (err) {
-      setError(err.message);
-    }
+      await loadData();
+    } catch (err) { setError(err.message); }
+  }
+
+  // Buyer CRUD
+  function startEditBuyer(b) {
+    setEditingBuyer(b.id);
+    setBuyerForm({ name: b.name, edb: b.edb || '', address: b.address || '', contact_person: b.contact_person || '', phone: b.phone || '', email: b.email || '' });
+  }
+
+  async function saveBuyer() {
+    if (!buyerForm.name) return setError('Потребно е име');
+    try {
+      await api.updateBuyer(editingBuyer, buyerForm);
+      setEditingBuyer(null);
+      setSuccess('Купувачот е ажуриран');
+      await loadData();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function deleteBuyer(id) {
+    if (!confirm('Избриши го купувачот?')) return;
+    try {
+      await api.deleteBuyer(id);
+      await loadData();
+    } catch (err) { setError(err.message); }
   }
 
   async function handlePrint(saleId, docType) {
@@ -56,7 +86,6 @@ export default function SalesHistory() {
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="skeleton h-10 w-48" />
         <div className="skeleton h-24 w-full" />
-        <div className="skeleton h-24 w-full" />
       </div>
     );
   }
@@ -66,8 +95,11 @@ export default function SalesHistory() {
       <iframe ref={printFrameRef} className="hidden" title="print" />
 
       {/* Header */}
-      <div className="flex items-center gap-2 mb-5 animate-in">
-        <button onClick={() => navigate(-1)} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+      <div className="flex items-center gap-2 mb-4 animate-in">
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
+          <ShoppingCart size={20} className="text-white" />
+        </div>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Продажби</h1>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">Историја и документи</p>
@@ -77,68 +109,165 @@ export default function SalesHistory() {
         </button>
       </div>
 
-      {error && <div className="alert alert-error mb-4">{error}</div>}
+      {error && <div className="alert alert-error mb-4 animate-in">{error}</div>}
+      {success && <div className="alert alert-success mb-4 animate-in">{success}</div>}
 
-      {sales.length === 0 ? (
-        <div className="card text-center py-12 animate-in">
-          <ShoppingCart size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm text-[var(--text-secondary)]">Нема продажби</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {sales.map((sale, idx) => (
-            <div key={sale.id} className={`card animate-in-delay-${Math.min(idx, 5)}`}>
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                    {sale.invoice_number}
-                  </h3>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
-                  </p>
-                </div>
-                <span className="text-sm font-bold text-[var(--primary)]">{parseFloat(sale.total).toFixed(2)} ден</span>
-              </div>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 p-1 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]">
+        <button onClick={() => setTab('sales')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'sales' ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
+          Продажби ({sales.length})
+        </button>
+        <button onClick={() => setTab('buyers')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'buyers' ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
+          <Users size={13} className="inline mr-1" />Купувачи ({buyers.length})
+        </button>
+      </div>
 
-              {/* Items */}
-              {sale.items && sale.items.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {sale.items.map(item => (
-                    <span key={item.id} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]">
-                      {item.code}: {item.quantity_kg}кг × {item.price_per_kg}ден
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Payment method & LOT */}
-              <div className="flex items-center gap-3 mb-3">
-                <span className="pill pill-blue text-[10px]">{sale.payment_method}</span>
-                {sale.lot_number && <span className="text-[10px] text-[var(--text-muted)]">LOT: {sale.lot_number}</span>}
-              </div>
-
-              {/* Print buttons */}
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={() => handlePrint(sale.id, 'invoice')}
-                  className="btn-ghost text-xs flex items-center gap-1">
-                  <Printer size={13} /> Фактура
-                </button>
-                <button onClick={() => handlePrint(sale.id, 'commercial')}
-                  className="btn-ghost text-xs flex items-center gap-1">
-                  <FileText size={13} /> Комерцијален
-                </button>
-                <button onClick={() => handlePrint(sale.id, 'declaration')}
-                  className="btn-ghost text-xs flex items-center gap-1">
-                  <FileText size={13} /> Декларација
-                </button>
-                <button onClick={() => handleDelete(sale.id)}
-                  className="btn-ghost text-xs text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] ml-auto">
-                  <Trash2 size={13} />
-                </button>
-              </div>
+      {/* ═══ SALES TAB ═══ */}
+      {tab === 'sales' && (
+        <>
+          {sales.length === 0 ? (
+            <div className="card text-center py-12 animate-in">
+              <ShoppingCart size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
+              <p className="text-sm text-[var(--text-secondary)]">Нема продажби</p>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-3">
+              {sales.map((sale, idx) => {
+                const isExpanded = expandedSale === sale.id;
+                return (
+                  <div key={sale.id} className={`card animate-in-delay-${Math.min(idx, 5)}`}>
+                    <div className="flex items-start justify-between cursor-pointer"
+                      onClick={() => setExpandedSale(isExpanded ? null : sale.id)}>
+                      <div>
+                        <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                          {sale.invoice_number}
+                        </h3>
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                          {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[var(--primary)]">{parseFloat(sale.total).toFixed(2)} ден</span>
+                        {isExpanded ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
+                      </div>
+                    </div>
+
+                    {/* Items pills */}
+                    {sale.items && sale.items.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {sale.items.map(item => (
+                          <span key={item.id} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]">
+                            {item.code}: {parseFloat(item.quantity_kg).toFixed(1)}кг × {parseFloat(item.price_per_kg).toFixed(0)}ден
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="pill pill-blue text-[10px]">{sale.payment_method}</span>
+                          {sale.lot_number && <span className="text-[10px] text-[var(--text-muted)]">LOT: {sale.lot_number}</span>}
+                          {sale.transport_vehicle && <span className="text-[10px] text-[var(--text-muted)]">🚛 {sale.transport_vehicle}</span>}
+                        </div>
+
+                        <div className="flex gap-2 flex-wrap">
+                          <button onClick={() => handlePrint(sale.id, 'invoice')}
+                            className="btn-ghost text-xs flex items-center gap-1">
+                            <Printer size={13} /> Фактура
+                          </button>
+                          <button onClick={() => handlePrint(sale.id, 'commercial')}
+                            className="btn-ghost text-xs flex items-center gap-1">
+                            <FileText size={13} /> Комерцијален
+                          </button>
+                          <button onClick={() => handlePrint(sale.id, 'declaration')}
+                            className="btn-ghost text-xs flex items-center gap-1">
+                            <FileText size={13} /> Декларација
+                          </button>
+                          <button onClick={() => handleDeleteSale(sale.id)}
+                            className="btn-ghost text-xs text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] ml-auto flex items-center gap-1">
+                            <Trash2 size={13} /> Избриши
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ═══ BUYERS TAB ═══ */}
+      {tab === 'buyers' && (
+        <>
+          {buyers.length === 0 ? (
+            <div className="card text-center py-12 animate-in">
+              <Users size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
+              <p className="text-sm text-[var(--text-secondary)]">Нема зачувани купувачи</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">Купувачите се додаваат при нова продажба</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {buyers.map((b, idx) => (
+                <div key={b.id} className={`card animate-in-delay-${Math.min(idx, 5)}`}>
+                  {editingBuyer === b.id ? (
+                    // Edit form
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="text" value={buyerForm.name} onChange={e => setBuyerForm({ ...buyerForm, name: e.target.value })}
+                          className="input text-sm" placeholder="Име *" />
+                        <input type="text" value={buyerForm.edb} onChange={e => setBuyerForm({ ...buyerForm, edb: e.target.value })}
+                          className="input text-sm" placeholder="ЕДБ" />
+                        <input type="text" value={buyerForm.address} onChange={e => setBuyerForm({ ...buyerForm, address: e.target.value })}
+                          className="input text-sm col-span-2" placeholder="Адреса" />
+                        <input type="text" value={buyerForm.contact_person} onChange={e => setBuyerForm({ ...buyerForm, contact_person: e.target.value })}
+                          className="input text-sm" placeholder="Контакт лице" />
+                        <input type="text" value={buyerForm.phone} onChange={e => setBuyerForm({ ...buyerForm, phone: e.target.value })}
+                          className="input text-sm" placeholder="Телефон" />
+                        <input type="email" value={buyerForm.email} onChange={e => setBuyerForm({ ...buyerForm, email: e.target.value })}
+                          className="input text-sm col-span-2" placeholder="Email" />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => setEditingBuyer(null)} className="btn-ghost text-xs flex items-center gap-1">
+                          <X size={13} /> Откажи
+                        </button>
+                        <button onClick={saveBuyer} className="btn-primary text-xs flex items-center gap-1">
+                          <Save size={13} /> Зачувај
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Display
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                        style={{ background: 'var(--primary-muted)', color: 'var(--primary)' }}>
+                        {b.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[var(--text-primary)]">{b.name}</p>
+                        {b.edb && <p className="text-[10px] text-[var(--text-muted)]">ЕДБ: {b.edb}</p>}
+                        {b.address && <p className="text-[10px] text-[var(--text-muted)]">{b.address}</p>}
+                        {b.phone && <p className="text-[10px] text-[var(--text-muted)]">{b.phone}</p>}
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEditBuyer(b)} className="btn-ghost p-1.5 text-[var(--text-secondary)]">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => deleteBuyer(b.id)} className="btn-ghost p-1.5 text-[var(--danger)]">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -185,6 +314,15 @@ function generatePrintHTML(sale, docType) {
   `;
 
   const itemsArray = sale.items || [];
+
+  // Product name format for invoices/commercial: Риба (Clarias gariepinus) - РСГ (code only)
+  function productNameShort(item) {
+    return `Риба (Clarias gariepinus) - ${item.code || ''}`;
+  }
+  // Product name format for declaration: full name
+  function productNameFull(item) {
+    return `Риба (Clarias gariepinus) - ${item.code || ''} - ${item.name || ''}`;
+  }
 
   if (docType === 'invoice') {
     return `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body>
@@ -236,7 +374,7 @@ function generatePrintHTML(sale, docType) {
           ${itemsArray.map((item, i) => `
             <tr>
               <td>${i + 1}</td>
-              <td>Риба (Clarias gariepinus) - ${item.code || ''} ${item.name || ''}</td>
+              <td>${productNameShort(item)}</td>
               <td>${item.lot_number || sale.lot_number || '—'}</td>
               <td class="text-right">${parseFloat(item.quantity_kg).toFixed(2)}</td>
               <td class="text-right">${parseFloat(item.price_per_kg).toFixed(2)}</td>
@@ -303,7 +441,7 @@ function generatePrintHTML(sale, docType) {
           ${itemsArray.map((item, i) => `
             <tr>
               <td>${i + 1}</td>
-              <td>Риба (Clarias gariepinus) - ${item.code || ''} ${item.name || ''}</td>
+              <td>${productNameShort(item)}</td>
               <td>${item.lot_number || sale.lot_number || '—'}</td>
               <td class="text-right">${parseFloat(item.quantity_kg).toFixed(2)}</td>
             </tr>
@@ -353,8 +491,8 @@ function generatePrintHTML(sale, docType) {
       ${itemsArray.map((item, i) => `
         <div class="info-box" style="margin-bottom:10px;">
           <h4>Производ ${itemsArray.length > 1 ? i + 1 : ''}</h4>
-          <p><strong>Риба (${item.latin_name || 'Clarias gariepinus'}) - ${item.name || ''}</strong></p>
-          <p>Шифра: ${item.code || ''} | LOT: ${item.lot_number || sale.lot_number || '—'}</p>
+          <p><strong>${productNameFull(item)}</strong></p>
+          <p>LOT: ${item.lot_number || sale.lot_number || '—'}</p>
           <p>Нето: ${parseFloat(item.quantity_kg).toFixed(2)} ${item.unit || 'кг'}</p>
         </div>
       `).join('')}
