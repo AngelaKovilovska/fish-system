@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { FOOD_TYPES, MK_MONTHS } from '../../lib/constants';
+import { FOOD_TYPES } from '../../lib/constants';
+import { formatDateShortMK } from '../../lib/utils';
 import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search, ChevronLeft } from 'lucide-react';
-
-function formatDateShortMK(dateStr) {
-  const d = new Date(dateStr);
-  return `${d.getDate()} ${MK_MONTHS[d.getMonth()].substring(0, 3)}`;
-}
 
 const emptyItem = () => ({ food_type: FOOD_TYPES[0], quantity_kg: '' });
 

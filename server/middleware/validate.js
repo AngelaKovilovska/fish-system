@@ -43,20 +43,6 @@ function validatePoolNumber(req, res, next) {
   next();
 }
 
-// Middleware factory: validate required date range in req.body
-function requireDateRange(req, res, next) {
-  const { from, to } = req.body;
-  if (!from || !isValidDate(from)) {
-    return res.status(400).json({ error: 'Невалиден формат за датум (од)' });
-  }
-  if (!to || !isValidDate(to)) {
-    return res.status(400).json({ error: 'Невалиден формат за датум (до)' });
-  }
-  if (from > to) {
-    return res.status(400).json({ error: 'Почетниот датум мора да биде пред крајниот' });
-  }
-  next();
-}
 
 // Validate record date in body
 function validateRecordBody(req, res, next) {
@@ -119,7 +105,7 @@ module.exports = {
   isValidDate,
   isNumericOrNull,
   sanitizeString,
-  requireDateRange,
+
   validateRecordBody,
   validateId,
   validatePoolNumber,

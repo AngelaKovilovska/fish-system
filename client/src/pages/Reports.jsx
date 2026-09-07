@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
+import { fmtDate } from '../lib/utils';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -43,14 +44,6 @@ function ChartTooltipContent({ active, payload, label, suffix = '' }) {
 // Ги користиме ALL_PARAM_LABELS од constants.js (единствен извор)
 const PARAM_LABELS = ALL_PARAM_LABELS;
 
-// Format date as DD.MM.YYYY
-function fmtDate(dateVal) {
-  const d = new Date(dateVal);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
 
 // Parse DD.MM.YYYY string back to Date (inverse of fmtDate)
 function parseDDMMYYYY(str) {

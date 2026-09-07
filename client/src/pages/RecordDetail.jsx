@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS, MK_DAYS } from '../lib/constants';
+import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS, MK_DAYS, MEAL_LABELS } from '../lib/constants';
 import {
   AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X,
   ChevronLeft, Printer, Droplets, Filter, Fish, Warehouse,
   Utensils, Activity, Sunrise, Sun, Moon,
 } from 'lucide-react';
 
-const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+
 const MEAL_ICONS = {
   breakfast: <Sunrise size={13} className="text-amber-500" />,
   lunch: <Sun size={13} className="text-yellow-500" />,

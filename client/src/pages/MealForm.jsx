@@ -1,14 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { POOL_NUMBERS, FOOD_TYPES } from '../lib/constants';
+import { POOL_NUMBERS, FOOD_TYPES, MEAL_LABELS } from '../lib/constants';
 import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap, Copy, Plus, X } from 'lucide-react';
 
-const MEAL_LABELS = {
-  breakfast: 'Појадок',
-  lunch: 'Ручек',
-  dinner: 'Вечера',
-};
+
 const MEAL_ICONS = {
   breakfast: <Sunrise size={20} className="text-amber-500" />,
   lunch: <Sun size={20} className="text-yellow-500" />,

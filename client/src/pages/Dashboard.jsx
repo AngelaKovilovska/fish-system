@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { PARAMETER_LABELS, MK_MONTHS } from '../lib/constants';
+import { PARAMETER_LABELS } from '../lib/constants';
+import { formatDateMK, formatDateShortMK } from '../lib/utils';
 import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
@@ -33,15 +34,6 @@ function getAlertInfo(alert) {
   };
 }
 
-
-function formatDateMK(date) {
-  return `${date.getDate()} ${MK_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatDateShortMK(dateStr) {
-  const d = new Date(dateStr);
-  return `${d.getDate()} ${MK_MONTHS[d.getMonth()].substring(0, 3)}`;
-}
 
 export default function Dashboard() {
   const { user } = useAuth();

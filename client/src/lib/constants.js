@@ -52,6 +52,8 @@ export const FISH_VISUAL_LABELS = {
   no_dead: 'Нема угинати',
 };
 
+export const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
+
 export const POOL_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export const FOOD_TYPES = [

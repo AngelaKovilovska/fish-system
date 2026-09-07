@@ -6,13 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
-import { MK_MONTHS } from '../lib/constants';
-
-function formatDateMK(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
+import { formatDateMK } from '../lib/utils';
 
 export default function AICalculator() {
   const [tab, setTab] = useState('pools'); // 'pools' | 'calculator' | 'water'
@@ -565,9 +559,7 @@ export default function AICalculator() {
                 </div>
               )}
 
-              {/* Warnings section removed — crossing/exceeded warnings are shown below the LR table */}
-
-              {/* ── ПРИМАРНА ПРЕДИКЦИЈА (Линеарна регресија) ── */}
+              {/* ── ПРЕДИКЦИЈА (Линеарна регресија) ── */}
               {(() => {
                 const predictions = [];
                 const modelSel = waterPrediction.modelSelection || {};

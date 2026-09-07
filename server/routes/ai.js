@@ -23,8 +23,6 @@ const {
 const {
   projectCurrentWeight,
   calculateSGR,
-  getExpectedWeightFromCurve,
-  predictGrowth,
   PHASE_FCR,
 } = require('../services/growthPrediction');
 const { analyzeWaterPrediction } = require('../services/waterPrediction');

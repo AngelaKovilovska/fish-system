@@ -37,7 +37,6 @@ const PARAMETER_LABELS = {
   no_dead: 'Нема угинати',
 };
 
-const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };
 
 // Generate daily report data
 async function getDailyReportData(recordId) {

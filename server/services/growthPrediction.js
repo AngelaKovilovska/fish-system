@@ -58,7 +58,6 @@
 
 const {
   GROWOUT_TABLE,
-  TEMP_ADJUSTMENTS,
 } = require('./feedingRecommendation');
 
 // ─────────────────────────────────────────────────────────────────
@@ -520,72 +519,6 @@ function predictGrowth(input) {
   };
 }
 
-/**
- * Обратна пресметка: ако знаеме W0, W1 (вистинско мерење), N, F, D —
- * пресметуваме реален FCR и SGR. Корисно за калибрација.
- */
-function calculateActualFCR({ fishCount, W0, W1, totalFeedKg, days, temperature = null, dailySurvival = DEFAULT_SURVIVAL_PER_DAY }) {
-  if (!fishCount || !W0 || !W1 || !totalFeedKg || !days) {
-    return { error: 'Потребни се сите влезни податоци (fishCount, W0, W1, totalFeedKg, days)' };
-  }
-  if (W1 < W0) {
-    return { error: 'W1 мора да биде поголема или еднаква на W0 — рибите не губат тежина нормално' };
-  }
-
-  const survivalTotal = Math.pow(dailySurvival, days);
-  const avgFishCount = fishCount * (1 + survivalTotal) / 2;
-  const fishCountEnd = Math.round(fishCount * survivalTotal);
-
-  // Биомасата се пресметува со РЕАЛНИ крајни бројки
-  const biomassStartKg = (fishCount * W0) / 1000;
-  const biomassEndKg = (fishCountEnd * W1) / 1000;
-  const biomassGainKg = biomassEndKg - biomassStartKg;
-  const actualFCR = biomassGainKg > 0 ? (totalFeedKg / biomassGainKg) : null;
-  const sgr = calculateSGR(W0, W1, days);
-
-  // Теоретски FCR по фаза — користи ТРУ midWeight зашто имаме двете крајни точки
-  const midWeight = (W0 + W1) / 2;
-  const phase = getPhaseFCR(midWeight);
-
-  // Ако имаме температура, очекуваниот FCR е корегиран за неа
-  const tempAdj = getTemperatureFactor(temperature);
-  const tempAdjustedExpectedFCR = phase.fcr * computeFcrTempMultiplier(tempAdj.factor);
-
-  // Rating se смета наспроти температурно-корегираниот очекуван FCR,
-  // зашто не е фер да се казнува фармерот за лоша температура
-  const comparisonBaseline = temperature != null ? tempAdjustedExpectedFCR : phase.fcr;
-  const rating = actualFCR
-    ? actualFCR < comparisonBaseline * 0.9 ? 'excellent'
-      : actualFCR <= comparisonBaseline * 1.1 ? 'good'
-      : actualFCR <= comparisonBaseline * 1.3 ? 'acceptable'
-      : 'poor'
-    : null;
-
-  return {
-    actualFCR: actualFCR ? Math.round(actualFCR * 100) / 100 : null,
-    expectedFCR: phase.fcr,
-    expectedFCRTempAdjusted: Math.round(tempAdjustedExpectedFCR * 100) / 100,
-    phase: phase.phase,
-    sgr: Math.round(sgr * 1000) / 1000,
-    biomassStartKg: Math.round(biomassStartKg * 10) / 10,
-    biomassEndKg: Math.round(biomassEndKg * 10) / 10,
-    biomassGainKg: Math.round(biomassGainKg * 10) / 10,
-    deviation: actualFCR ? Math.round(((actualFCR - comparisonBaseline) / comparisonBaseline) * 100 * 10) / 10 : null,
-    rating,
-    temperature: temperature != null ? {
-      value: temperature,
-      factor: tempAdj.factor,
-      fcrPenalty: Math.round((computeFcrTempMultiplier(tempAdj.factor) - 1) * 100 * 10) / 10,
-      note: tempAdj.note,
-    } : null,
-    mortality: {
-      fishStart: fishCount,
-      fishEnd: fishCountEnd,
-      avgFishCount: Math.round(avgFishCount),
-      survivalRate: Math.round(survivalTotal * 10000) / 100,
-    },
-  };
-}
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -723,7 +656,6 @@ function projectCurrentWeight(input) {
 
 module.exports = {
   predictGrowth,
-  calculateActualFCR,
   calculateSGR,
   getPhaseFCR,
   getExpectedWeightFromCurve,
