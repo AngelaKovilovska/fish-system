@@ -21,6 +21,11 @@ const MealForm = lazy(() => import('./pages/MealForm'));
 const MealHistory = lazy(() => import('./pages/MealHistory'));
 const AICalculator = lazy(() => import('./pages/AICalculator'));
 const EntryHub = lazy(() => import('./pages/EntryHub'));
+const ProductionNew = lazy(() => import('./pages/ProductionNew'));
+const ProductTypesPage = lazy(() => import('./pages/ProductTypesPage'));
+const SalesNew = lazy(() => import('./pages/SalesNew'));
+const SalesHistory = lazy(() => import('./pages/SalesHistory'));
+const BuyersPage = lazy(() => import('./pages/BuyersPage'));
 
 function PageLoader() {
   return (
@@ -66,6 +71,11 @@ function AppRoutes() {
           <Route path="/meal/:mealType" element={<MealForm />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/ai-calculator" element={<AICalculator />} />
+          <Route path="/production" element={<ProductionNew />} />
+          <Route path="/production/types" element={<ProductTypesPage />} />
+          <Route path="/sales/new" element={<SalesNew />} />
+          <Route path="/sales/history" element={<SalesHistory />} />
+          <Route path="/buyers" element={<BuyersPage />} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminHub /></ProtectedRoute>} />
           <Route path="/admin/norms" element={<ProtectedRoute adminOnly><ManageNorms /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><ManageUsers /></ProtectedRoute>} />

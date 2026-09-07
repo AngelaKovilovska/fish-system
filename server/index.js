@@ -70,6 +70,10 @@ app.use('/api/food-inventory', require('./routes/foodInventory'));
 app.use('/api/meals', require('./routes/meals'));
 app.use('/api/pool-fish-inventory', require('./routes/poolFishInventory'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/product-types', require('./routes/productTypes'));
+app.use('/api/production', require('./routes/production'));
+app.use('/api/buyers', require('./routes/buyers'));
+app.use('/api/sales', require('./routes/sales'));
 
 // Health check
 app.get('/api/health', (req, res) => {

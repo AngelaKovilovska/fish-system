@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, ShoppingCart } from 'lucide-react';
 import FishBackground from './FishBackground';
 
-// ─── 4 main sections: Дома, Внес, Извештаи, Проекции ───
+// ─── Main sections ───
 const sidebarSections = [
   {
     items: [
@@ -13,6 +13,20 @@ const sidebarSections = [
       { path: '/entry', label: 'Внес', icon: PenSquare },
       { path: '/reports', label: 'Извештаи', icon: FileBarChart },
       { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
+    ],
+  },
+  {
+    title: 'Производство',
+    items: [
+      { path: '/production', label: 'Серии', icon: Factory },
+      { path: '/production/types', label: 'Типови', icon: Package },
+    ],
+  },
+  {
+    title: 'Продажба',
+    items: [
+      { path: '/sales/new', label: 'Нова продажба', icon: ShoppingCart },
+      { path: '/sales/history', label: 'Историја', icon: FileBarChart },
     ],
   },
 ];
@@ -51,6 +65,10 @@ export default function Layout() {
   // Routes that belong to "Извештаи" section
   const reportPaths = ['/reports', '/history'];
   const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
+  // Routes that belong to "Производство" section
+  const isProductionActive = location.pathname.startsWith('/production');
+  // Routes that belong to "Продажба" section
+  const isSalesActive = location.pathname.startsWith('/sales') || location.pathname === '/buyers';
   // Routes that belong to "Админ" section
   const isAdminActive = location.pathname.startsWith('/admin');
 

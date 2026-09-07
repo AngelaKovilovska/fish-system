@@ -122,4 +122,39 @@ export const api = {
   getWaterPrediction: () => request('/ai/water-prediction'),
 
   getGrowthHistory: (poolNumber, from) => request(`/ai/growth-history/${poolNumber}${from ? `?from=${from}` : ''}`),
+
+  // Product types
+  getProductTypes: () => request('/product-types'),
+  createProductType: (data) => request('/product-types', { method: 'POST', body: JSON.stringify(data) }),
+  updateProductType: (id, data) => request(`/product-types/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProductType: (id) => request(`/product-types/${id}`, { method: 'DELETE' }),
+
+  // Production batches
+  getProductionBatches: (params) => {
+    const query = params ? new URLSearchParams(params).toString() : '';
+    return request(`/production${query ? `?${query}` : ''}`);
+  },
+  getProductionBatch: (id) => request(`/production/${id}`),
+  createProductionBatch: (data) => request('/production', { method: 'POST', body: JSON.stringify(data) }),
+  updateProductionBatch: (id, data) => request(`/production/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateProductionStatus: (id, status) => request(`/production/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  updateProductionItems: (id, items) => request(`/production/${id}/items`, { method: 'POST', body: JSON.stringify({ items }) }),
+  deleteProductionBatch: (id) => request(`/production/${id}`, { method: 'DELETE' }),
+  getProductInventory: () => request('/production/inventory'),
+
+  // Buyers
+  getBuyers: () => request('/buyers'),
+  getBuyer: (id) => request(`/buyers/${id}`),
+  createBuyer: (data) => request('/buyers', { method: 'POST', body: JSON.stringify(data) }),
+  updateBuyer: (id, data) => request(`/buyers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBuyer: (id) => request(`/buyers/${id}`, { method: 'DELETE' }),
+
+  // Sales
+  getSales: (params) => {
+    const query = params ? new URLSearchParams(params).toString() : '';
+    return request(`/sales${query ? `?${query}` : ''}`);
+  },
+  getSale: (id) => request(`/sales/${id}`),
+  createSale: (data) => request('/sales', { method: 'POST', body: JSON.stringify(data) }),
+  deleteSale: (id) => request(`/sales/${id}`, { method: 'DELETE' }),
 };
