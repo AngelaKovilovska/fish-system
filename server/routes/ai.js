@@ -27,8 +27,8 @@ const {
   predictGrowth,
   PHASE_FCR,
 } = require('../services/growthPrediction');
-const { analyzeWaterPrediction, analyzeWaterPredictionEnhanced } = require('../services/waterPrediction');
-const { generateWaterForecast } = require('../services/waterRandomForest');
+const { analyzeWaterPrediction } = require('../services/waterPrediction');
+
 
 const router = express.Router();
 
@@ -512,7 +512,7 @@ router.get('/stock-projection', authMiddleware, async (req, res) => {
  */
 router.get('/water-prediction', authMiddleware, async (req, res) => {
   try {
-    const result = await analyzeWaterPredictionEnhanced(pool);
+    const result = await analyzeWaterPrediction(pool);
     res.json(result);
   } catch (err) {
     console.error('Water prediction error:', err);
@@ -520,19 +520,6 @@ router.get('/water-prediction', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * GET /api/ai/water-forecast
- * Random Forest ML prediction for water parameters (1-3 days ahead)
- */
-router.get('/water-forecast', authMiddleware, async (req, res) => {
-  try {
-    const result = await generateWaterForecast(pool);
-    res.json(result);
-  } catch (err) {
-    console.error('Water RF forecast error:', err);
-    res.status(500).json({ error: 'Серверска грешка при ML предикција' });
-  }
-});
 
 /**
  * GET /api/ai/growth-history/:poolNumber
