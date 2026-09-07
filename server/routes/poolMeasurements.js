@@ -20,15 +20,21 @@ router.get('/', authMiddleware, async (req, res) => {
 
     // 2. Total feed given per pool since their last measurement
     const feedResult = await pool.query(`
-      SELECT pm.pool_number,
-             COALESCE(SUM(pml.food_amount_gr), 0) AS total_feed_gr
-      FROM (
-        SELECT DISTINCT ON (pool_number) pool_number, measured_at
-        FROM pool_measurements ORDER BY pool_number, measured_at DESC
-      ) pm
-      LEFT JOIN daily_records dr ON dr.date >= DATE(pm.measured_at) AND dr.date < CURRENT_DATE
-      LEFT JOIN pool_meals pml ON pml.daily_record_id = dr.id AND pml.pool_number = pm.pool_number
-      GROUP BY pm.pool_number
+      WITH latest_meas AS (
+        SELECT DISTINCT ON (pool_number)
+          pool_number, DATE(measured_at) as measured_date
+        FROM pool_measurements
+        ORDER BY pool_number, measured_at DESC
+      )
+      SELECT
+        lm.pool_number,
+        COALESCE(SUM(pm.food_quantity_gr), 0) as total_feed_gr
+      FROM latest_meas lm
+      LEFT JOIN pool_meals pm
+        ON pm.pool_number = lm.pool_number
+        AND pm.date > lm.measured_date
+        AND pm.date < CURRENT_DATE
+      GROUP BY lm.pool_number
     `);
 
     // 3. Average water temperature since earliest measurement
