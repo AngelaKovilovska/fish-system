@@ -5,7 +5,7 @@ import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS, MK_
 import {
   AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X,
   ChevronLeft, Printer, Droplets, Filter, Fish, Warehouse,
-  Utensils, Activity, Sunrise, Sun, Moon,
+  Utensils, Sunrise, Sun, Moon,
 } from 'lucide-react';
 
 
@@ -25,10 +25,8 @@ const ALERT_LABELS = {
   aeration: 'Аерација',
   sieve_filter: 'Сито филтер',
   normal_swimming: 'Нормално пливање',
-  no_injuries: 'Повреди на риби',
   no_infection: 'Инфекција / црвенило',
   normal_appetite: 'Апетит на риби',
-  no_dead: 'Угинати риби',
 };
 
 export default function RecordDetail() {
@@ -519,41 +517,6 @@ ${html}
         </div>
       )}
 
-      {/* Activities */}
-      {activities && (
-        <div className="card !p-3 !rounded-2xl animate-in-delay-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Activity size={14} className="text-emerald-500" />
-            <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Активности</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[var(--bg-secondary)] rounded-lg p-2">
-              <p className="text-[10px] text-[var(--text-muted)]">Сортирање</p>
-              <p className="text-[11px] font-semibold text-[var(--text-primary)]">
-                {activities.sorting_date ? new Date(activities.sorting_date).toLocaleDateString('mk-MK') : '–'}
-              </p>
-            </div>
-            <div className="bg-[var(--bg-secondary)] rounded-lg p-2">
-              <p className="text-[10px] text-[var(--text-muted)]">Контрола тежина</p>
-              <p className="text-[11px] font-semibold text-[var(--text-primary)]">
-                {activities.weight_control_date ? new Date(activities.weight_control_date).toLocaleDateString('mk-MK') : '–'}
-              </p>
-            </div>
-            {activities.misc_1 && (
-              <div className="bg-[var(--bg-secondary)] rounded-lg p-2 col-span-2">
-                <p className="text-[10px] text-[var(--text-muted)]">Разно (1)</p>
-                <p className="text-[11px] font-medium text-[var(--text-primary)]">{activities.misc_1}</p>
-              </div>
-            )}
-            {activities.misc_2 && (
-              <div className="bg-[var(--bg-secondary)] rounded-lg p-2 col-span-2">
-                <p className="text-[10px] text-[var(--text-muted)]">Разно (2)</p>
-                <p className="text-[11px] font-medium text-[var(--text-primary)]">{activities.misc_2}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

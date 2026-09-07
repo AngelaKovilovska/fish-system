@@ -5,12 +5,11 @@ import WaterControlStep from '../components/checklist/WaterControlStep';
 import FiltrationStep from '../components/checklist/FiltrationStep';
 import FishControlStep from '../components/checklist/FishControlStep';
 import FeedingStep from '../components/checklist/FeedingStep';
-import ActivitiesStep from '../components/checklist/ActivitiesStep';
 import SummaryStep from '../components/checklist/SummaryStep';
 import { POOL_NUMBERS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS } from '../lib/constants';
 import { Check, ChevronRight, ChevronLeft, Save, AlertCircle, ClipboardList, Pencil, X, RotateCcw } from 'lucide-react';
 
-const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Активности', 'Резиме'];
+const STEPS = ['Вода', 'Филтри', 'Риба', 'Базени', 'Резиме'];
 const REQUIRED_WATER_FIELDS = ['temperature', 'ph', 'nitrates', 'nitrites', 'ammonium'];
 const DRAFT_KEY = 'clario_checklist_draft';
 
@@ -48,7 +47,6 @@ export default function ChecklistForm() {
     filtration_checks: {},
     fish_visual: {},
     pool_feeding: POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
-    activities: {},
   });
 
   const [formData, setFormData] = useState(makeEmptyForm);
@@ -85,7 +83,7 @@ export default function ChecklistForm() {
     setLoadingRecord(true);
     api.getRecord(editId)
       .then(data => {
-        const { record, water_control, filtration_checks, fish_visual, pool_feeding, activities } = data;
+        const { record, water_control, filtration_checks, fish_visual, pool_feeding } = data;
         setFormData({
           date: record.date?.split('T')[0] || today,
           water_control: water_control || {},
@@ -98,7 +96,6 @@ export default function ChecklistForm() {
                 dead_count: pf.dead_count ?? 0,
               }))
             : POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
-          activities: activities || {},
         });
       })
       .catch(err => setError('Грешка при вчитување: ' + err.message))
@@ -268,7 +265,7 @@ export default function ChecklistForm() {
     try {
       const feedingWithDefaults = formData.pool_feeding.map(pf => {
         const measurement = poolMeasurements.find(m => m.pool_number === pf.pool_number);
-        return { ...pf, avg_weight_gr: (pf.avg_weight_gr !== '' && pf.avg_weight_gr != null) ? pf.avg_weight_gr : (measurement?.avg_weight_gr ?? null), sold_count: pf.sold_count || 0, dead_count: pf.dead_count || 0 };
+        return { ...pf, avg_weight_gr: (pf.avg_weight_gr !== '' && pf.avg_weight_gr != null) ? pf.avg_weight_gr : (measurement?.projected_weight_gr ?? measurement?.avg_weight_gr ?? null), sold_count: pf.sold_count || 0, dead_count: pf.dead_count || 0 };
       });
       const payload = { ...formData, pool_feeding: feedingWithDefaults };
       let result;
@@ -486,8 +483,7 @@ export default function ChecklistForm() {
         {step === 1 && <FiltrationStep data={formData.filtration_checks} onChange={(d) => setFormData({ ...formData, filtration_checks: d })} />}
         {step === 2 && <FishControlStep data={formData.fish_visual} onChange={(d) => setFormData({ ...formData, fish_visual: d })} />}
         {step === 3 && <FeedingStep ref={feedingRef} data={formData.pool_feeding} onChange={(d) => setFormData({ ...formData, pool_feeding: d })} poolMeasurements={poolMeasurements} fishInventory={fishInventory} />}
-        {step === 4 && <ActivitiesStep data={formData.activities} onChange={(d) => setFormData({ ...formData, activities: d })} />}
-        {step === 5 && <SummaryStep formData={formData} norms={norms} fishInventory={fishInventory}
+        {step === 4 && <SummaryStep formData={formData} norms={norms} fishInventory={fishInventory}
           onGoToStep={(i) => { setStep(i); setTimeout(() => window.scrollTo(0, 0), 50); }} />}
       </div>
 

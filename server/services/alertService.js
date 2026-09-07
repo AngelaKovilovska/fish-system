@@ -13,10 +13,8 @@ const FILTRATION_ALARM_FIELDS = [
 // Fish visual fields that generate alarms when false (not OK)
 const FISH_ALARM_FIELDS = [
   'normal_swimming',
-  'no_injuries',
   'no_infection',
   'normal_appetite',
-  'no_dead',
 ];
 
 async function checkAndCreateAlerts(dailyRecordId, waterData, filtrationData, fishVisualData) {

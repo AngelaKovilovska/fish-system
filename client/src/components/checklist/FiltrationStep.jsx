@@ -1,5 +1,5 @@
 import { FILTRATION_LABELS } from '../../lib/constants';
-import { Check, X, AlertTriangle, Filter } from 'lucide-react';
+import { Check, X, AlertTriangle, Filter, CheckCheck } from 'lucide-react';
 
 export default function FiltrationStep({ data, onChange }) {
   const handleToggle = (field, value) => {
@@ -8,6 +8,15 @@ export default function FiltrationStep({ data, onChange }) {
 
   const handleFoam = (value) => {
     onChange({ ...data, bio_filter_foam: data.bio_filter_foam === value ? null : value });
+  };
+
+  const handleAllOk = () => {
+    const updated = { ...data };
+    for (const key of Object.keys(FILTRATION_LABELS)) {
+      if (key === 'bio_filter_foam') { updated[key] = 'no'; }
+      else { updated[key] = true; }
+    }
+    onChange(updated);
   };
 
   return (
@@ -22,6 +31,13 @@ export default function FiltrationStep({ data, onChange }) {
           <p className="section-subtitle">Сите полиња се задолжителни <span className="text-[var(--danger)]">*</span></p>
         </div>
       </div>
+
+      <button type="button" onClick={handleAllOk}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-md)] font-semibold text-xs transition-all border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-[var(--success)] hover:bg-[rgba(34,197,94,0.12)] active:scale-[0.98]"
+        style={{ fontFamily: 'Sora, sans-serif' }}>
+        <CheckCheck size={16} />
+        Сè е во ред
+      </button>
 
       <div className="space-y-1.5">
         {Object.entries(FILTRATION_LABELS).map(([key, label]) => {

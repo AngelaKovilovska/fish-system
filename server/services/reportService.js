@@ -31,10 +31,8 @@ const PARAMETER_LABELS = {
   sieve_filter: 'Сито филтер',
   // Fish visual
   normal_swimming: 'Нормално пливање',
-  no_injuries: 'Нема повреди',
   no_infection: 'Нема инфекција',
   normal_appetite: 'Нормален апетит',
-  no_dead: 'Нема угинати',
 };
 
 

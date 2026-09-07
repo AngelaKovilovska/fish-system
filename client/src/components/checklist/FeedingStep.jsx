@@ -1,6 +1,6 @@
 import { POOL_NUMBERS } from '../../lib/constants';
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Info, Fish, ShoppingCart, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
+import { Fish, ShoppingCart, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
 
 const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasurements, fishInventory }, ref) {
   const [activePool, setActivePool] = useState(1);
@@ -70,8 +70,10 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
   const poolData = getPoolData(activePool);
   const measurement = getMeasurement(activePool);
   const inventory = getInventory(activePool);
+  // Use projected weight (from growth prediction) as default, not raw measurement
+  const projectedWeight = measurement?.projected_weight_gr ?? measurement?.avg_weight_gr ?? '';
   const displayAvgWeight = poolData.avg_weight_gr !== '' && poolData.avg_weight_gr != null
-    ? poolData.avg_weight_gr : (measurement?.avg_weight_gr ?? '');
+    ? poolData.avg_weight_gr : projectedWeight;
 
   // Current fish count comes from inventory
   const currentFishCount = inventory?.current_count ?? 0;
@@ -163,30 +165,17 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
           </div>
         )}
 
-        {measurement && (
-          <div className="info-box flex items-start gap-2 text-xs">
-            <Info size={14} className="flex-shrink-0 mt-0.5" />
-            <span>Последно мерење: <strong>{measurement.fish_count}</strong> риби, <strong>{measurement.avg_weight_gr} gr</strong> просечна тежина</span>
-          </div>
-        )}
-
         {/* Weight */}
         <div>
           <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             <Weight size={12} className="text-[var(--primary)]" />
-            Тежина (gr)
-            {measurement && <span className="pill pill-blue text-[9px] ml-1">мерење</span>}
+            Моментална тежина (gr)
           </label>
           <input type="number" step="any" value={displayAvgWeight}
             onChange={(e) => updatePool(activePool, 'avg_weight_gr', e.target.value)}
             className="input-base"
-            placeholder={measurement ? `${measurement.avg_weight_gr}` : 'нпр. 150'} />
-          {measurement && (
-            <p className="text-[10px] text-[var(--primary)] mt-1 font-medium">
-              Последно мерење: {measurement.avg_weight_gr} gr
-            </p>
-          )}
+            placeholder={projectedWeight ? `${projectedWeight}` : 'нпр. 150'} />
         </div>
 
         {/* Sold & dead */}

@@ -1,9 +1,17 @@
 import { FISH_VISUAL_LABELS } from '../../lib/constants';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, Eye, CheckCheck } from 'lucide-react';
 
 export default function FishControlStep({ data, onChange }) {
   const handleToggle = (field, value) => {
     onChange({ ...data, [field]: data[field] === value ? null : value });
+  };
+
+  const handleAllOk = () => {
+    const updated = { ...data };
+    for (const key of Object.keys(FISH_VISUAL_LABELS)) {
+      updated[key] = true;
+    }
+    onChange(updated);
   };
 
   return (
@@ -18,6 +26,13 @@ export default function FishControlStep({ data, onChange }) {
           <p className="section-subtitle">Сите полиња се задолжителни <span className="text-[var(--danger)]">*</span></p>
         </div>
       </div>
+
+      <button type="button" onClick={handleAllOk}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-md)] font-semibold text-xs transition-all border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-[var(--success)] hover:bg-[rgba(34,197,94,0.12)] active:scale-[0.98]"
+        style={{ fontFamily: 'Sora, sans-serif' }}>
+        <CheckCheck size={16} />
+        Сè е во ред
+      </button>
 
       <div className="space-y-1.5">
         {Object.entries(FISH_VISUAL_LABELS).map(([key, label]) => {

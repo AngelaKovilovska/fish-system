@@ -20,9 +20,8 @@ export const ALL_PARAM_LABELS = {
   mechanical_filter: 'Механички филтер', circulation_pump: 'Циркулациона пумпа',
   thermo_pump: 'Термо пумпа', aeration: 'Аерација', sieve_filter: 'Сито филтер',
   // Визуелна проверка на риба
-  normal_swimming: 'Нормално пливање', no_injuries: 'Нема повреди',
+  normal_swimming: 'Нормално пливање',
   no_infection: 'Нема инфекција', normal_appetite: 'Нормален апетит',
-  no_dead: 'Нема угинати',
 };
 
 export const MK_MONTHS = [
@@ -46,10 +45,8 @@ export const FILTRATION_LABELS = {
 
 export const FISH_VISUAL_LABELS = {
   normal_swimming: 'Нормално пливање',
-  no_injuries: 'Нема повреди',
   no_infection: 'Нема црвенило / инфекција',
   normal_appetite: 'Нормален апетит',
-  no_dead: 'Нема угинати',
 };
 
 export const MEAL_LABELS = { breakfast: 'Појадок', lunch: 'Ручек', dinner: 'Вечера' };

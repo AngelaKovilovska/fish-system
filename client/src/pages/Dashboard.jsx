@@ -16,10 +16,8 @@ const CHECKLIST_ALARM_MESSAGES = {
   aeration: { message: 'Аерација не е стабилна' },
   sieve_filter: { message: 'Сито филтер не е исчистен' },
   normal_swimming: { message: 'Абнормално пливање на рибите' },
-  no_injuries: { message: 'Детектирани повреди кај рибите' },
   no_infection: { message: 'Детектирано црвенило / инфекција' },
   normal_appetite: { message: 'Абнормален апетит кај рибите' },
-  no_dead: { message: 'Детектирани угинати риби', isDanger: true },
 };
 
 function getAlertInfo(alert) {

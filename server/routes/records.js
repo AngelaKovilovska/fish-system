@@ -239,9 +239,9 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
       await client.query(
         `INSERT INTO fish_visual (daily_record_id, normal_swimming, no_injuries, no_infection, normal_appetite, no_dead, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [recordId, fish_visual.normal_swimming, fish_visual.no_injuries,
+        [recordId, fish_visual.normal_swimming, null,
          fish_visual.no_infection, fish_visual.normal_appetite,
-         fish_visual.no_dead, sanitizeString(fish_visual.notes)]
+         null, sanitizeString(fish_visual.notes)]
       );
     }
 
@@ -409,9 +409,9 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
       await client.query(
         `INSERT INTO fish_visual (daily_record_id, normal_swimming, no_injuries, no_infection, normal_appetite, no_dead, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, fish_visual.normal_swimming, fish_visual.no_injuries,
+        [id, fish_visual.normal_swimming, null,
          fish_visual.no_infection, fish_visual.normal_appetite,
-         fish_visual.no_dead, sanitizeString(fish_visual.notes)]
+         null, sanitizeString(fish_visual.notes)]
       );
     }
 

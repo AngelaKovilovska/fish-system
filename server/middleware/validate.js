@@ -76,7 +76,7 @@ function validateRecordBody(req, res, next) {
   // Validate fish_visual - all fields required
   const fv = req.body.fish_visual;
   if (fv) {
-    const requiredFish = ['normal_swimming', 'no_injuries', 'no_infection', 'normal_appetite', 'no_dead'];
+    const requiredFish = ['normal_swimming', 'no_infection', 'normal_appetite'];
     for (const field of requiredFish) {
       if (fv[field] == null || fv[field] === '') {
         return res.status(400).json({ error: `Полето за визуелна контрола „${field}" е задолжително` });

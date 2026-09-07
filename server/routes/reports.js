@@ -146,10 +146,8 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
     ];
     const FISH_FIELDS = [
       ['normal_swimming', 'Нормално пливање'],
-      ['no_injuries', 'Нема повреди'],
       ['no_infection', 'Нема црвенило / инфекција'],
       ['normal_appetite', 'Нормален апетит'],
-      ['no_dead', 'Нема угинати'],
     ];
     const fmtCheck = (v) => v === true ? 'ОК' : v === false ? 'НЕ' : '–';
     const fmtFoam = (v) => v === 'yes' ? 'Има' : v === 'no' ? 'Нема' : '–';

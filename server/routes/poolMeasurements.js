@@ -3,19 +3,77 @@ const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
 const { validateId, validatePoolNumber } = require('../middleware/validate');
+const { projectCurrentWeight } = require('../services/growthPrediction');
 
 const router = express.Router();
 
-// GET /api/pool-measurements - get latest measurement per pool
+// GET /api/pool-measurements - get latest measurement per pool + projected weight
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query(`
+    // 1. Latest measurement per pool
+    const measResult = await pool.query(`
       SELECT DISTINCT ON (pool_number)
         id, pool_number, fish_count, avg_weight_gr, measured_at
       FROM pool_measurements
       ORDER BY pool_number, measured_at DESC
     `);
-    res.json({ measurements: result.rows });
+
+    // 2. Total feed given per pool since their last measurement
+    const feedResult = await pool.query(`
+      SELECT pm.pool_number,
+             COALESCE(SUM(pml.food_amount_gr), 0) AS total_feed_gr
+      FROM (
+        SELECT DISTINCT ON (pool_number) pool_number, measured_at
+        FROM pool_measurements ORDER BY pool_number, measured_at DESC
+      ) pm
+      LEFT JOIN daily_records dr ON dr.date >= DATE(pm.measured_at) AND dr.date < CURRENT_DATE
+      LEFT JOIN pool_meals pml ON pml.daily_record_id = dr.id AND pml.pool_number = pm.pool_number
+      GROUP BY pm.pool_number
+    `);
+
+    // 3. Average water temperature since earliest measurement
+    const tempResult = await pool.query(`
+      SELECT AVG(wc.temperature) as avg_temp
+      FROM water_control wc
+      JOIN daily_records dr ON wc.daily_record_id = dr.id
+      WHERE dr.date >= COALESCE(
+        (SELECT DATE(MIN(measured_at)) FROM pool_measurements),
+        CURRENT_DATE - INTERVAL '30 days'
+      )
+      AND dr.date < CURRENT_DATE
+    `);
+    const avgTemp = tempResult.rows[0]?.avg_temp != null
+      ? parseFloat(tempResult.rows[0].avg_temp) : null;
+
+    // Build feed lookup
+    const feedMap = {};
+    feedResult.rows.forEach(r => { feedMap[r.pool_number] = parseFloat(r.total_feed_gr) || 0; });
+
+    // Project weight for each pool
+    const today = new Date();
+    const measurements = measResult.rows.map(m => {
+      const daysElapsed = Math.max(0,
+        Math.floor((today - new Date(m.measured_at)) / (1000 * 60 * 60 * 24))
+      );
+      const totalFeedKg = (feedMap[m.pool_number] || 0) / 1000;
+
+      const proj = projectCurrentWeight({
+        fishCountAtMeasurement: m.fish_count,
+        W0: parseFloat(m.avg_weight_gr),
+        daysElapsed,
+        totalFeedKgSince: totalFeedKg,
+        avgTemperature: avgTemp,
+      });
+
+      return {
+        ...m,
+        projected_weight_gr: proj.W_now != null
+          ? Math.round(proj.W_now * 10) / 10 : m.avg_weight_gr,
+        is_projected: proj.isProjected,
+      };
+    });
+
+    res.json({ measurements });
   } catch (err) {
     console.error('Get pool measurements error:', err);
     res.status(500).json({ error: 'Серверска грешка' });

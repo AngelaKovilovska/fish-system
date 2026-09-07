@@ -1,8 +1,8 @@
 import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, POOL_NUMBERS } from '../../lib/constants';
-import { CheckCircle, XCircle, AlertTriangle, Droplets, Filter, Eye, Fish, Calendar, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Droplets, Filter, Eye, Fish, ChevronRight } from 'lucide-react';
 
 export default function SummaryStep({ formData, norms, fishInventory, onGoToStep }) {
-  const { water_control, filtration_checks, fish_visual, pool_feeding, activities } = formData;
+  const { water_control, filtration_checks, fish_visual, pool_feeding } = formData;
 
   // ── Water summary ──
   const waterEntries = Object.entries(PARAMETER_LABELS)
@@ -54,9 +54,6 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
   const totalDead = poolEntries.reduce((s, p) => s + p.dead, 0);
   const totalSold = poolEntries.reduce((s, p) => s + p.sold, 0);
 
-  // ── Activities summary ──
-  const hasActivities = activities?.sorting_date || activities?.weight_control_date || activities?.misc_1 || activities?.misc_2;
-
   // Section header component
   const SectionHeader = ({ icon: Icon, title, badge, badgeColor, stepIndex }) => (
     <button type="button" onClick={() => onGoToStep(stepIndex)}
@@ -88,7 +85,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
           <CheckCircle size={18} />
         </div>
         <div>
-          <h2 className="section-title">6. Резиме</h2>
+          <h2 className="section-title">5. Резиме</h2>
           <p className="section-subtitle">Прегледајте пред зачувување. Кликнете на дел за корекција.</p>
         </div>
       </div>
@@ -214,31 +211,6 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
             ))}
           </div>
         </div>
-      </div>
-
-      {/* ── 5. Activities ── */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--border)] overflow-hidden">
-        <SectionHeader
-          icon={Calendar} title="Активности" stepIndex={4}
-          badge={hasActivities ? 'Има записи' : 'Нема записи'}
-          badgeColor={hasActivities ? 'blue' : 'blue'}
-        />
-        {hasActivities && (
-          <div className="px-3 pb-3 space-y-1 text-xs text-[var(--text-secondary)]">
-            {activities.sorting_date && (
-              <div>Сортирање: <strong>{activities.sorting_date}</strong></div>
-            )}
-            {activities.weight_control_date && (
-              <div>Контрола тежина: <strong>{activities.weight_control_date}</strong></div>
-            )}
-            {activities.misc_1 && (
-              <div>Разно (1): <em>{activities.misc_1}</em></div>
-            )}
-            {activities.misc_2 && (
-              <div>Разно (2): <em>{activities.misc_2}</em></div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Overall status */}
