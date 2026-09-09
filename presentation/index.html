@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="mk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CLARIO — Дипломска презентација</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Sora',system-ui,sans-serif;
+  background:#060B18;color:#F1F5F9;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+
+/* ═══ SLIDE ENGINE ═══ */
+.slide{
+  width:100vw;height:100vh;position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .5s ease;
+  padding:28px 64px 80px;
+}
+.slide.active{opacity:1;pointer-events:auto}
+.inner{max-width:1160px;width:100%;position:relative;z-index:2}
+
+/* ═══ REVEAL ═══ */
+.r{opacity:0;transition:all .8s cubic-bezier(.22,1,.36,1)}
+.r.up{transform:translateY(40px)}
+.r.left{transform:translateX(-50px)}
+.r.right{transform:translateX(50px)}
+.r.scale{transform:scale(.85)}
+.r.fade{transform:none}
+.slide.active .r{opacity:1;transform:none}
+.slide.active .r.d1{transition-delay:.12s}
+.slide.active .r.d2{transition-delay:.24s}
+.slide.active .r.d3{transition-delay:.36s}
+.slide.active .r.d4{transition-delay:.48s}
+.slide.active .r.d5{transition-delay:.6s}
+.slide.active .r.d6{transition-delay:.72s}
+.slide.active .r.d7{transition-delay:.84s}
+.slide.active .r.d8{transition-delay:.96s}
+
+/* ═══ TYPE ═══ */
+.label{display:inline-flex;align-items:center;gap:8px;font-size:.6rem;font-weight:800;letter-spacing:3.5px;text-transform:uppercase;margin-bottom:16px}
+.label::before{content:'';width:24px;height:2px;display:block}
+.title{font-weight:900;line-height:1.05;letter-spacing:-.5px;margin-bottom:10px}
+.title em{font-style:normal;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ═══ SPEAKER NOTES — visible strip ═══ */
+.speak{
+  display:none;
+}
+
+/* ═══ WAVE DECORATION ═══ */
+.wave-bar{
+  position:fixed;bottom:0;left:0;right:0;height:48px;z-index:200;
+  overflow:hidden;pointer-events:none;
+}
+.wave-bar svg{
+  position:absolute;bottom:0;width:200%;height:48px;
+  animation:waveSlide 8s linear infinite;
+}
+.wave-bar svg:nth-child(2){
+  opacity:.4;animation-duration:12s;animation-direction:reverse;
+}
+@keyframes waveSlide{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+.speak strong{color:#94A3B8;font-weight:600}
+
+/* ═══ PROGRESS ═══ */
+.progress{position:fixed;top:0;left:0;height:3px;z-index:300;transition:width .4s;border-radius:0 2px 2px 0;background:linear-gradient(90deg,#2563EB,#7C3AED)}
+.slide-num{position:fixed;bottom:82px;right:28px;z-index:300;font-size:.5rem;font-weight:700;color:#1E293B;letter-spacing:2px}
+.dots{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:300;display:flex;flex-direction:column;gap:10px}
+.dots button{width:5px;height:5px;border-radius:50%;border:none;cursor:pointer;transition:all .3s;padding:0;background:rgba(148,163,184,.12)}
+.dots button.on{background:#3B82F6;transform:scale(2);box-shadow:0 0 10px rgba(59,130,246,.5)}
+.key-hint{position:fixed;bottom:84px;left:28px;z-index:300;font-size:.45rem;color:rgba(255,255,255,.06);letter-spacing:1px;transition:opacity 4s}
+
+/* ═══ CANVAS ═══ */
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ══════════════════════════════
+   1. HERO
+   ══════════════════════════════ */
+#hero{text-align:center}
+#hero .inner{display:flex;flex-direction:column;align-items:center}
+.hero-icon{
+  width:72px;height:72px;border-radius:20px;
+  background:linear-gradient(135deg,#2563EB,#7C3AED);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+  box-shadow:0 20px 60px rgba(37,99,235,.35),0 0 0 1px rgba(255,255,255,.06);
+  animation:heroFloat 5s ease-in-out infinite;
+}
+@keyframes heroFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+
+/* ═══ SWIMMING FISH ═══ */
+.hero-fish{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+.fish{
+  position:absolute;
+  opacity:.07;
+  animation:swim linear infinite;
+}
+.fish svg{display:block}
+.fish.right{transform:scaleX(-1)}
+@keyframes swim{
+  0%{transform:translateX(-120px) translateY(0)}
+  25%{transform:translateX(25vw) translateY(-18px)}
+  50%{transform:translateX(50vw) translateY(8px)}
+  75%{transform:translateX(75vw) translateY(-12px)}
+  100%{transform:translateX(calc(100vw + 120px)) translateY(0)}
+}
+.fish.right{animation-name:swimR}
+@keyframes swimR{
+  0%{transform:scaleX(-1) translateX(-120px) translateY(0)}
+  25%{transform:scaleX(-1) translateX(25vw) translateY(14px)}
+  50%{transform:scaleX(-1) translateX(50vw) translateY(-10px)}
+  75%{transform:scaleX(-1) translateX(75vw) translateY(16px)}
+  100%{transform:scaleX(-1) translateX(calc(100vw + 120px)) translateY(0)}
+}
+.fish:nth-child(1){top:15%;animation-duration:22s;animation-delay:0s;opacity:.06}
+.fish:nth-child(2){top:72%;animation-duration:28s;animation-delay:-8s;opacity:.05}
+.fish:nth-child(3){top:35%;animation-duration:32s;animation-delay:-14s;opacity:.04}
+.fish:nth-child(4){top:58%;animation-duration:25s;animation-delay:-4s;opacity:.07}
+.fish:nth-child(5){top:85%;animation-duration:30s;animation-delay:-18s;opacity:.04}
+.fish:nth-child(6){top:25%;animation-duration:35s;animation-delay:-10s;opacity:.05}
+.fish:nth-child(7){top:48%;animation-duration:20s;animation-delay:-6s;opacity:.06}
+.fish:nth-child(8){top:10%;animation-duration:26s;animation-delay:-20s;opacity:.03}
+.hero-icon svg{width:36px;height:36px}
+.hero-word{
+  font-size:clamp(3.8rem,8vw,6rem);font-weight:900;letter-spacing:-2px;line-height:.95;
+  background:linear-gradient(135deg,#F1F5F9 30%,#3B82F6 60%,#7C3AED);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:16px;
+}
+.hero-thesis{font-size:clamp(.92rem,1.8vw,1.2rem);font-weight:400;color:#94A3B8;line-height:1.65;max-width:600px;margin-bottom:32px}
+.hero-meta{display:flex;flex-direction:column;align-items:center;gap:5px;margin-bottom:24px}
+.hero-name{font-size:1.1rem;font-weight:700;color:#E2E8F0}
+.hero-dept{font-size:.65rem;color:#475569;letter-spacing:.5px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:11px 22px;border-radius:12px;
+  background:rgba(30,41,59,.4);border:1px solid rgba(51,65,85,.3);
+  font-size:.55rem;font-weight:800;letter-spacing:2px;color:#94A3B8;
+}
+.hero-badge .mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#3B82F6,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:#fff}
+
+/* ══════════════════════════════
+   2. PROBLEM — cinematic
+   ══════════════════════════════ */
+#problem{padding:0 0 80px}
+.prob-bg{position:absolute;inset:0;z-index:0;background:url('chaos.jpeg') center/cover no-repeat}
+.prob-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(6,11,24,.93) 0%,rgba(6,11,24,.93) 42%,rgba(6,11,24,.5) 68%,rgba(6,11,24,.15) 100%)}
+#problem .inner{z-index:2;max-width:520px;margin-left:72px}
+#problem .label{color:#EF4444}
+#problem .label::before{background:#EF4444}
+#problem .title{font-size:clamp(2.2rem,4.5vw,3.4rem);color:#F1F5F9}
+#problem .title em{background-image:linear-gradient(135deg,#EF4444,#F97316)}
+.prob-quote{font-size:.95rem;font-style:italic;color:#CBD5E1;line-height:1.7;border-left:3px solid #EF4444;padding-left:18px;margin:20px 0}
+.prob-facts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.pf{display:flex;align-items:flex-start;gap:10px}
+.pf-num{width:32px;height:32px;border-radius:9px;flex-shrink:0;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:900;color:#F87171}
+.pf-text{font-size:.76rem;color:#CBD5E1;line-height:1.5;padding-top:4px}
+.pf-text strong{color:#F87171;font-weight:700}
+#problem .speak{z-index:3}
+
+/* ══════════════════════════════
+   3. SOLUTION — full-bleed happy image
+   ══════════════════════════════ */
+#solution{padding:0 0 80px}
+.sol-bg{position:absolute;inset:0;z-index:0;background:url('happy.png') center/cover no-repeat}
+.sol-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(270deg,rgba(6,11,24,.92) 0%,rgba(6,11,24,.92) 42%,rgba(6,11,24,.5) 68%,rgba(6,11,24,.15) 100%)}
+#solution .inner{z-index:2;max-width:520px;margin-left:auto;margin-right:72px}
+#solution .label{color:#22C55E}
+#solution .label::before{background:#22C55E}
+#solution .title{font-size:clamp(2.2rem,4.5vw,3.4rem);color:#F1F5F9}
+#solution .title em{background-image:linear-gradient(135deg,#F1F5F9,#4ADE80)}
+.sol-quote{font-size:.95rem;font-style:italic;color:#CBD5E1;line-height:1.7;border-left:3px solid #22C55E;padding-left:18px;margin:20px 0}
+.sol-points{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.sp{display:flex;align-items:flex-start;gap:10px}
+.sp-ico{width:32px;height:32px;border-radius:9px;flex-shrink:0;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#4ADE80}
+.sp-text{font-size:.76rem;color:#CBD5E1;line-height:1.5;padding-top:4px}
+.sp-text strong{color:#4ADE80;font-weight:700}
+#solution .speak{z-index:3}
+
+/* ══════════════════════════════
+   4. FEATURES
+   ══════════════════════════════ */
+#features .label{color:#7C3AED}
+#features .label::before{background:#7C3AED}
+#features .title{font-size:clamp(1.8rem,4vw,2.8rem)}
+#features .title em{background-image:linear-gradient(135deg,#7C3AED,#A78BFA)}
+.feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:16px}
+.fc{
+  padding:18px 14px;border-radius:14px;text-align:center;
+  background:rgba(15,23,42,.4);border:1px solid rgba(51,65,85,.2);
+  transition:all .4s;position:relative;overflow:hidden;
+}
+.fc::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,var(--ac,.1),transparent 70%);opacity:0;transition:opacity .4s}
+.fc:hover{transform:translateY(-3px);border-color:rgba(99,102,241,.15)}
+.fc:hover::before{opacity:1}
+.fc-icon{font-size:1.8rem;margin-bottom:8px;display:block}
+.fc h3{font-size:.76rem;font-weight:700;color:#E2E8F0;margin-bottom:1px;position:relative;z-index:1}
+.fc p{font-size:.52rem;color:#475569;line-height:1.35;position:relative;z-index:1}
+
+/* ══════════════════════════════
+   5. ALGORITHMS
+   ══════════════════════════════ */
+#algo .label{color:#F59E0B}
+#algo .label::before{background:#F59E0B}
+#algo .title{font-size:clamp(1.6rem,3.5vw,2.4rem)}
+#algo .title em{background-image:linear-gradient(135deg,#F59E0B,#FBBF24)}
+.algo-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+.algo-card{padding:22px 20px;border-radius:16px;position:relative;overflow:hidden}
+.algo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.algo-coppens{background:rgba(245,158,11,.03);border:1px solid rgba(245,158,11,.1)}
+.algo-coppens::before{background:linear-gradient(90deg,#F59E0B,transparent)}
+.algo-ml{background:rgba(59,130,246,.03);border:1px solid rgba(59,130,246,.1)}
+.algo-ml::before{background:linear-gradient(90deg,#3B82F6,transparent)}
+.algo-card .atag{font-size:.48rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.algo-coppens .atag{color:#F59E0B}
+.algo-ml .atag{color:#60A5FA}
+.algo-card h3{font-size:.95rem;font-weight:800;color:#F1F5F9;margin-bottom:8px}
+.algo-why{font-size:.72rem;color:#CBD5E1;font-style:italic;line-height:1.55;margin-bottom:10px;border-left:2px solid rgba(255,255,255,.06);padding-left:12px}
+.algo-flow{display:flex;flex-direction:column;gap:4px}
+.af{display:flex;align-items:center;gap:8px;font-size:.66rem;color:#94A3B8}
+.af-step{width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800}
+.algo-coppens .af-step{background:rgba(245,158,11,.08);color:#F59E0B}
+.algo-ml .af-step{background:rgba(59,130,246,.08);color:#60A5FA}
+.algo-formula{margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(6,11,24,.5);border:1px solid rgba(51,65,85,.2);font-family:'Courier New',monospace;font-size:.62rem;line-height:1.5}
+.algo-coppens .algo-formula{color:#FBBF24}
+.algo-ml .algo-formula{color:#60A5FA}
+
+/* ══════════════════════════════
+   6. ARCHITECTURE
+   ══════════════════════════════ */
+#arch .label{color:#06B6D4}
+#arch .label::before{background:#06B6D4}
+#arch .title{font-size:clamp(1.6rem,3.5vw,2.4rem)}
+#arch .title em{background-image:linear-gradient(135deg,#06B6D4,#22D3EE)}
+.arch-diagram{display:flex;align-items:center;justify-content:center;gap:0;margin:18px 0}
+.arch-node{width:210px;padding:20px 16px;text-align:center;border-radius:14px;background:rgba(15,23,42,.6);border:1px solid rgba(51,65,85,.3);transition:all .3s}
+.arch-node:hover{border-color:rgba(6,182,212,.2);transform:translateY(-2px)}
+.arch-node .an-icon{font-size:1.8rem;margin-bottom:6px;display:block}
+.arch-node h4{font-size:.82rem;font-weight:800;color:#E2E8F0;margin-bottom:3px}
+.arch-node p{font-size:.55rem;color:#475569;line-height:1.35}
+.arch-pipe{width:44px;display:flex;align-items:center;justify-content:center}
+.arch-pipe svg{width:28px;height:28px}
+.arch-why{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.aw{padding:12px 14px;border-radius:10px;background:rgba(15,23,42,.4);border:1px solid rgba(51,65,85,.15);transition:all .3s}
+.aw:hover{border-color:rgba(6,182,212,.12)}
+.aw-q{font-size:.6rem;font-weight:700;color:#22D3EE;margin-bottom:3px}
+.aw-a{font-size:.56rem;color:#64748B;line-height:1.45}
+
+/* ══════════════════════════════
+   7. NUMBERS
+   ══════════════════════════════ */
+#numbers{text-align:center}
+#numbers .label{color:#3B82F6;justify-content:center}
+#numbers .label::before{display:none}
+#numbers .title{font-size:clamp(1.8rem,4vw,2.8rem)}
+#numbers .title em{background-image:linear-gradient(135deg,#3B82F6,#7C3AED)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}
+.stat{padding:22px 10px;border-radius:14px;background:rgba(15,23,42,.4);border:1px solid rgba(51,65,85,.15);transition:all .3s}
+.stat:hover{transform:translateY(-2px);border-color:rgba(59,130,246,.12)}
+.stat-num{font-size:clamp(2rem,3.5vw,2.8rem);font-weight:900;line-height:1;margin-bottom:4px;background:linear-gradient(135deg,#3B82F6,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-label{font-size:.56rem;color:#475569;line-height:1.3}
+.real-badge{
+  grid-column:span 4;padding:16px;border-radius:14px;margin-top:2px;
+  background:linear-gradient(135deg,rgba(34,197,94,.05),rgba(34,197,94,.02));
+  border:1px solid rgba(34,197,94,.15);
+  display:flex;align-items:center;justify-content:center;gap:14px;
+}
+.rb-dot{width:10px;height:10px;border-radius:50%;background:#22C55E;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 10px rgba(34,197,94,.4)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.rb-text{font-size:.92rem;font-weight:700;color:#4ADE80}
+.rb-sub{font-size:.62rem;color:#64748B;margin-top:1px}
+
+/* ══════════════════════════════
+   8. FUTURE
+   ══════════════════════════════ */
+#future .label{color:#A78BFA}
+#future .label::before{background:#A78BFA}
+#future .title{font-size:clamp(1.6rem,3.5vw,2.4rem)}
+#future .title em{background-image:linear-gradient(135deg,#7C3AED,#A78BFA)}
+.timeline{display:flex;gap:12px;margin-top:18px}
+.tl-card{flex:1;padding:20px 16px;border-radius:14px;background:rgba(15,23,42,.4);border:1px solid rgba(51,65,85,.15);position:relative;overflow:hidden;transition:all .4s}
+.tl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7C3AED,transparent);opacity:.5}
+.tl-card:hover{transform:translateY(-3px);border-color:rgba(124,58,237,.12)}
+.tl-card .tl-ico{font-size:1.4rem;margin-bottom:8px;display:block}
+.tl-card h4{font-size:.78rem;font-weight:700;color:#E2E8F0;margin-bottom:3px}
+.tl-card p{font-size:.55rem;color:#475569;line-height:1.4}
+
+/* ══════════════════════════════
+   9. END
+   ══════════════════════════════ */
+#end{text-align:center}
+#end .inner{display:flex;flex-direction:column;align-items:center}
+.end-word{font-size:clamp(3rem,7vw,5rem);font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,#F1F5F9 20%,#3B82F6 50%,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.end-tagline{font-size:.95rem;color:#64748B;line-height:1.6;max-width:460px;margin-bottom:24px}
+.end-btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;padding:14px 32px;border-radius:14px;font-size:.85rem;font-weight:700;text-decoration:none;box-shadow:0 12px 36px rgba(37,99,235,.3);transition:all .3s}
+.end-btn:hover{transform:translateY(-2px);box-shadow:0 16px 48px rgba(37,99,235,.4)}
+.end-demo{margin-top:28px;padding:14px 24px;border-radius:12px;background:rgba(15,23,42,.4);border:1px solid rgba(51,65,85,.15);font-size:.78rem;color:#94A3B8}
+.end-demo strong{color:#F1F5F9;font-weight:700}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:900px){
+  .slide{padding:24px 20px 80px}
+  .algo-cols,.arch-why{grid-template-columns:1fr}
+  .feat-grid,.stats{grid-template-columns:1fr 1fr}
+  .real-badge{grid-column:span 2}
+  .timeline{flex-direction:column}
+  .arch-diagram{flex-direction:column}
+  .arch-pipe{transform:rotate(90deg)}
+  .dots{display:none}
+  #problem .inner{margin-left:20px}
+  #solution .inner{margin-right:20px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="progress" id="progress"></div>
+<div class="slide-num" id="slideNum"></div>
+<nav class="dots" id="dots"></nav>
+<div class="key-hint" id="keyHint">← → SPACE &middot; F = цел екран</div>
+
+<!-- ═══════════════════════════════════
+     1. HERO
+     ═══════════════════════════════════ -->
+<div class="slide active" id="hero">
+  <div class="hero-fish">
+    <div class="fish"><svg width="64" height="32" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#3B82F6"/><circle cx="42" cy="14" r="2.5" fill="#60A5FA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish right"><svg width="48" height="24" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#7C3AED"/><circle cx="42" cy="14" r="2.5" fill="#A78BFA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish"><svg width="40" height="20" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#2563EB"/><circle cx="42" cy="14" r="2.5" fill="#60A5FA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish right"><svg width="56" height="28" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#6366F1"/><circle cx="42" cy="14" r="2.5" fill="#818CF8"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish"><svg width="36" height="18" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#7C3AED"/><circle cx="42" cy="14" r="2.5" fill="#A78BFA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish right"><svg width="44" height="22" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#3B82F6"/><circle cx="42" cy="14" r="2.5" fill="#60A5FA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish"><svg width="52" height="26" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#6366F1"/><circle cx="42" cy="14" r="2.5" fill="#818CF8"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+    <div class="fish right"><svg width="38" height="19" viewBox="0 0 64 32" fill="none"><path d="M4 16C4 16 14 4 24 10C34 4 48 16 48 16C48 16 34 28 24 22C14 28 4 16 4 16Z" fill="#2563EB"/><circle cx="42" cy="14" r="2.5" fill="#60A5FA"/><path d="M2 16L-6 10M2 16L-6 22" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+  </div>
+  <div class="inner">
+    <div class="hero-icon r scale">
+      <svg viewBox="0 0 40 40" fill="none"><path d="M8 20C8 20 14 10 20 14C26 10 32 20 32 20C32 20 26 30 20 26C14 30 8 20 8 20Z" stroke="white" stroke-width="1.8" fill="rgba(255,255,255,.12)"/><circle cx="28" cy="18.5" r="2" fill="white"/><path d="M7 20L3 16.5M7 20L3 23.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="hero-word r up d1">CLARIO</div>
+    <p class="hero-thesis r up d2">Софтверско решение за мониторинг и управување<br>на рециркулаторни аквакултурни системи</p>
+    <div class="hero-meta r up d3">
+      <div class="hero-name">Ангела Ковиловска</div>
+      <div class="hero-dept">Софтверско инженерство и иновации &middot; A23079 &middot; Јуни 2026</div>
+    </div>
+    <div class="hero-badge r up d4"><div class="mark">X</div>BRAINSTER NEXT COLLEGE</div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Здраво на сите, насловот на мојата дипломска работи е CLARIO — софтверско решение за управување и мониторинг на рециркулаторен аквакултурен систем. Пред да кажам што прави CLARIO, дозволете ми да ви покажам зошто е потребен.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     2. PROBLEM
+     ═══════════════════════════════════ -->
+<div class="slide" id="problem">
+  <div class="prob-bg"></div>
+  <div class="prob-overlay"></div>
+  <div class="inner">
+    <div class="label r fade">Проблемот</div>
+    <h2 class="title r up d1">Еден ден<br>на <em>фармата</em></h2>
+    <p class="prob-quote r up d2">8 базени · над 5000 риби · 8 параметри · 3 хранења дневно · сè на хартија</p>
+    <div class="prob-facts">
+      <div class="pf r up d3"><div class="pf-num">1</div><div class="pf-text"><strong>Податоците се губат</strong> — нема анализа · нема историја · не знае кои промени водат кон кои последици</div></div>
+      <div class="pf r up d4"><div class="pf-num">2</div><div class="pf-text"><strong>Нема аларми</strong> — гранични вредности напамет · различни оператори во текот на денот</div></div>
+      <div class="pf r up d5"><div class="pf-num">3</div><div class="pf-text"><strong>Хранење</strong> — рачни пресметки · не знае прираст · грешна доза · забавен раст</div></div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Ќе ви го опишам еден ден на оператор во фармата пред апликацијата. Замислете фарма со 8 базени полни со над 5000 риби. Три пати дневно операторот мери температура, pH, амонијак, нитрити и уште 4 параметри. Плус три хранења дневно. Сето ова се запишува на хартија. Податоците се губат — тетратките се мокри, бројките нечитливи, и на крајот на месецот никој не може да направи споредба. Нема аларми — ако нешто скокне наутро, се дознава дури вечерта. И хранењето — пресметките се прават рачно, не може да се следи прирастот. Ова е реалноста на Фамаком Аквакултура во Велес — фармата каде го развив и тестирав CLARIO.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     3. SOLUTION — chaos vs happy
+     ═══════════════════════════════════ -->
+<div class="slide" id="solution">
+  <div class="sol-bg"></div>
+  <div class="sol-overlay"></div>
+  <div class="inner">
+    <div class="label r fade">Решението</div>
+    <h2 class="title r up d1">Од хартија<br>до <em>CLARIO</em></h2>
+    <p class="sol-quote r up d2">Целосно дигитализиран процес — од базенот до извештајот</p>
+    <div class="sol-points" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="sp r up d3" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:12px"><div class="sp-ico" style="font-size:1.4rem;flex-shrink:0;margin-top:2px">📱</div><div class="sp-text" style="text-align:left;line-height:1.5"><strong style="color:#4ADE80">Внес</strong><br><span style="font-size:.56rem">Од телефон, покрај базенот</span><br><span style="font-size:.48rem;color:#64748B">8 параметри · филтри · риба · хранење</span></div></div>
+      <div class="sp r up d4" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px"><div class="sp-ico" style="font-size:1.4rem;flex-shrink:0;margin-top:2px">🚨</div><div class="sp-text" style="text-align:left;line-height:1.5"><strong style="color:#F87171">Аларми</strong><br><span style="font-size:.56rem">Кога параметар излезе од нормала</span><br><span style="font-size:.48rem;color:#64748B">Веднаш, не вечерта</span></div></div>
+      <div class="sp r up d5" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:12px"><div class="sp-ico" style="font-size:1.4rem;flex-shrink:0;margin-top:2px">🔮</div><div class="sp-text" style="text-align:left;line-height:1.5"><strong style="color:#60A5FA">Предвидувања</strong><br><span style="font-size:.56rem">За 3 и 7 дена напред</span><br><span style="font-size:.48rem;color:#64748B">Со препораки за спречување</span></div></div>
+      <div class="sp r up d6" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);border-radius:12px"><div class="sp-ico" style="font-size:1.4rem;flex-shrink:0;margin-top:2px">🧮</div><div class="sp-text" style="text-align:left;line-height:1.5"><strong style="color:#FBBF24">Хранење</strong><br><span style="font-size:.56rem">Пресметана доза по Coppens</span><br><span style="font-size:.48rem;color:#64748B">Прилагодена на тежина и температура</span></div></div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> На претходниот слајд го видовте хаосот. А ова е истата фарма со CLARIO. Операторот е релаксиран, таблетот покажува зелени чекмарки, рибите се здрави, насмеани, а податоците се безбедни. CLARIO го дигитализира целиот процес. Внесување параметри директно од телефон покрај базенот. Автоматски аларми кога нешто излегува од нормала — веднаш, не вечерта. Предвидувања на параметрите за 3 и 7 дена, со препораки за спречување. Пресметана количина храна по Coppens табелата. И извештаи во PDF и Excel испратени по е-маил.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     4. FEATURES
+     ═══════════════════════════════════ -->
+<div class="slide" id="features">
+  <div class="inner">
+    <div class="label r fade">Функционалности</div>
+    <h2 class="title r up d1">8 модули,<br><em>еден систем</em></h2>
+    <div class="feat-grid">
+      <div class="fc r scale d1" style="--ac:rgba(34,197,94,.06)"><span class="fc-icon">📋</span><h3>Дневна чеклиста</h3><p>6 чекори за целосна контрола</p></div>
+      <div class="fc r scale d2" style="--ac:rgba(245,158,11,.06)"><span class="fc-icon">🍽️</span><h3>Оброци</h3><p>3 дневно, повеќе типови храна</p></div>
+      <div class="fc r scale d3" style="--ac:rgba(239,68,68,.06)"><span class="fc-icon">🚨</span><h3>Аларми</h3><p>Кога параметар ќе излезе од нормала</p></div>
+      <div class="fc r scale d4" style="--ac:rgba(139,92,246,.06)"><span class="fc-icon">🧮</span><h3>Препорака</h3><p>Coppens табела + проектирана тежина</p></div>
+      <div class="fc r scale d5" style="--ac:rgba(59,130,246,.06)"><span class="fc-icon">📊</span><h3>Извештаи</h3><p>PDF, Excel, е-маил</p></div>
+      <div class="fc r scale d6" style="--ac:rgba(6,182,212,.06)"><span class="fc-icon">📦</span><h3>Залихи</h3><p>Набавки и проекција</p></div>
+      <div class="fc r scale d7" style="--ac:rgba(236,72,153,.06)"><span class="fc-icon">🔮</span><h3>Предикција</h3><p>Два ML модели — 3 дена напред</p></div>
+      <div class="fc r scale d8" style="--ac:rgba(16,185,129,.06)"><span class="fc-icon">📈</span><h3>Раст</h3><p>Стапка на раст, проекција за продажба</p></div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> CLARIO има 8 модули. Дневна чеклиста со 6 чекори — вода, филтри, риба, хранење, активности и резиме. Оброци — 3 дневно со повеќе типови храна по базен. Автоматски аларми кога параметар ќе излезе од нормала. Препорака за храна базирана на Coppens табелата. Извештаи во PDF и Excel, испратени по е-маил. Залихи на храна со набавки и проекција. Предикција на водни параметри со два ML модели — 3 дена напред. И следење на раст — системот ја пресметува стапката на раст и проектира кога рибите ќе бидат готови за продажба. Сите модули ќе ги покажам во живо после презентацијата.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     5. ALGORITHMS
+     ═══════════════════════════════════ -->
+<div class="slide" id="algo">
+  <div class="inner">
+    <div class="label r fade">Проекции</div>
+    <h2 class="title r up d1">Зад секоја<br><em>одлука</em></h2>
+    <div class="algo-cols">
+      <div class="algo-card algo-coppens r left d2">
+        <div class="atag">Препорака за храна</div>
+        <h3>Формула</h3>
+        <div class="algo-formula" style="font-size:.72rem;margin-bottom:12px;padding:12px 14px">доза = (број × тежина / 1000) × (процент / 100) × фактор<br><span style="color:#475569;font-size:.5rem">резултатот ÷ 3 оброци</span></div>
+        <div class="algo-flow" style="gap:6px">
+          <div class="af"><div class="af-step">N</div><strong style="color:#FBBF24">број</strong>&nbsp;— актуелен број риби во базенот</div>
+          <div class="af"><div class="af-step">W</div><strong style="color:#FBBF24">тежина</strong>&nbsp;— проектирана, симулиран прираст ден-за-ден преку FCR</div>
+          <div class="af"><div class="af-step">%</div><strong style="color:#FBBF24">процент</strong>&nbsp;— Coppens табела, 33 тежински категории</div>
+          <div class="af"><div class="af-step">T</div><strong style="color:#FBBF24">фактор</strong>&nbsp;— температурен фактор, 12 точки</div>
+        </div>
+      </div>
+      <div class="algo-card algo-ml r right d3">
+        <div class="atag">Предикција</div>
+        <h3>LR vs RF</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="padding:10px;border-radius:8px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.12)">
+            <div style="font-size:.55rem;font-weight:800;color:#60A5FA;margin-bottom:4px">ЛИНЕАРНА РЕГРЕСИЈА</div>
+            <div style="font-size:.56rem;color:#94A3B8;line-height:1.4">Примарен модел — параметрите се менуваат постепено</div>
+          </div>
+          <div style="padding:10px;border-radius:8px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.12)">
+            <div style="font-size:.55rem;font-weight:800;color:#A78BFA;margin-bottom:4px">RANDOM FOREST</div>
+            <div style="font-size:.56rem;color:#94A3B8;line-height:1.4">100 дрва — за споредба на точноста</div>
+          </div>
+        </div>
+        <div class="algo-flow" style="gap:5px">
+          <div class="af"><div class="af-step">30</div>MIN_RECORDS за тренирање</div>
+          <div class="af"><div class="af-step">R²</div>&lt; 0.15 → означено несигурно</div>
+          <div class="af"><div class="af-step">6</div>Каузални ланци — pH→нитрити · NH₃ · прехранување · T°→раст · NO₃ · алкалност</div>
+        </div>
+        <div class="algo-formula">NH₃ = NH₄⁺ / (1 + 10^(pKa - pH))<br><span style="color:#475569;font-size:.5rem">Emerson et al. (1975)</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Две клучни пресметки го прават CLARIO поинтелигентен од обична евиденција. Препораката за храна се пресметува со формула: актуелниот број на риби, помножен со проектираната тежина и процентот за хранење, прилагоден на условите на водата. Тежината не е само од последното мерење — системот гледа колку храна е дадено, па преку FCR го симулира прирастот од ден за ден. За предикцијата — примарен модел е линеарната регресија. Random Forest е за споредба. Покрај предикцијата, системот препознава 6 каузални ланци — на пример, ако pH паѓа, за 2-3 дена нитритите може да пораснат. За амонијак — Emerson формулата од 1975.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     6. ARCHITECTURE
+     ═══════════════════════════════════ -->
+<div class="slide" id="arch">
+  <div class="inner">
+    <div class="label r fade">Архитектура</div>
+    <h2 class="title r up d1"><em>Технологии</em></h2>
+    <div class="arch-diagram">
+      <div class="arch-node r left d2"><span class="an-icon">📱</span><h4>React 19 + Vite 7</h4><p>Секој дел е компонента што се реупотребува</p></div>
+      <div class="arch-pipe r scale d3"><svg viewBox="0 0 32 32" fill="none"><path d="M6 16h20M20 10l6 6-6 6" stroke="#06B6D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="arch-node r fade d3"><span class="an-icon">⚙️</span><h4>Express 5 / Node.js</h4><p>Ист јазик и за фронтенд и за бекенд</p></div>
+      <div class="arch-pipe r scale d4"><svg viewBox="0 0 32 32" fill="none"><path d="M6 16h20M20 10l6 6-6 6" stroke="#06B6D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="arch-node r right d4"><span class="an-icon">🗄️</span><h4>PostgreSQL 17</h4><p>Релациона за структурирани податоци</p></div>
+    </div>
+    <div class="arch-why" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="aw r up d5"><div class="aw-q">Зошто локален ML?</div><div class="aw-a">ml-random-forest работи директно на серверот — нема надворешни повици, нема зависност од трети сервиси, нема дополнителен трошок. Моделот се тренира каде се наоѓаат податоците.</div></div>
+      <div class="aw r up d5"><div class="aw-q">Зошто PWA?</div><div class="aw-a">Работи како мобилна апликација на телефон за операторите, и на десктоп за полесен преглед на админите.</div></div>
+      <div class="aw r up d6"><div class="aw-q">Автентикација</div><div class="aw-a">JWT токени со httpOnly cookies — токенот не може да се прочита преку JavaScript, заштита од Cross-Site Scripting. Две улоги: админ и оператор.</div></div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Накратко ќе ви ја претставам архитектурата на апликацијата. Фронтенд: React 19 со Vite 7 — компонентна архитектура, секој дел од интерфејсот е посебна компонента која може да се реупотреби, плус голем екосистем на библиотеки. Бекенд: Express 5 на Node.js — ист јазик и за фронтенд и за бекенд, лесен и минимален framework за REST API. База: PostgreSQL 17 со 14 табели — релациона база, идеална за структурирани податоци како мерења и корисници, а JSONB полиња за флексибилни делови. Зошто локален ML? Користам ml-random-forest библиотека директно на серверот — нема надворешни повици, нема зависност, нема дополнителен трошок. Зошто PWA? Полесно за користење — работи како мобилна апликација на телефон и на десктоп за полесен преглед на админите. За автентикација — JWT токени со httpOnly cookies, што го штити токенот од Cross-Site Scripting напади. Две улоги — админ и оператор.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     7. NUMBERS
+     ═══════════════════════════════════ -->
+<div class="slide" id="numbers">
+  <div class="inner">
+    <div class="label r fade">Во бројки</div>
+    <h2 class="title r up d1">CLARIO<br>во <em>бројки</em></h2>
+    <div class="stats">
+      <div class="stat r scale d2"><div class="stat-num counter" data-target="47">0</div><div class="stat-label">API endpoints</div></div>
+      <div class="stat r scale d3"><div class="stat-num counter" data-target="14">0</div><div class="stat-label">табели во базата</div></div>
+      <div class="stat r scale d4"><div class="stat-num counter" data-target="8">0</div><div class="stat-label">водни параметри</div></div>
+      <div class="stat r scale d5"><div class="stat-num counter" data-target="6">0</div><div class="stat-label">чекори во чеклиста</div></div>
+      <div class="stat r scale d5"><div class="stat-num counter" data-target="33">0</div><div class="stat-label">тежински категории</div></div>
+      <div class="stat r scale d6"><div class="stat-num counter" data-target="100">0</div><div class="stat-label">дрва во Random Forest</div></div>
+      <div class="stat r scale d6"><div class="stat-num counter" data-target="8">0</div><div class="stat-label">базени на фармата</div></div>
+      <div class="stat r scale d7"><div class="stat-num counter" data-target="2">0</div><div class="stat-label">кориснички улоги</div></div>
+      <div class="real-badge r up d8">
+        <div class="rb-dot"></div>
+        <div><div class="rb-text">Во продукција — Фамаком Аквакултура, Велес</div><div class="rb-sub">Системот се користи секојдневно на реална фарма</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Најважно од сите овие бројки е тоа што системот веќе е во продукција. Се користи во реален систем со реални корисници и реални податоци. Во првиот и единствен RAS систем во Македонија.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     8. FUTURE
+     ═══════════════════════════════════ -->
+<div class="slide" id="future">
+  <div class="inner">
+    <div class="label r fade">Следни чекори</div>
+    <h2 class="title r up d1">Следни<br><em>чекори</em></h2>
+    <div class="timeline">
+      <div class="tl-card r up d2"><span class="tl-ico">🔔</span><h4>Push нотификации</h4><p>Известување на телефон при критични аларми</p></div>
+      <div class="tl-card r up d3"><span class="tl-ico">📴</span><h4>Офлајн режим</h4><p>Работа без интернет со синхронизација</p></div>
+      <div class="tl-card r up d4"><span class="tl-ico">🌐</span><h4>WebSocket</h4><p>Real-time ажурирање без рефреш</p></div>
+      <div class="tl-card r up d5"><span class="tl-ico">📡</span><h4>Сензори</h4><p>Автоматско читање на водни параметри</p></div>
+    </div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> Системот е целосно функционален и во продукција, но секој софтвер има простор за растење. Следни чекори: push нотификации за критични аларми, офлајн режим за работа без интернет, WebSocket за real-time ажурирање, и поврзување со сензори.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     9. END
+     ═══════════════════════════════════ -->
+<div class="slide" id="end">
+  <div class="inner">
+    <div class="end-word r scale">CLARIO</div>
+    <p class="end-tagline r up d1">Од хартиена евиденција до интелигентен систем<br>за управување со рибна фарма.</p>
+    <a href="https://clario.up.railway.app" target="_blank" class="end-btn r up d2">🐟&ensp;clario.up.railway.app</a>
+    <div class="end-demo r up d3"><strong>→ Следува демонстрација во живо</strong></div>
+  </div>
+  <div class="speak">
+    <strong>→</strong> А сега ви ја покажувам апликацијата во живо.
+  </div>
+</div>
+
+<div class="wave-bar">
+  <svg viewBox="0 0 2400 48" preserveAspectRatio="none" fill="none"><path d="M0 28C200 8 400 42 600 28C800 14 1000 42 1200 28C1400 14 1600 42 1800 28C2000 14 2200 42 2400 28V48H0Z" fill="url(#wg)"/><defs><linearGradient id="wg" x1="0" y1="0" x2="2400" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#2563EB" stop-opacity=".3"/><stop offset=".5" stop-color="#7C3AED" stop-opacity=".2"/><stop offset="1" stop-color="#2563EB" stop-opacity=".3"/></linearGradient></defs></svg>
+  <svg viewBox="0 0 2400 48" preserveAspectRatio="none" fill="none"><path d="M0 32C200 16 400 44 600 32C800 20 1000 44 1200 32C1400 20 1600 44 1800 32C2000 20 2200 44 2400 32V48H0Z" fill="url(#wg2)"/><defs><linearGradient id="wg2" x1="0" y1="0" x2="2400" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3B82F6" stop-opacity=".25"/><stop offset=".5" stop-color="#6366F1" stop-opacity=".15"/><stop offset="1" stop-color="#3B82F6" stop-opacity=".25"/></linearGradient></defs></svg>
+</div>
+
+<script>
+/* ═══ NAVIGATION ═══ */
+const slides = document.querySelectorAll('.slide');
+let cur = 0;
+const N = slides.length;
+
+function go(i) {
+  if (i < 0 || i >= N) return;
+  const prev = slides[cur];
+  prev.classList.remove('active');
+  prev.querySelectorAll('.r').forEach(el => { el.style.transition = 'none'; });
+  requestAnimationFrame(() => prev.querySelectorAll('.r').forEach(el => { el.style.transition = ''; }));
+  cur = i;
+  slides[cur].classList.add('active');
+  document.getElementById('progress').style.width = ((cur / (N - 1)) * 100) + '%';
+  document.getElementById('slideNum').textContent = (cur + 1) + ' / ' + N;
+  document.querySelectorAll('.dots button').forEach((d, j) => d.classList.toggle('on', j === cur));
+  if (slides[cur].id === 'numbers') animateCounters();
+  document.getElementById('keyHint').style.opacity = '0';
+  const wb = document.querySelector('.wave-bar');
+  if (wb) wb.style.display = (cur === 1 || cur === 2) ? 'none' : '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+  if (e.key === 'Home') { e.preventDefault(); go(0); }
+  if (e.key === 'End') { e.preventDefault(); go(N - 1); }
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  }
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+document.addEventListener('touchend', e => {
+  const d = tx - e.changedTouches[0].clientX;
+  if (Math.abs(d) > 50) d > 0 ? go(cur + 1) : go(cur - 1);
+});
+
+let wc = false;
+document.addEventListener('wheel', e => {
+  if (wc) return; wc = true; setTimeout(() => wc = false, 500);
+  e.deltaY > 0 ? go(cur + 1) : go(cur - 1);
+});
+
+const dotsEl = document.getElementById('dots');
+for (let i = 0; i < N; i++) {
+  const b = document.createElement('button');
+  b.onclick = () => go(i);
+  if (i === 0) b.classList.add('on');
+  dotsEl.appendChild(b);
+}
+
+document.getElementById('progress').style.width = '0%';
+document.getElementById('slideNum').textContent = '1 / ' + N;
+
+/* ═══ COUNTERS ═══ */
+function animateCounters() {
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = +el.dataset.target;
+    let c = 0;
+    const step = Math.max(1, Math.ceil(target / 50));
+    el.textContent = '0';
+    const run = () => {
+      c += step; if (c > target) c = target;
+      el.textContent = c;
+      if (c < target) requestAnimationFrame(run);
+    };
+    setTimeout(run, 200 + Math.random() * 300);
+  });
+}
+
+/* ═══ AMBIENT BACKGROUND ═══ */
+const cv = document.getElementById('bgCanvas');
+const ctx = cv.getContext('2d');
+let W, H;
+function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+const orbs = [];
+for (let i = 0; i < 4; i++) orbs.push({ x: Math.random() * 2000, y: Math.random() * 1200, r: 200 + Math.random() * 250, vx: (Math.random() - .5) * .15, vy: (Math.random() - .5) * .12, hue: [220, 250, 200, 280][i] });
+function drawBg() {
+  ctx.clearRect(0, 0, W, H);
+  orbs.forEach(o => {
+    o.x += o.vx; o.y += o.vy;
+    if (o.x < -300 || o.x > W + 300) o.vx *= -1;
+    if (o.y < -300 || o.y > H + 300) o.vy *= -1;
+    const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+    g.addColorStop(0, `hsla(${o.hue},80%,50%,.04)`);
+    g.addColorStop(1, `hsla(${o.hue},80%,50%,0)`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  });
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+</script>
+
+</body>
+</html>

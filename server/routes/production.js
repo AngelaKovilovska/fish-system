@@ -130,18 +130,17 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { source_pool, fish_count, total_weight_kg, notes, items, complete } = req.body;
+    const { source_pool, fish_count, total_weight_kg, notes, items, complete, production_date } = req.body;
     const lot_number = await generateLotNumber();
 
     await client.query('BEGIN');
 
     const status = complete ? 'завршено' : 'чиста_вода';
-    const finishedAt = complete ? 'NOW()' : null;
 
     const result = await client.query(
-      `INSERT INTO production_batches (lot_number, source_pool, fish_count, total_weight_kg, notes, created_by, status, finished_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, ${complete ? 'NOW()' : 'NULL'}) RETURNING *`,
-      [lot_number, source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.user.id, status]
+      `INSERT INTO production_batches (lot_number, source_pool, fish_count, total_weight_kg, notes, created_by, status, finished_at, production_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, ${complete ? 'NOW()' : 'NULL'}, $8) RETURNING *`,
+      [lot_number, source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.user.id, status, production_date || new Date().toISOString().slice(0, 10)]
     );
 
     const batchId = result.rows[0].id;
@@ -184,7 +183,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { source_pool, fish_count, total_weight_kg, notes, items } = req.body;
+    const { source_pool, fish_count, total_weight_kg, notes, items, production_date } = req.body;
 
     const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);
     if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
@@ -196,9 +195,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     // Update batch info
     await client.query(
       `UPDATE production_batches
-       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, updated_at = NOW()
-       WHERE id = $5`,
-      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.params.id]
+       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, production_date = $5, updated_at = NOW()
+       WHERE id = $6`,
+      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, req.params.id]
     );
 
     // Update items if provided
