@@ -300,7 +300,7 @@ export default function ProductionNew() {
                 <span className="text-xs font-medium text-[var(--text-primary)] flex-1 min-w-0 truncate">{t.name}</span>
                 <input type="number" step="0.01" min="0" value={editPrices[t.id] ?? ''}
                   onChange={e => setEditPrices({ ...editPrices, [t.id]: e.target.value })}
-                  className="input w-24 text-sm text-right" placeholder="ден/кг" />
+                  className="input-base w-24 text-sm text-right" placeholder="ден/кг" />
                 <button onClick={() => handleSavePrice(t.id)} className="btn-ghost p-1.5 text-[var(--primary)]"><Save size={14} /></button>
                 <button onClick={() => handleDeleteType(t.id)} className="btn-ghost p-1.5 text-[var(--danger)]"><Trash2 size={14} /></button>
               </div>
@@ -308,11 +308,11 @@ export default function ProductionNew() {
           </div>
           <form onSubmit={handleAddType} className="flex gap-2 items-end pt-3 border-t border-[var(--border)]">
             <div className="flex-shrink-0"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Код</label>
-              <input type="text" value={newType.code} onChange={e => setNewType({ ...newType, code: e.target.value })} className="input w-16 text-sm" placeholder="ДР" /></div>
+              <input type="text" value={newType.code} onChange={e => setNewType({ ...newType, code: e.target.value })} className="input-base w-16 text-sm" placeholder="ДР" /></div>
             <div className="flex-1"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Име</label>
-              <input type="text" value={newType.name} onChange={e => setNewType({ ...newType, name: e.target.value })} className="input text-sm" placeholder="димена риба" /></div>
+              <input type="text" value={newType.name} onChange={e => setNewType({ ...newType, name: e.target.value })} className="input-base text-sm" placeholder="димена риба" /></div>
             <div className="flex-shrink-0"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена</label>
-              <input type="number" step="0.01" value={newType.price_per_unit} onChange={e => setNewType({ ...newType, price_per_unit: e.target.value })} className="input w-20 text-sm" placeholder="0" /></div>
+              <input type="number" step="0.01" value={newType.price_per_unit} onChange={e => setNewType({ ...newType, price_per_unit: e.target.value })} className="input-base w-20 text-sm" placeholder="0" /></div>
             <button type="submit" className="btn-primary text-sm px-3 py-2"><Plus size={14} /></button>
           </form>
         </div>
@@ -347,7 +347,7 @@ export default function ProductionNew() {
               <Calendar size={18} className="text-[var(--primary)] flex-shrink-0" />
               <span className="text-xs font-medium text-[var(--text-secondary)]">Датум:</span>
               <input type="date" value={form.production_date} onChange={e => setForm({ ...form, production_date: e.target.value })}
-                className="input text-sm flex-1" style={{ maxWidth: 180 }} />
+                className="input-base text-sm flex-1" style={{ maxWidth: 180 }} />
               <span className="text-xs text-[var(--text-muted)] hidden min-[400px]:inline">{fmtDate(form.production_date)}</span>
             </div>
           </div>
@@ -424,7 +424,7 @@ export default function ProductionNew() {
                   </div>
                   <input type="number" min="0" value={form.fish_count}
                     onChange={e => setForm({ ...form, fish_count: e.target.value })}
-                    className="input text-2xl font-bold text-center py-4 tracking-wide" placeholder="0" autoFocus
+                    className="input-base text-2xl font-bold text-center py-4 tracking-wide" placeholder="0" autoFocus
                     style={{ letterSpacing: '0.05em' }} />
                   {pi && pi.fishCount > 0 && form.fish_count && (
                     <p className="text-[11px] text-[var(--text-muted)] mt-2 text-center">
@@ -443,7 +443,7 @@ export default function ProductionNew() {
                   </div>
                   <input type="number" step="0.01" min="0" value={form.total_weight_kg}
                     onChange={e => setForm({ ...form, total_weight_kg: e.target.value })}
-                    className="input text-2xl font-bold text-center py-4 tracking-wide" placeholder="0.00"
+                    className="input-base text-2xl font-bold text-center py-4 tracking-wide" placeholder="0.00"
                     style={{ letterSpacing: '0.05em' }} />
                   {form.fish_count > 0 && form.total_weight_kg > 0 && (
                     <p className="text-[11px] text-[var(--text-muted)] mt-2 text-center">
@@ -489,7 +489,7 @@ export default function ProductionNew() {
                         <div className="w-24 flex-shrink-0">
                           <input type="number" step="0.01" min="0" value={item.quantity_kg}
                             onChange={e => { const u = [...items]; u[idx] = { ...u[idx], quantity_kg: e.target.value }; setItems(u); }}
-                            className="input text-base font-semibold text-right py-2" placeholder="0" />
+                            className="input-base text-base font-semibold text-right py-2" placeholder="0" />
                         </div>
                         <span className="text-xs text-[var(--text-muted)] flex-shrink-0">кг</span>
                       </div>
@@ -575,7 +575,7 @@ export default function ProductionNew() {
               <div className="card !py-3 mb-4">
                 <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Забелешки (опционално)</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                  className="input text-sm" rows="2" placeholder="Дополнителни информации..." />
+                  className="input-base text-sm" rows="2" placeholder="Дополнителни информации..." />
               </div>
 
               <div className="flex justify-between">
@@ -626,7 +626,7 @@ export default function ProductionNew() {
                 <div className="flex-1 relative">
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input type="text" value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                    className="input text-sm pl-9 py-2" placeholder="Пребарај LOT..." />
+                    className="input-base text-sm pl-9 py-2" placeholder="Пребарај LOT..." />
                 </div>
                 <button onClick={() => setShowFilters(!showFilters)}
                   className={`btn-ghost px-3 flex items-center gap-1.5 text-sm ${hasActiveFilters ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : ''}`}>
@@ -669,9 +669,9 @@ export default function ProductionNew() {
                   <div>
                     <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Период</p>
                     <div className="flex gap-2 items-center">
-                      <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="input text-xs flex-1 py-1.5" />
+                      <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="input-base text-xs flex-1 py-1.5" />
                       <span className="text-xs text-[var(--text-muted)]">—</span>
-                      <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="input text-xs flex-1 py-1.5" />
+                      <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="input-base text-xs flex-1 py-1.5" />
                     </div>
                   </div>
 

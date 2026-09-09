@@ -23,13 +23,27 @@ router.post('/', authMiddleware, async (req, res) => {
     const { code, name, price_per_unit } = req.body;
     if (!code || !name) return res.status(400).json({ error: 'Потребни се код и име' });
 
-    const maxOrder = await pool.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next FROM product_types');
-
-    const result = await pool.query(
-      `INSERT INTO product_types (code, name, price_per_unit, sort_order)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [code.toUpperCase(), name, parseFloat(price_per_unit) || 0, maxOrder.rows[0].next]
+    // Check if an inactive type with this code exists — reactivate it
+    const existing = await pool.query(
+      'SELECT * FROM product_types WHERE UPPER(code) = $1 AND is_active = false',
+      [code.toUpperCase()]
     );
+
+    let result;
+    if (existing.rows.length > 0) {
+      result = await pool.query(
+        `UPDATE product_types SET is_active = true, name = $1, price_per_unit = $2, updated_at = NOW()
+         WHERE id = $3 RETURNING *`,
+        [name, parseFloat(price_per_unit) || 0, existing.rows[0].id]
+      );
+    } else {
+      const maxOrder = await pool.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next FROM product_types');
+      result = await pool.query(
+        `INSERT INTO product_types (code, name, price_per_unit, sort_order)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [code.toUpperCase(), name, parseFloat(price_per_unit) || 0, maxOrder.rows[0].next]
+      );
+    }
 
     // Create inventory record for the new type
     await pool.query(
@@ -40,7 +54,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'Веќе постои тип со тој код' });
+      return res.status(409).json({ error: 'Веќе постои активен тип со тој код' });
     }
     console.error('Create product type error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
