@@ -21,6 +21,7 @@ const MealForm = lazy(() => import('./pages/MealForm'));
 const MealHistory = lazy(() => import('./pages/MealHistory'));
 const AICalculator = lazy(() => import('./pages/AICalculator'));
 const EntryHub = lazy(() => import('./pages/EntryHub'));
+const ProductionHub = lazy(() => import('./pages/ProductionHub'));
 const ProductionNew = lazy(() => import('./pages/ProductionNew'));
 const SalesNew = lazy(() => import('./pages/SalesNew'));
 const SalesHistory = lazy(() => import('./pages/SalesHistory'));
@@ -69,9 +70,13 @@ function AppRoutes() {
           <Route path="/meal/:mealType" element={<MealForm />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/ai-calculator" element={<AICalculator />} />
-          <Route path="/production" element={<ProductionNew />} />
-          <Route path="/sales/new" element={<SalesNew />} />
-          <Route path="/sales/history" element={<SalesHistory />} />
+          <Route path="/production" element={<ProductionHub />} />
+          <Route path="/production/processing" element={<ProductionNew />} />
+          <Route path="/production/sales" element={<SalesNew />} />
+          <Route path="/production/sales/history" element={<SalesHistory />} />
+          {/* Legacy routes redirect */}
+          <Route path="/sales/new" element={<Navigate to="/production/sales" />} />
+          <Route path="/sales/history" element={<Navigate to="/production/sales/history" />} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminHub /></ProtectedRoute>} />
           <Route path="/admin/norms" element={<ProtectedRoute adminOnly><ManageNorms /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><ManageUsers /></ProtectedRoute>} />

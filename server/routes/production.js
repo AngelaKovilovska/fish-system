@@ -4,27 +4,13 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Generate LOT number: LOT-YYYYMMDD-NNN
-async function generateLotNumber() {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  const prefix = `LOT-${dateStr}`;
-
-  const result = await pool.query(
-    `SELECT lot_number FROM production_batches
-     WHERE lot_number LIKE $1
-     ORDER BY lot_number DESC LIMIT 1`,
-    [`${prefix}-%`]
-  );
-
-  let seq = 1;
-  if (result.rows.length > 0) {
-    const last = result.rows[0].lot_number;
-    const lastSeq = parseInt(last.split('-').pop());
-    if (!isNaN(lastSeq)) seq = lastSeq + 1;
-  }
-
-  return `${prefix}-${String(seq).padStart(3, '0')}`;
+// Generate LOT number: YYMMDD-P (date + pool number)
+function generateLotNumber(productionDate, sourcePool) {
+  const d = productionDate ? new Date(productionDate + 'T00:00:00') : new Date();
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yy}${mm}${dd}-${sourcePool || 0}`;
 }
 
 // GET /api/production - list all batches
@@ -131,7 +117,7 @@ router.post('/', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
     const { source_pool, fish_count, total_weight_kg, notes, items, complete, production_date } = req.body;
-    const lot_number = await generateLotNumber();
+    const lot_number = generateLotNumber(production_date, source_pool);
 
     await client.query('BEGIN');
 

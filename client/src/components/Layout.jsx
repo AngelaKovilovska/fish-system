@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, ShoppingCart } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── Main sections ───
@@ -19,13 +19,6 @@ const sidebarSections = [
     title: 'Производство',
     items: [
       { path: '/production', label: 'Производство', icon: Factory },
-    ],
-  },
-  {
-    title: 'Продажба',
-    items: [
-      { path: '/sales/new', label: 'Нова продажба', icon: ShoppingCart },
-      { path: '/sales/history', label: 'Историја', icon: FileBarChart },
     ],
   },
 ];
@@ -45,7 +38,7 @@ const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/production', label: 'Производство', icon: Factory },
-  { path: '/sales/new', label: 'Продажба', icon: ShoppingCart },
+  { path: '/reports', label: 'Извештаи', icon: FileBarChart },
 ];
 
 export default function Layout() {
@@ -64,10 +57,8 @@ export default function Layout() {
   // Routes that belong to "Извештаи" section
   const reportPaths = ['/reports', '/history'];
   const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
-  // Routes that belong to "Производство" section
-  const isProductionActive = location.pathname.startsWith('/production');
-  // Routes that belong to "Продажба" section
-  const isSalesActive = location.pathname.startsWith('/sales') || location.pathname === '/buyers';
+  // Routes that belong to "Производство" section (includes sales sub-routes)
+  const isProductionActive = location.pathname.startsWith('/production') || location.pathname.startsWith('/sales');
   // Routes that belong to "Админ" section
   const isAdminActive = location.pathname.startsWith('/admin');
 
@@ -300,7 +291,7 @@ export default function Layout() {
           let isActive = location.pathname === item.path;
           if (item.path === '/entry') isActive = isEntryActive;
           if (item.path === '/production') isActive = isProductionActive;
-          if (item.path === '/sales/new') isActive = isSalesActive;
+          if (item.path === '/reports') isActive = isReportsActive;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>
