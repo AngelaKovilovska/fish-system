@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ArrowLeft, Fish, Package as PackageIcon, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Fish, Package as PackageIcon, AlertTriangle } from 'lucide-react';
 
 export default function ProductInventoryPage() {
+  const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,9 +28,9 @@ export default function ProductInventoryPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <Link to="/inventory" className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
-          <ArrowLeft size={14} /> Залиха
-        </Link>
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
+          <ChevronLeft size={14} /> Назад
+        </button>
         <h1 className="page-title">Залиха на производи</h1>
         <div className="flex items-center gap-1.5 -mt-1">
           <Fish size={13} className="text-[var(--text-muted)]" />
