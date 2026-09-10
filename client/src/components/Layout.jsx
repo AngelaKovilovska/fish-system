@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal, Archive } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── Main sections ───
@@ -19,7 +19,6 @@ const sidebarSections = [
     title: 'Производство',
     items: [
       { path: '/production', label: 'Производство', icon: Factory },
-      { path: '/inventory', label: 'Залиха', icon: Archive },
     ],
   },
 ];
@@ -39,7 +38,6 @@ const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/production', label: 'Производство', icon: Factory },
-  { path: '/inventory', label: 'Залиха', icon: Archive },
 ];
 
 export default function Layout() {
@@ -61,9 +59,7 @@ export default function Layout() {
   const reportPaths = ['/reports', '/history'];
   const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   // Routes that belong to "Производство" section (includes sales sub-routes)
-  const isProductionActive = location.pathname.startsWith('/production') || location.pathname.startsWith('/sales');
-  // Routes that belong to "Залиха" section
-  const isInventoryActive = location.pathname.startsWith('/inventory');
+  const isProductionActive = location.pathname.startsWith('/production') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory');
   // Routes that belong to "Админ" section
   const isAdminActive = location.pathname.startsWith('/admin');
 
@@ -243,10 +239,8 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* ═══════ FISH BACKGROUND (Dashboard & Reports) ═══════ */}
-      {(location.pathname === '/' || location.pathname === '/reports') && (
-        <FishBackground variant="light" />
-      )}
+      {/* ═══════ FISH BACKGROUND (all pages) ═══════ */}
+      <FishBackground variant="light" />
 
       {/* ═══════ MAIN CONTENT ═══════ */}
       <main className="relative z-1 pb-24 lg:pb-8 lg:ml-[240px]">
@@ -300,7 +294,6 @@ export default function Layout() {
           let isActive = location.pathname === item.path;
           if (item.path === '/entry') isActive = isEntryActive;
           if (item.path === '/production') isActive = isProductionActive;
-          if (item.path === '/inventory') isActive = isInventoryActive;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>

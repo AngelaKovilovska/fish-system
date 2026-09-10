@@ -2,26 +2,29 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
-  Factory, ShoppingCart, ChevronRight, Package,
+  Factory, ShoppingCart, ChevronRight, Package, Archive,
 } from 'lucide-react';
 
 export default function ProductionHub() {
-  const [stats, setStats] = useState({ batches: 0, totalKg: 0, salesCount: 0, salesTotal: 0 });
+  const [stats, setStats] = useState({ batches: 0, totalKg: 0, salesCount: 0, salesTotal: 0, inventoryKg: 0, inventoryCount: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [bRes, sRes] = await Promise.all([
+        const [bRes, sRes, invRes] = await Promise.all([
           api.getProductionBatches({ limit: 200 }).catch(() => ({ batches: [] })),
           api.getSales({ limit: 200 }).catch(() => ({ sales: [] })),
+          api.getProductInventory().catch(() => ({ inventory: [] })),
         ]);
         const batches = bRes.batches || [];
         const sales = sRes.sales || [];
+        const inv = invRes.inventory || [];
         const totalKg = batches.reduce((s, b) =>
           s + (b.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
         const salesTotal = sales.reduce((s, x) => s + parseFloat(x.total_amount || 0), 0);
-        setStats({ batches: batches.length, totalKg, salesCount: sales.length, salesTotal });
+        const inventoryKg = inv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
+        setStats({ batches: batches.length, totalKg, salesCount: sales.length, salesTotal, inventoryKg, inventoryCount: inv.length });
       } catch { /* silent */ }
       finally { setLoading(false); }
     }
@@ -57,6 +60,18 @@ export default function ProductionHub() {
       stats: [
         { label: 'Продажби', value: stats.salesCount },
         { label: 'Вкупно', value: `${(stats.salesTotal / 1000).toFixed(0)}к ден` },
+      ],
+    },
+    {
+      path: '/inventory/products',
+      icon: Archive,
+      title: 'Залиха на производи',
+      desc: 'Преработена риба готова за продажба',
+      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+      lightBg: 'rgba(139,92,246,0.08)',
+      stats: [
+        { label: 'Производи', value: stats.inventoryCount },
+        { label: 'На залиха', value: `${stats.inventoryKg.toFixed(0)} кг` },
       ],
     },
   ];

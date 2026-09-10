@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
 import { formatDateMK } from '../lib/utils';
-import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer, Archive, Package } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
 const CHECKLIST_ALARM_MESSAGES = {
@@ -39,6 +39,8 @@ export default function Dashboard() {
   const [todayRecord, setTodayRecord] = useState(null); // null=loading, false=none, object=exists
   const [mealsStatus, setMealsStatus] = useState(null);
   const [aiRec, setAiRec] = useState(null);
+  const [productInv, setProductInv] = useState([]);
+  const [foodInv, setFoodInv] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -53,6 +55,8 @@ export default function Dashboard() {
         .catch(() => setTodayRecord(false)),
       api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
+      api.getProductInventory().then(d => setProductInv(d.inventory || [])).catch(() => setProductInv([])),
+      api.getFoodInventory().then(d => setFoodInv(d.inventory || [])).catch(() => setFoodInv([])),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -223,6 +227,70 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ── Inventory Summary ── */}
+      {(() => {
+        const totalProductKg = productInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
+        const totalFoodKg = foodInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
+        const lowFoodItems = foodInv.filter(i => parseFloat(i.quantity_kg || 0) < 50);
+        return (
+          <div className="animate-in-delay-2">
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="section-title flex items-center gap-2 text-sm">
+                <Archive size={15} className="text-purple-500" />
+                Залихи
+              </h2>
+              <Link to="/inventory/products" className="text-[11px] text-[var(--primary)] font-medium hover:underline flex items-center gap-1">
+                Детали <ArrowRight size={10} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {/* Product inventory */}
+              <Link to="/inventory/products" className="card !p-3.5 transition-all hover:scale-[1.01] active:scale-[0.99]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(139,92,246,0.1)' }}>
+                    <Archive size={15} className="text-purple-500" />
+                  </div>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold"
+                    style={{ fontFamily: 'Sora, sans-serif' }}>Производи</p>
+                </div>
+                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {totalProductKg.toFixed(0)} <span className="text-xs font-normal text-[var(--text-muted)]">кг</span>
+                </p>
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                  {productInv.length} {productInv.length === 1 ? 'производ' : 'производи'}
+                </p>
+              </Link>
+
+              {/* Food inventory */}
+              <Link to="/admin/inventory" className="card !p-3.5 transition-all hover:scale-[1.01] active:scale-[0.99]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: lowFoodItems.length > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)' }}>
+                    <Package size={15} className={lowFoodItems.length > 0 ? 'text-amber-500' : 'text-green-500'} />
+                  </div>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold"
+                    style={{ fontFamily: 'Sora, sans-serif' }}>Храна</p>
+                </div>
+                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {totalFoodKg.toFixed(0)} <span className="text-xs font-normal text-[var(--text-muted)]">кг</span>
+                </p>
+                {lowFoodItems.length > 0 ? (
+                  <p className="text-[10px] text-amber-500 mt-0.5 font-medium">
+                    ⚠ {lowFoodItems.length} со ниска залиха
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                    {foodInv.length} {foodInv.length === 1 ? 'тип' : 'типови'} храна
+                  </p>
+                )}
+              </Link>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Active Alarms ── */}
       {alerts.length > 0 && (
