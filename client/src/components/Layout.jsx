@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── Main sections ───
@@ -33,12 +33,12 @@ const adminSection = {
   ],
 };
 
-// ─── Mobile: 4 tabs (+ 5th "Админ" tab for admin users) ───
+// ─── Mobile: 5 tabs ───
 const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/production', label: 'Производство', icon: Factory },
-  { path: '/reports', label: 'Извештаи', icon: FileBarChart },
+  { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
 ];
 
 export default function Layout() {
@@ -46,7 +46,9 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const profileRef = useRef(null);
+  const moreRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const isChecklist = location.pathname === '/checklist' || location.pathname.startsWith('/checklist/');
@@ -62,18 +64,22 @@ export default function Layout() {
   // Routes that belong to "Админ" section
   const isAdminActive = location.pathname.startsWith('/admin');
 
-  // Close dropdown on outside click
+  const isMoreActive = isReportsActive || isAdminActive;
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false);
+      if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false);
     };
-    if (showProfile) document.addEventListener('mousedown', handleClickOutside);
+    if (showProfile || showMore) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfile]);
+  }, [showProfile, showMore]);
 
   // Close on navigation
   useEffect(() => {
     setShowProfile(false);
+    setShowMore(false);
   }, [location.pathname]);
 
   return (
@@ -291,7 +297,7 @@ export default function Layout() {
           let isActive = location.pathname === item.path;
           if (item.path === '/entry') isActive = isEntryActive;
           if (item.path === '/production') isActive = isProductionActive;
-          if (item.path === '/reports') isActive = isReportsActive;
+          if (item.path === '/ai-calculator') isActive = location.pathname === '/ai-calculator';
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>
@@ -301,14 +307,32 @@ export default function Layout() {
           );
         })}
 
-        {/* Admin tab (admin only) */}
-        {isAdmin && (
-          <Link to="/admin"
-            className={`tab-item ${isAdminActive ? 'active' : ''}`}>
-            <Shield size={20} strokeWidth={isAdminActive ? 2.2 : 1.6} />
-            <span>Админ</span>
-          </Link>
-        )}
+        {/* "Повеќе" tab with popup */}
+        <div className="relative" ref={moreRef}>
+          <button onClick={() => setShowMore(!showMore)}
+            className={`tab-item ${isMoreActive ? 'active' : ''}`}>
+            <MoreHorizontal size={20} strokeWidth={isMoreActive ? 2.2 : 1.6} />
+            <span>Повеќе</span>
+          </button>
+
+          {showMore && (
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden animate-slide-down"
+              style={{ boxShadow: 'var(--sh-elevated)' }}>
+              <Link to="/reports" onClick={() => setShowMore(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReportsActive ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                <FileBarChart size={18} />
+                Извештаи
+              </Link>
+              {isAdmin && (
+                <Link to="/admin" onClick={() => setShowMore(false)}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-[var(--border)] transition-colors ${isAdminActive ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                  <Shield size={18} />
+                  Админ
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </nav>
     </div>
   );
