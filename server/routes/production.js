@@ -16,7 +16,7 @@ function generateLotNumber(productionDate, sourcePool) {
 // GET /api/production - list all batches
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { status, limit, offset } = req.query;
+    const { status, limit, offset, from, to } = req.query;
     let where = 'WHERE 1=1';
     const params = [];
     let idx = 1;
@@ -24,6 +24,16 @@ router.get('/', authMiddleware, async (req, res) => {
     if (status) {
       where += ` AND pb.status = $${idx}`;
       params.push(status);
+      idx++;
+    }
+    if (from) {
+      where += ` AND pb.production_date >= $${idx}`;
+      params.push(from);
+      idx++;
+    }
+    if (to) {
+      where += ` AND pb.production_date <= $${idx}`;
+      params.push(to);
       idx++;
     }
 

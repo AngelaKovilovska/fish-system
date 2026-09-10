@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate } from '../lib/utils';
-import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Legend,
@@ -11,6 +11,8 @@ import {
 
 const REPORT_TYPES = [
   { key: 'daily', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
+  { key: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: false },
+  { key: 'salesHistory', label: 'Историја на продажби', desc: 'Фактури и продажба на производи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
   { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
   { key: 'weight', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
   { key: 'alerts', label: 'Аларми', desc: 'Историја на активирани аларми', icon: AlertTriangle, needsDates: true, needsPool: false },
@@ -114,6 +116,25 @@ export default function Reports() {
     try {
       let result; const pool = poolNumber || null;
       switch (activeReport) {
+        case 'production': {
+          const res = await api.getProductionBatches({ from, to, limit: 500 });
+          const batches = (res.batches || []).filter(b => b.status === 'завршено');
+          // Aggregate by product type
+          const productTotals = {};
+          let totalFish = 0, totalRawKg = 0;
+          for (const b of batches) {
+            totalFish += parseInt(b.fish_count || 0);
+            totalRawKg += parseFloat(b.total_weight_kg || 0);
+            for (const item of (b.items || [])) {
+              const key = item.name || item.code;
+              if (!productTotals[key]) productTotals[key] = 0;
+              productTotals[key] += parseFloat(item.quantity_kg || 0);
+            }
+          }
+          const totalProcessedKg = Object.values(productTotals).reduce((s, v) => s + v, 0);
+          result = { batches, productTotals, totalFish, totalRawKg, totalProcessedKg };
+          break;
+        }
         case 'food': result = await api.previewFoodReport(from, to, pool); break;
         case 'weight': result = await api.previewAvgWeightReport(pool, measurementDate || null); break;
         case 'alerts': result = await api.previewAlertsReport(from, to); break;
@@ -184,6 +205,24 @@ export default function Reports() {
     if (activeReport === 'weight' && measurementDate) subtitle = `Датум на мерење: ${fmtDate(measurementDate)}${poolNumber ? ` | Базен ${poolNumber}` : ''}`;
 
     let tableHTML = '';
+
+    if (activeReport === 'production') {
+      const { batches, productTotals, totalFish, totalRawKg, totalProcessedKg } = previewData;
+      const randman = totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : '–';
+      const productRows = Object.entries(productTotals).sort((a, b) => b[1] - a[1]).map(([name, kg]) =>
+        `<tr><td>${name}</td><td class="r"><strong>${kg.toFixed(2)}</strong></td></tr>`
+      ).join('');
+      const batchRows = (batches || []).map(b => {
+        const bKg = (b.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
+        const products = (b.items || []).map(i => `${i.name}: ${parseFloat(i.quantity_kg).toFixed(2)} kg`).join(', ');
+        return `<tr><td>${b.lot_number}</td><td>${fmtDate(b.production_date)}</td><td>Б${b.source_pool || '–'}</td><td class="r">${b.fish_count}</td><td class="r">${parseFloat(b.total_weight_kg).toFixed(1)}</td><td class="r">${bKg.toFixed(1)}</td><td>${products}</td></tr>`;
+      }).join('');
+      tableHTML = `<p class="total">Серии: ${batches.length} | Риби: ${totalFish.toLocaleString()} | Сурова: ${totalRawKg.toFixed(1)} kg | Преработено: ${totalProcessedKg.toFixed(1)} kg | Рандман: ${randman}%</p>
+        <h3 style="margin-top:16px">Вкупно по производ</h3>
+        <table><thead><tr><th>Производ</th><th class="r">Количина (kg)</th></tr></thead><tbody>${productRows}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${totalProcessedKg.toFixed(2)}</strong></td></tr></tbody></table>
+        <h3 style="margin-top:16px">Детали по серија</h3>
+        <table><thead><tr><th>ЛОТ</th><th>Датум</th><th>Базен</th><th class="r">Риби</th><th class="r">Сурова (kg)</th><th class="r">Прераб. (kg)</th><th>Производи</th></tr></thead><tbody>${batchRows}</tbody></table>`;
+    }
 
     if (activeReport === 'food') {
       const rows = (previewData.data || []).map(d =>
@@ -287,6 +326,30 @@ ${tableHTML}
     const gridStyle = { stroke: 'var(--border)', strokeOpacity: 0.5 };
     const axisStyle = { fontSize: 12, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' };
     const axisSmall = { ...axisStyle, fontSize: 11 };
+
+    // ── Production bar chart ──
+    if (activeReport === 'production' && previewData.batches?.length > 0) {
+      const entries = Object.entries(previewData.productTotals)
+        .map(([name, kg]) => ({ name, Количина: parseFloat(kg.toFixed(2)) }))
+        .sort((a, b) => b.Количина - a.Количина);
+
+      if (entries.length > 0) {
+        return (
+          <div className="card mb-4 animate-in">
+            <h3 className="section-title text-sm mb-4">Преработка по тип производ (kg)</h3>
+            <ResponsiveContainer width="100%" height={Math.max(160, entries.length * 50 + 40)}>
+              <BarChart data={entries} layout="vertical" margin={{ top: 0, right: 15, left: 5, bottom: 0 }} barCategoryGap="25%">
+                <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+                <XAxis type="number" tick={axisSmall} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={110} tick={axisStyle} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTooltipContent suffix=" kg" />} />
+                <Bar dataKey="Количина" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      }
+    }
 
     // ── Food consumption bar chart ──
     if (activeReport === 'food' && (previewData.data || []).length > 0) {
@@ -560,6 +623,101 @@ ${tableHTML}
 
   const renderPreview = () => {
     if (!previewData) return null;
+
+    if (activeReport === 'production') {
+      const batches = previewData.batches || [];
+      const { productTotals, totalFish, totalRawKg, totalProcessedKg } = previewData;
+      const randman = totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : '–';
+
+      return (
+        <div className="space-y-4">
+          <p className="text-xs text-[var(--text-muted)]">
+            Период: {fmtDate(from)} — {fmtDate(to)} | Завршени серии: {batches.length}
+          </p>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 min-[400px]:grid-cols-4 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Серии</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{batches.length}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Риби</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{totalFish.toLocaleString()}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Сурова</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{totalRawKg.toFixed(1)} kg</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Рандман</div>
+              <div className="text-sm font-bold text-[var(--primary)]">{randman}%</div>
+            </div>
+          </div>
+
+          {/* Totals by product */}
+          {Object.keys(productTotals).length > 0 && (
+            <div className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+              <div className="px-3 py-2 bg-[var(--surface)]">
+                <p className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно по производ</p>
+              </div>
+              <table className="table-modern">
+                <thead><tr><th>Производ</th><th className="text-right">Количина (kg)</th></tr></thead>
+                <tbody>
+                  {Object.entries(productTotals).sort((a, b) => b[1] - a[1]).map(([name, kg]) => (
+                    <tr key={name}>
+                      <td className="font-medium">{name}</td>
+                      <td className="text-right font-bold text-[var(--primary)]">{kg.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-[var(--border)]">
+                    <td className="font-bold">Вкупно преработено</td>
+                    <td className="text-right font-bold text-[var(--success)]">{totalProcessedKg.toFixed(2)} kg</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Per-batch detail */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Детали по серија</p>
+            {batches.map(b => {
+              const batchKg = (b.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
+              const bRandman = parseFloat(b.total_weight_kg) > 0 ? ((batchKg / parseFloat(b.total_weight_kg)) * 100).toFixed(1) : '–';
+              return (
+                <div key={b.id} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-[var(--surface)]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[var(--primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{b.lot_number}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{fmtDate(b.production_date)}</span>
+                      {b.source_pool && <span className="text-[10px] text-[var(--text-muted)]">Б{b.source_pool}</span>}
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+                      <span>{b.fish_count} риби</span>
+                      <span>{parseFloat(b.total_weight_kg).toFixed(1)} kg → {batchKg.toFixed(1)} kg</span>
+                      <span className="font-semibold text-[var(--primary)]">{bRandman}%</span>
+                    </div>
+                  </div>
+                  {(b.items || []).length > 0 && (
+                    <div className="px-3 py-1.5 flex flex-wrap gap-2">
+                      {(b.items || []).map((item, i) => (
+                        <span key={i} className="text-[11px] text-[var(--text-secondary)]">
+                          {item.name}: <strong>{parseFloat(item.quantity_kg).toFixed(2)} kg</strong>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {batches.length === 0 && (
+              <div className="info-box text-sm text-[var(--text-muted)]">Нема завршени серии во овој период.</div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     if (activeReport === 'food') {
       return (

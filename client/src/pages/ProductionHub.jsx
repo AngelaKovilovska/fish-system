@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
-  Factory, ShoppingCart, ChevronRight, Package, FileBarChart,
+  Factory, ShoppingCart, ChevronRight, Package,
 } from 'lucide-react';
 
 export default function ProductionHub() {
@@ -105,17 +105,6 @@ export default function ProductionHub() {
         ))}
       </div>
 
-      {/* Quick links */}
-      <div className="mt-6 space-y-2 animate-in">
-        <Link to="/production/sales/history"
-          className="card card-hover !py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.1)' }}>
-            <FileBarChart size={17} style={{ color: '#8b5cf6' }} />
-          </div>
-          <span className="text-sm font-medium text-[var(--text-primary)] flex-1">Историја на продажби</span>
-          <ChevronRight size={16} className="text-[var(--text-muted)]" />
-        </Link>
-      </div>
     </div>
   );
 }
