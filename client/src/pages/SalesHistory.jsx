@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X, ChevronDown, ChevronUp, ChevronLeft } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
 
 export default function SalesHistory() {
@@ -96,6 +96,9 @@ export default function SalesHistory() {
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 animate-in">
+        <button onClick={() => navigate('/reports')} className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад">
+          <ChevronLeft size={18} />
+        </button>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
           <ShoppingCart size={20} className="text-white" />
