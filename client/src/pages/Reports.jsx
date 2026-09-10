@@ -11,7 +11,7 @@ import {
 
 const REPORT_TYPES = [
   { key: 'daily', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
-  { key: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: false },
+  { key: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
   { key: 'salesHistory', label: 'Историја на продажби', desc: 'Фактури и продажба на производи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
   { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
   { key: 'weight', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
@@ -82,10 +82,23 @@ export default function Reports() {
   // Accordion state for purchase groups
   const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState(new Set());
 
+  // Product type filter for production report
+  const [productTypes, setProductTypes] = useState([]);
+  const [productTypeFilter, setProductTypeFilter] = useState('');
+
   // Food inventory state (lazy loaded)
   const [inventory, setInventory] = useState([]);
   const [inventoryLog, setInventoryLog] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
+
+  // Load product types when production report is selected
+  useEffect(() => {
+    if (activeReport === 'production') {
+      api.getProductTypes()
+        .then(res => setProductTypes((res.types || res || []).filter(t => t.is_active !== false)))
+        .catch(() => setProductTypes([]));
+    }
+  }, [activeReport]);
 
   useEffect(() => {
     if (activeReport === 'weight') {
@@ -118,7 +131,15 @@ export default function Reports() {
       switch (activeReport) {
         case 'production': {
           const res = await api.getProductionBatches({ from, to, limit: 500 });
-          const batches = (res.batches || []).filter(b => b.status === 'завршено');
+          let batches = (res.batches || []).filter(b => b.status === 'завршено');
+          // Filter by pool if selected
+          if (poolNumber) batches = batches.filter(b => String(b.source_pool) === String(poolNumber));
+          // Filter by product type if selected
+          if (productTypeFilter) {
+            batches = batches.filter(b =>
+              (b.items || []).some(item => (item.name || item.code) === productTypeFilter)
+            );
+          }
           // Aggregate by product type
           const productTotals = {};
           let totalFish = 0, totalRawKg = 0;
@@ -127,6 +148,7 @@ export default function Reports() {
             totalRawKg += parseFloat(b.total_weight_kg || 0);
             for (const item of (b.items || [])) {
               const key = item.name || item.code;
+              if (productTypeFilter && key !== productTypeFilter) continue;
               if (!productTotals[key]) productTotals[key] = 0;
               productTotals[key] += parseFloat(item.quantity_kg || 0);
             }
@@ -184,12 +206,14 @@ export default function Reports() {
   const handleBackToList = () => {
     setActiveReport(null); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
+    setProductTypeFilter('');
     setFrom(defaultFrom); setTo(defaultTo);
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
   const handleSelectReport = (key) => {
     setActiveReport(key); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
+    setProductTypeFilter('');
     setFrom(defaultFrom); setTo(defaultTo);
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
@@ -1185,8 +1209,8 @@ ${tableHTML}
       <div className="max-w-[900px] mx-auto">
         {/* Header with back button */}
         <div className="flex items-center gap-3 mb-5 animate-in">
-          <button onClick={handleBackToList}
-            className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад кон листа">
+          <button onClick={!isInventory && previewData ? handleBackFromPreview : handleBackToList}
+            className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад">
             <ChevronLeft size={18} />
           </button>
           <div className="flex items-center gap-2.5">
@@ -1260,6 +1284,24 @@ ${tableHTML}
               </div>
             )}
 
+            {activeReport === 'production' && productTypes.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Тип на производ</label>
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" onClick={() => setProductTypeFilter('')}
+                    className={productTypeFilter === '' ? 'chip-active' : 'chip-inactive'}>
+                    Сите
+                  </button>
+                  {productTypes.map(pt => (
+                    <button key={pt.id} type="button" onClick={() => setProductTypeFilter(pt.name)}
+                      className={productTypeFilter === pt.name ? 'chip-active' : 'chip-inactive'}>
+                      {pt.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {report.needsMeasurementDate && (
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
@@ -1304,14 +1346,6 @@ ${tableHTML}
         {/* Preview data */}
         {!isInventory && previewData && (
           <div className="animate-in space-y-0">
-            {/* Back button above chart */}
-            <div className="flex items-center gap-3 mb-4">
-              <button onClick={handleBackFromPreview} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0" aria-label="Назад">
-                <ChevronLeft size={20} />
-              </button>
-              <h2 className="section-title !mb-0">{report.label}</h2>
-            </div>
-
             {/* Chart visualization ABOVE the table */}
             {renderChart()}
 
