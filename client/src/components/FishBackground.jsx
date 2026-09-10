@@ -1,29 +1,29 @@
 import AnimatedFish from './AnimatedFish';
 
 const FISH = [
-  /* ── Група 1: горе, заедно тргнуваат ── */
-  { size: 200, top: '15%', duration: 22, delay: 0,  opacity: 1 },
-  { size: 110, top: '22%', duration: 20, delay: 1.5, opacity: 0.7 },
-  { size: 75,  top: '12%', duration: 23, delay: 0.8, opacity: 0.5 },
+  /* ── Група 1: горе ── */
+  { size: 220, top: '12%', duration: 22, delay: 0,   opacity: 1 },
+  { size: 120, top: '20%', duration: 19, delay: 1.2, opacity: 0.85 },
+  { size: 80,  top: '8%',  duration: 24, delay: 0.5, opacity: 0.7 },
 
-  /* ── Група 2: средина, со мал раздел ── */
-  { size: 160, top: '42%', duration: 18, delay: 6,  opacity: 0.8 },
-  { size: 90,  top: '48%', duration: 16, delay: 7,  opacity: 0.6 },
-  { size: 65,  top: '38%', duration: 19, delay: 5.5, opacity: 0.45 },
+  /* ── Група 2: средина ── */
+  { size: 180, top: '40%', duration: 17, delay: 5,   opacity: 0.95 },
+  { size: 100, top: '46%', duration: 15, delay: 6.5, opacity: 0.75 },
+  { size: 70,  top: '35%', duration: 18, delay: 4.5, opacity: 0.6 },
 
-  /* ── Група 3: долу, побавни ── */
-  { size: 130, top: '68%', duration: 25, delay: 12, opacity: 0.65 },
-  { size: 85,  top: '74%', duration: 22, delay: 13.5, opacity: 0.5 },
-  { size: 55,  top: '65%', duration: 26, delay: 11, opacity: 0.35 },
+  /* ── Група 3: долу ── */
+  { size: 150, top: '65%', duration: 24, delay: 10,  opacity: 0.9 },
+  { size: 95,  top: '72%', duration: 21, delay: 11.5, opacity: 0.7 },
+  { size: 60,  top: '62%', duration: 25, delay: 9,   opacity: 0.55 },
 
-  /* ── Група 4: дно, ситни и суптилни ── */
-  { size: 100, top: '85%', duration: 20, delay: 17, opacity: 0.5 },
-  { size: 60,  top: '90%', duration: 17, delay: 18.5, opacity: 0.35 },
-  { size: 45,  top: '82%', duration: 21, delay: 16, opacity: 0.3 },
+  /* ── Група 4: дно ── */
+  { size: 110, top: '84%', duration: 19, delay: 15,  opacity: 0.8 },
+  { size: 65,  top: '90%', duration: 16, delay: 16.5, opacity: 0.6 },
+  { size: 50,  top: '80%', duration: 20, delay: 14,  opacity: 0.5 },
 ];
 
 export default function FishBackground({ variant = 'light' }) {
-  const baseOpacity = variant === 'dark' ? 0.25 : 0.15;
+  const baseOpacity = variant === 'dark' ? 0.3 : 0.35;
 
   return (
     <div
@@ -60,18 +60,26 @@ export default function FishBackground({ variant = 'light' }) {
         </div>
       ))}
 
-      {/* Subtle bubbles */}
+      {/* Bubbles */}
       <div className="fish-bubble" style={{
-        left: '28%', animationDelay: '4s', animationDuration: '12s',
-        width: 5, height: 5, opacity: variant === 'dark' ? 0.18 : 0.08,
+        left: '15%', animationDelay: '2s', animationDuration: '10s',
+        width: 5, height: 5, opacity: variant === 'dark' ? 0.2 : 0.12,
       }} />
       <div className="fish-bubble" style={{
-        left: '52%', animationDelay: '9s', animationDuration: '15s',
-        width: 3, height: 3, opacity: variant === 'dark' ? 0.14 : 0.06,
+        left: '30%', animationDelay: '5s', animationDuration: '12s',
+        width: 4, height: 4, opacity: variant === 'dark' ? 0.18 : 0.1,
       }} />
       <div className="fish-bubble" style={{
-        left: '78%', animationDelay: '1s', animationDuration: '18s',
-        width: 6, height: 6, opacity: variant === 'dark' ? 0.12 : 0.05,
+        left: '50%', animationDelay: '8s', animationDuration: '14s',
+        width: 6, height: 6, opacity: variant === 'dark' ? 0.16 : 0.09,
+      }} />
+      <div className="fish-bubble" style={{
+        left: '68%', animationDelay: '1s', animationDuration: '11s',
+        width: 3, height: 3, opacity: variant === 'dark' ? 0.2 : 0.11,
+      }} />
+      <div className="fish-bubble" style={{
+        left: '82%', animationDelay: '6s', animationDuration: '16s',
+        width: 5, height: 5, opacity: variant === 'dark' ? 0.14 : 0.08,
       }} />
 
       <style>{`
