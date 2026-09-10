@@ -447,7 +447,7 @@ export default function ProductionNew() {
                     style={{ letterSpacing: '0.05em' }} />
                   {form.fish_count > 0 && form.total_weight_kg > 0 && (
                     <p className="text-[11px] text-[var(--text-muted)] mt-2 text-center">
-                      Просек: <strong>{(parseFloat(form.total_weight_kg) / parseInt(form.fish_count) * 1000).toFixed(0)}</strong> гр/риба
+                      Просек: <strong>{(parseFloat(form.total_weight_kg) / parseInt(form.fish_count)).toFixed(2)}</strong> кг/риба
                     </p>
                   )}
                 </div>
