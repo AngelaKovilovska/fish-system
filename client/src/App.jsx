@@ -25,6 +25,9 @@ const ProductionHub = lazy(() => import('./pages/ProductionHub'));
 const ProductionNew = lazy(() => import('./pages/ProductionNew'));
 const SalesNew = lazy(() => import('./pages/SalesNew'));
 const SalesHistory = lazy(() => import('./pages/SalesHistory'));
+const InventoryHub = lazy(() => import('./pages/InventoryHub'));
+const FoodInventoryPage = lazy(() => import('./pages/FoodInventoryPage'));
+const ProductInventoryPage = lazy(() => import('./pages/ProductInventoryPage'));
 
 function PageLoader() {
   return (
@@ -74,6 +77,9 @@ function AppRoutes() {
           <Route path="/production/processing" element={<ProductionNew />} />
           <Route path="/production/sales" element={<SalesNew />} />
           <Route path="/production/sales/history" element={<SalesHistory />} />
+          <Route path="/inventory" element={<InventoryHub />} />
+          <Route path="/inventory/food" element={<FoodInventoryPage />} />
+          <Route path="/inventory/products" element={<ProductInventoryPage />} />
           {/* Legacy routes redirect */}
           <Route path="/sales/new" element={<Navigate to="/production/sales" />} />
           <Route path="/sales/history" element={<Navigate to="/production/sales/history" />} />

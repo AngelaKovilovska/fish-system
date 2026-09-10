@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { formatDateMK, formatDateShortMK } from '../lib/utils';
-import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, Package, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
+import { formatDateMK } from '../lib/utils';
+import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
 const CHECKLIST_ALARM_MESSAGES = {
@@ -36,11 +36,9 @@ function getAlertInfo(alert) {
 export default function Dashboard() {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState([]);
-  const [inventory, setInventory] = useState([]);
   const [todayRecord, setTodayRecord] = useState(null); // null=loading, false=none, object=exists
   const [mealsStatus, setMealsStatus] = useState(null);
   const [aiRec, setAiRec] = useState(null);
-  const [stockProjection, setStockProjection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -50,13 +48,11 @@ export default function Dashboard() {
 
     Promise.all([
       api.getAlerts({ acknowledged: 'false' }).then(d => setAlerts(d.alerts)).catch(() => setAlerts([])),
-      api.getFoodInventory().then(d => setInventory(d.inventory)).catch(() => setInventory([])),
       api.getRecords({ from: today, to: today, limit: 1 })
         .then(d => setTodayRecord(d.records.length > 0 ? d.records[0] : false))
         .catch(() => setTodayRecord(false)),
       api.getMealsStatus(today).then(d => setMealsStatus(d.status)).catch(() => setMealsStatus({})),
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
-      api.getFoodProjection(14).then(d => setStockProjection(d)).catch(() => setStockProjection(null)),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -86,12 +82,8 @@ export default function Dashboard() {
     );
   }
 
-  const isAdmin = user?.role === 'admin';
   const visibleAlerts = showAllAlerts ? alerts : alerts.slice(0, 5);
   const todayFormatted = formatDateMK(new Date());
-
-  // Dynamic bar max — use the largest inventory value (minimum 50 kg for scale)
-  const barMax = Math.max(50, ...inventory.map(i => parseFloat(i.quantity_kg) || 0));
 
   return (
     <div className="space-y-6">
@@ -403,107 +395,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Food Inventory — Visual Bars + Dynamic Stock Projection ── */}
-      {inventory.length > 0 && (() => {
-        // Build lookup by food_type (projection returns array)
-        const proj = {};
-        const projArr = stockProjection?.projections || [];
-        if (Array.isArray(projArr)) {
-          projArr.forEach(p => { proj[p.food_type] = p; });
-        } else {
-          Object.assign(proj, projArr);
-        }
-
-        return (
-          <div className={alerts.length > 0 ? 'animate-in-delay-3' : 'animate-in-delay-2'}>
-            <div className="flex items-center justify-between mb-2.5">
-              <h2 className="section-title flex items-center gap-2 text-sm">
-                <Package size={15} className="text-[var(--primary)]" />
-                Залихи на храна
-              </h2>
-              {isAdmin && (
-                <Link to="/admin/inventory" className="text-[11px] text-[var(--primary)] font-medium hover:underline">
-                  Управувај
-                </Link>
-              )}
-            </div>
-
-            <div className="card !p-4 space-y-3">
-              {inventory.map(item => {
-                const qty = parseFloat(item.quantity_kg);
-                const pct = Math.min((qty / barMax) * 100, 100);
-                const p = proj[item.food_type];
-                const daysLeft = p?.daysLeft;
-                const endDate = p?.depletionDate || p?.endDate;
-                const isLow = qty <= 5;
-                const isWarn = qty <= 15 && !isLow;
-                const barColor = isLow
-                  ? 'var(--danger)'
-                  : isWarn
-                    ? 'var(--warning)'
-                    : 'var(--success)';
-                const barBg = isLow
-                  ? 'rgba(239,68,68,0.08)'
-                  : isWarn
-                    ? 'rgba(245,158,11,0.08)'
-                    : 'rgba(34,197,94,0.08)';
-
-                return (
-                  <div key={item.id}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">
-                        {item.food_type}
-                      </span>
-                      <span className={`text-[12px] font-bold ${
-                        isLow ? 'text-[var(--danger)]' : isWarn ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
-                      }`}>
-                        {qty.toFixed(2)} kg
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: barBg }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-700 ease-out"
-                        style={{
-                          width: `${pct}%`,
-                          background: barColor,
-                          minWidth: qty > 0 ? 4 : 0,
-                        }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-end mt-0.5">
-                      {daysLeft != null && daysLeft >= 0 ? (
-                        <span className={`text-[10px] font-semibold inline-flex items-center gap-0.5 ${
-                          daysLeft <= 0 ? 'text-[var(--danger)]'
-                          : daysLeft <= 7 ? 'text-[var(--danger)]'
-                          : daysLeft <= 21 ? 'text-[var(--warning)]'
-                          : 'text-[var(--success)]'
-                        }`}>
-                          <Timer size={9} />
-                          {daysLeft <= 0
-                            ? 'Завршена!'
-                            : endDate
-                              ? `до ${formatDateShortMK(endDate)}`
-                              : `${daysLeft}+ дена`
-                          }
-                        </span>
-                      ) : (
-                        <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {inventory.some(i => parseFloat(i.quantity_kg) <= 5) && (
-                <p className="text-[11px] text-[var(--danger)] font-medium mt-1 flex items-center gap-1.5">
-                  <AlertTriangle size={12} />
-                  Ниски залихи — потребна набавка
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

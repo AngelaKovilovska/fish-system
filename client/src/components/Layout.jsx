@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal, Archive } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── Main sections ───
@@ -19,6 +19,7 @@ const sidebarSections = [
     title: 'Производство',
     items: [
       { path: '/production', label: 'Производство', icon: Factory },
+      { path: '/inventory', label: 'Залиха', icon: Archive },
     ],
   },
 ];
@@ -38,7 +39,7 @@ const mobilePrimaryTabs = [
   { path: '/', label: 'Дома', icon: Home },
   { path: '/entry', label: 'Внес', icon: PenSquare },
   { path: '/production', label: 'Производство', icon: Factory },
-  { path: '/ai-calculator', label: 'Проекции', icon: BarChart3 },
+  { path: '/inventory', label: 'Залиха', icon: Archive },
 ];
 
 export default function Layout() {
@@ -61,10 +62,12 @@ export default function Layout() {
   const isReportsActive = reportPaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   // Routes that belong to "Производство" section (includes sales sub-routes)
   const isProductionActive = location.pathname.startsWith('/production') || location.pathname.startsWith('/sales');
+  // Routes that belong to "Залиха" section
+  const isInventoryActive = location.pathname.startsWith('/inventory');
   // Routes that belong to "Админ" section
   const isAdminActive = location.pathname.startsWith('/admin');
 
-  const isMoreActive = isReportsActive || isAdminActive;
+  const isMoreActive = isReportsActive || isAdminActive || location.pathname === '/ai-calculator';
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -297,7 +300,7 @@ export default function Layout() {
           let isActive = location.pathname === item.path;
           if (item.path === '/entry') isActive = isEntryActive;
           if (item.path === '/production') isActive = isProductionActive;
-          if (item.path === '/ai-calculator') isActive = location.pathname === '/ai-calculator';
+          if (item.path === '/inventory') isActive = isInventoryActive;
           return (
             <Link key={item.path} to={item.path}
               className={`tab-item ${isActive ? 'active' : ''}`}>
@@ -322,6 +325,11 @@ export default function Layout() {
                 className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReportsActive ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
                 <FileBarChart size={18} />
                 Извештаи
+              </Link>
+              <Link to="/ai-calculator" onClick={() => setShowMore(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-[var(--border)] transition-colors ${location.pathname === '/ai-calculator' ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                <BarChart3 size={18} />
+                Проекции
               </Link>
               {isAdmin && (
                 <Link to="/admin" onClick={() => setShowMore(false)}
