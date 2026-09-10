@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
-  Factory, ShoppingCart, ChevronRight, Package, Archive,
+  Factory, ShoppingCart, ChevronRight, ChevronLeft, Package, Archive,
 } from 'lucide-react';
 
 export default function ProductionHub() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ batches: 0, totalKg: 0, salesCount: 0, salesTotal: 0, inventoryKg: 0, inventoryCount: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -80,8 +81,13 @@ export default function ProductionHub() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <h1 className="page-title">Производство</h1>
-        <div className="flex items-center gap-1.5 -mt-1">
+        <div className="flex items-center gap-2 mb-1">
+          <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="page-title !mb-0">Производство</h1>
+        </div>
+        <div className="flex items-center gap-1.5 mt-1 ml-8">
           <Package size={13} className="text-[var(--text-muted)]" />
           <p className="text-xs text-[var(--text-secondary)]">Обработка на риба и продажба</p>
         </div>
