@@ -188,12 +188,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Regenerate LOT number when date or pool changes
+    const newLot = generateLotNumber(production_date || batch.rows[0].production_date, source_pool || batch.rows[0].source_pool);
+
     // Update batch info
     await client.query(
       `UPDATE production_batches
-       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, production_date = $5, updated_at = NOW()
-       WHERE id = $6`,
-      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, req.params.id]
+       SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, production_date = $5, lot_number = $6, updated_at = NOW()
+       WHERE id = $7`,
+      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, newLot, req.params.id]
     );
 
     // Update items if provided
