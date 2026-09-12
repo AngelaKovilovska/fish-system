@@ -473,248 +473,386 @@ export default function SalesHistory() {
 // Print HTML generators
 // ══════════════════════════════════════
 
+function parseLotDate(lotNumber) {
+  // LOT format: YYMMDD-P (e.g. 260902-P)
+  if (!lotNumber) return null;
+  const match = lotNumber.match(/^(\d{2})(\d{2})(\d{2})/);
+  if (!match) return null;
+  const year = 2000 + parseInt(match[1]);
+  const month = parseInt(match[2]) - 1;
+  const day = parseInt(match[3]);
+  return new Date(year, month, day);
+}
+
+function formatDateDMY(d) {
+  if (!d) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+function addMonths(date, months) {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
 function generatePrintHTML(sale, docType) {
   const COMPANY = {
     name: 'ФАМАКОМ АКВАКУЛТУРА доо Велес',
-    address: 'м.в. Речани, Велес',
+    fullName: 'ФАМАКОМ АКВАКУЛТУРА',
+    desc: 'друштво за производство и трговија на риба',
+    address: 'ул.11 Октомври бр.2, 1400 Велес, Р. Македонија',
+    farmAddress: 'м.в. Речани, Велес',
     edb: '4004024524310',
     emb: '7810733',
     bankNLB: '210-078107330153',
     bankRBO: '171507953',
   };
 
-  const styles = `
-    <style>
-      @page { size: A4; margin: 15mm; }
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1e293b; line-height: 1.5; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #0ea5e9; }
-      .logo-area h1 { font-size: 18px; font-weight: 700; color: #0ea5e9; }
-      .logo-area p { font-size: 9px; color: #64748b; }
-      .doc-title { font-size: 16px; font-weight: 700; text-align: center; margin: 15px 0; color: #0f172a; }
-      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-      .info-box { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
-      .info-box h4 { font-size: 9px; text-transform: uppercase; color: #64748b; margin-bottom: 5px; letter-spacing: 0.5px; }
-      .info-box p { font-size: 10px; }
-      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-      th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-      td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
-      .text-right { text-align: right; }
-      .totals { margin-top: 10px; }
-      .totals .row { display: flex; justify-content: space-between; padding: 4px 0; }
-      .totals .total { font-weight: 700; font-size: 13px; border-top: 2px solid #0ea5e9; padding-top: 6px; margin-top: 4px; }
-      .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
-      .footer .sign-line { width: 180px; border-top: 1px solid #94a3b8; margin-top: 50px; text-align: center; font-size: 9px; color: #64748b; padding-top: 4px; }
-      .nutrition-table td, .nutrition-table th { padding: 4px 8px; font-size: 9px; }
-    </style>
-  `;
-
   const itemsArray = sale.items || [];
+  const totalKg = itemsArray.reduce((s, it) => s + parseFloat(it.quantity_kg || 0), 0);
+  const firstLot = itemsArray[0]?.lot_number || sale.lot_number || '';
+  const lotDate = parseLotDate(firstLot);
+  const expiryDate = addMonths(lotDate, 6);
 
-  function productNameShort(item) {
-    return `Риба (Clarias gariepinus) - ${item.code || ''}`;
-  }
-
+  // ─── ФАКТУРА / ИСПРАТНИЦА (A4, navy blue design) ───
   if (docType === 'invoice') {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body>
-      <div class="header">
-        <div class="logo-area">
-          <h1>CLARIO</h1>
-          <p>${COMPANY.name}</p>
-          <p>${COMPANY.address}</p>
-          <p>ЕДБ: ${COMPANY.edb} | ЕМБ: ${COMPANY.emb}</p>
-        </div>
-        <div style="text-align:right;font-size:10px;">
-          <p><strong>Фактура бр:</strong> ${sale.invoice_number}</p>
-          <p><strong>Испратница бр:</strong> ${sale.dispatch_number || '—'}</p>
-          <p><strong>Датум:</strong> ${sale.sale_date}</p>
-          ${sale.due_date ? `<p><strong>Рок:</strong> ${sale.due_date}</p>` : ''}
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      @page { size: A4; margin: 0; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a2744; }
+      .page { display: flex; min-height: 100vh; }
+      .sidebar { width: 220px; background: #1a2744; color: #fff; padding: 30px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+      .sidebar .logo { font-size: 32px; font-weight: 900; letter-spacing: 3px; margin-bottom: 4px; }
+      .sidebar .tagline { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #8fa4c4; margin-bottom: 30px; }
+      .sidebar .company-info { margin-top: 20px; }
+      .sidebar .company-info .label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: #8fa4c4; margin-bottom: 3px; }
+      .sidebar .company-info p { font-size: 10px; line-height: 1.5; margin-bottom: 2px; }
+      .sidebar .company-info .section { margin-bottom: 18px; }
+      .sidebar .rbo-card { background: rgba(255,255,255,0.1); border-radius: 6px; padding: 12px; margin-top: 15px; }
+      .sidebar .rbo-card .rbo-title { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: #8fa4c4; margin-bottom: 6px; }
+      .sidebar .rbo-card p { font-size: 9px; line-height: 1.5; }
+      .sidebar .fish-desc { margin-top: 15px; font-size: 9px; line-height: 1.6; color: #c5d4e8; font-style: italic; }
+      .main { flex: 1; padding: 30px 35px; }
+      .doc-header { display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 10px; }
+      .doc-titles { text-align: right; }
+      .doc-titles .sub { font-size: 13px; font-weight: 700; color: #1a2744; letter-spacing: 1px; }
+      .doc-titles .main-title { font-size: 28px; font-weight: 900; color: #1a2744; letter-spacing: 2px; }
+      .buyer-section { margin: 20px 0 15px 0; }
+      .buyer-row { display: flex; align-items: baseline; margin-bottom: 6px; font-size: 11px; }
+      .buyer-row .lbl { font-weight: 700; min-width: 110px; }
+      .buyer-row .val { flex: 1; border-bottom: 1px solid #1a2744; padding-bottom: 2px; min-height: 16px; }
+      .num-row { display: flex; justify-content: flex-end; gap: 30px; margin-bottom: 15px; }
+      .num-row .item { font-size: 11px; }
+      .num-row .item .lbl { color: #666; }
+      .num-row .item .val { font-weight: 700; border-bottom: 1px solid #1a2744; padding: 0 5px 2px; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+      thead th { background: #1a2744; color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+      thead th:last-child, thead th:nth-child(3), thead th:nth-child(4) { text-align: right; }
+      tbody td { padding: 8px 10px; border-bottom: 1px solid #dce3ed; font-size: 11px; }
+      tbody td:last-child, tbody td:nth-child(3), tbody td:nth-child(4) { text-align: right; }
+      .totals-area { display: flex; justify-content: flex-end; margin-top: 10px; }
+      .totals-box { width: 240px; }
+      .totals-box .row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px; border-bottom: 1px solid #eee; }
+      .totals-box .row.grand { font-size: 14px; font-weight: 900; border-top: 2px solid #1a2744; border-bottom: none; padding-top: 8px; margin-top: 4px; }
+      .confirm-text { margin-top: 20px; font-size: 10px; color: #c00; font-weight: 600; padding: 8px 0; border-top: 1px solid #1a2744; }
+      .sign-area { display: flex; justify-content: space-between; margin-top: 25px; }
+      .sign-block { width: 200px; }
+      .sign-block .label { font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+      .sign-block .sub-label { font-size: 9px; color: #666; margin-bottom: 2px; }
+      .sign-block .line { border-bottom: 1px solid #1a2744; height: 40px; }
+      .sign-block .desc { font-size: 8px; color: #999; margin-top: 3px; }
+    </style></head><body>
+    <div class="page">
+      <div class="sidebar">
+        <div>
+          <div class="logo">CLARIO</div>
+          <div class="tagline">ПРЕМИУМ АФРИКАНСКИ СОМ</div>
+          <div class="company-info">
+            <div class="section">
+              <div class="label">${COMPANY.desc}</div>
+              <p><strong>${COMPANY.fullName}</strong></p>
+              <p>${COMPANY.address}</p>
+              <p>едб.: ${COMPANY.edb}</p>
+              <p>емб.: ${COMPANY.emb}</p>
+              <p style="margin-top:4px;"><strong>${COMPANY.bankNLB}</strong> НЛБ Банка АД</p>
+            </div>
+          </div>
+          <div class="rbo-card">
+            <div class="rbo-title">карта за идентификација на одгледувалиште</div>
+            <p><strong>(РБО ${COMPANY.bankRBO})</strong></p>
+            <p>${COMPANY.farmAddress}</p>
+          </div>
+          <div class="fish-desc">
+            Риба,<br/>
+            Домашно одгледана<br/>
+            во контролирани услови<br/>
+            во RAS систем<br/>
+            без антибиотици и хормони
+          </div>
         </div>
       </div>
 
-      <div class="doc-title">ФАКТУРА - ИСПРАТНИЦА</div>
-
-      <div class="info-grid">
-        <div class="info-box">
-          <h4>Испраќач</h4>
-          <p><strong>${COMPANY.name}</strong></p>
-          <p>${COMPANY.address}</p>
-          <p>ЕДБ: ${COMPANY.edb}</p>
-          <p>Сметка НЛБ: ${COMPANY.bankNLB}</p>
+      <div class="main">
+        <div class="doc-header">
+          <div class="doc-titles">
+            <div class="sub">ИСПРАТНИЦА</div>
+            <div class="main-title">ФАКТУРА</div>
+          </div>
         </div>
-        <div class="info-box">
-          <h4>Примач</h4>
-          <p><strong>${sale.buyer_name || '—'}</strong></p>
-          <p>${sale.buyer_address || ''}</p>
-          ${sale.buyer_edb ? `<p>ЕДБ: ${sale.buyer_edb}</p>` : ''}
-        </div>
-      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Производ</th>
-            <th>LOT</th>
-            <th class="text-right">Количина (кг)</th>
-            <th class="text-right">Цена/кг</th>
-            <th class="text-right">Износ (ден)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsArray.map((item, i) => `
+        <div class="buyer-section">
+          <div class="buyer-row"><span class="lbl">Купувач:</span><span class="val">${sale.buyer_name || ''}</span></div>
+          <div class="buyer-row"><span class="lbl">адреса:</span><span class="val">${sale.buyer_address || ''}</span></div>
+          <div class="buyer-row"><span class="lbl">даночен број:</span><span class="val">${sale.buyer_edb || ''}</span></div>
+        </div>
+
+        <div class="num-row">
+          <div class="item"><span class="lbl">број </span><span class="val">${sale.invoice_number || ''}</span></div>
+          <div class="item"><span class="lbl">датум </span><span class="val">${sale.sale_date || ''}</span></div>
+        </div>
+
+        <table>
+          <thead>
             <tr>
-              <td>${i + 1}</td>
-              <td>${productNameShort(item)}</td>
-              <td>${item.lot_number || sale.lot_number || '—'}</td>
-              <td class="text-right">${parseFloat(item.quantity_kg).toFixed(2)}</td>
-              <td class="text-right">${parseFloat(item.price_per_kg).toFixed(2)}</td>
-              <td class="text-right">${parseFloat(item.amount).toFixed(2)}</td>
+              <th>Производ</th>
+              <th>LOT</th>
+              <th>Количина (кг)</th>
+              <th>Ед.цена</th>
+              <th>Износ</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <div style="display:flex;justify-content:flex-end;">
-        <div class="totals" style="width:250px;">
-          <div class="row"><span>Основица:</span><span>${parseFloat(sale.subtotal).toFixed(2)} ден</span></div>
-          <div class="row"><span>ДДВ (${sale.vat_rate}%):</span><span>${parseFloat(sale.vat_amount).toFixed(2)} ден</span></div>
-          <div class="row total"><span>Вкупно:</span><span>${parseFloat(sale.total).toFixed(2)} ден</span></div>
-        </div>
-      </div>
-
-      <div style="margin-top:15px;font-size:10px;">
-        <p><strong>Начин на плаќање:</strong> ${sale.payment_method}</p>
-        ${sale.transport_vehicle ? `<p><strong>Возило:</strong> ${sale.transport_vehicle}</p>` : ''}
-        ${sale.notes ? `<p><strong>Забелешка:</strong> ${sale.notes}</p>` : ''}
-      </div>
-
-      <div class="footer">
-        <div><div class="sign-line">Испраќач</div></div>
-        <div><div class="sign-line">Примач</div></div>
-      </div>
-    </body></html>`;
-  }
-
-  if (docType === 'commercial') {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body>
-      <div class="header">
-        <div class="logo-area">
-          <h1>CLARIO</h1>
-          <p>${COMPANY.name}</p>
-        </div>
-        <div style="text-align:right;font-size:10px;">
-          <p><strong>Датум:</strong> ${sale.sale_date}</p>
-          <p><strong>Реф:</strong> ${sale.invoice_number}</p>
-        </div>
-      </div>
-
-      <div class="doc-title">КОМЕРЦИЈАЛЕН ДОКУМЕНТ</div>
-
-      <div class="info-grid">
-        <div class="info-box">
-          <h4>Испраќач</h4>
-          <p><strong>${COMPANY.name}</strong></p>
-          <p>${COMPANY.address}</p>
-          <p>ЕДБ: ${COMPANY.edb} | ЕМБ: ${COMPANY.emb}</p>
-        </div>
-        <div class="info-box">
-          <h4>Примач</h4>
-          <p><strong>${sale.buyer_name || '—'}</strong></p>
-          <p>${sale.buyer_address || ''}</p>
-          ${sale.buyer_edb ? `<p>ЕДБ: ${sale.buyer_edb}</p>` : ''}
-        </div>
-      </div>
-
-      <table>
-        <thead><tr><th>#</th><th>Опис</th><th>LOT</th><th class="text-right">Нето (кг)</th></tr></thead>
-        <tbody>
-          ${itemsArray.map((item, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${productNameShort(item)}</td>
-              <td>${item.lot_number || sale.lot_number || '—'}</td>
-              <td class="text-right">${parseFloat(item.quantity_kg).toFixed(2)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <div class="info-grid" style="margin-top:15px;">
-        <div class="info-box">
-          <h4>Транспорт</h4>
-          <p>Возило: ${sale.transport_vehicle || '—'}</p>
-          <p>Температура: ${sale.product_temp != null ? sale.product_temp + '°C' : '—'}</p>
-        </div>
-        <div class="info-box">
-          <h4>Потекло</h4>
-          <p>Земја: Република Северна Македонија</p>
-          <p>Фарма: ${COMPANY.name}</p>
-          <p>Адреса: ${COMPANY.address}</p>
-        </div>
-      </div>
-
-      <div class="footer">
-        <div><div class="sign-line">Испраќач</div></div>
-        <div><div class="sign-line">Примач</div></div>
-      </div>
-    </body></html>`;
-  }
-
-  if (docType === 'declaration') {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body>
-      <div class="header">
-        <div class="logo-area">
-          <h1>CLARIO</h1>
-          <p>${COMPANY.name}</p>
-        </div>
-      </div>
-
-      <div class="doc-title">ДЕКЛАРАЦИЈА ЗА ПРОИЗВОД</div>
-
-      <div class="info-box" style="margin-bottom:15px;">
-        <h4>Производител</h4>
-        <p><strong>${COMPANY.name}</strong></p>
-        <p>${COMPANY.address}</p>
-        <p>ЕДБ: ${COMPANY.edb} | ЕМБ: ${COMPANY.emb}</p>
-      </div>
-
-      ${itemsArray.map((item, i) => `
-        <div class="info-box" style="margin-bottom:10px;">
-          <h4>Производ ${itemsArray.length > 1 ? i + 1 : ''}</h4>
-          <p><strong>${productNameShort(item)}</strong></p>
-          <p>LOT: ${item.lot_number || sale.lot_number || '—'}</p>
-          <p>Нето: ${parseFloat(item.quantity_kg).toFixed(2)} ${item.unit || 'кг'}</p>
-        </div>
-      `).join('')}
-
-      <div style="margin-top:15px;">
-        <h4 style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Нутритивни вредности на 100г</h4>
-        <table class="nutrition-table">
-          <tr><th>Параметар</th><th class="text-right">Вредност</th></tr>
-          <tr><td>Енергетска вредност</td><td class="text-right">632 kJ / 151 kcal</td></tr>
-          <tr><td>Протеини</td><td class="text-right">19.0 г</td></tr>
-          <tr><td>Масти</td><td class="text-right">8.1 г</td></tr>
-          <tr><td style="padding-left:20px;">- од кои заситени</td><td class="text-right">2.1 г</td></tr>
-          <tr><td>Јаглехидрати</td><td class="text-right">0 г</td></tr>
-          <tr><td>Сол</td><td class="text-right">0.1 г</td></tr>
+          </thead>
+          <tbody>
+            ${itemsArray.map(item => `
+              <tr>
+                <td>Риба (Clarias gariepinus) - ${item.code || ''}</td>
+                <td>${item.lot_number || sale.lot_number || '—'}</td>
+                <td>${parseFloat(item.quantity_kg).toFixed(2)}</td>
+                <td>${parseFloat(item.price_per_kg).toFixed(2)}</td>
+                <td>${parseFloat(item.amount).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+            ${itemsArray.length < 5 ? Array(5 - itemsArray.length).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>').join('') : ''}
+          </tbody>
         </table>
+
+        <div class="totals-area">
+          <div class="totals-box">
+            <div class="row"><span>ДДВ ${sale.vat_rate || 5}%:</span><span>${parseFloat(sale.vat_amount).toFixed(2)} ден</span></div>
+            <div class="row grand"><span>СЕ ВКУПНО:</span><span>${parseFloat(sale.total).toFixed(2)} ден</span></div>
+          </div>
+        </div>
+
+        <div class="confirm-text">
+          Со потписот, примачот потврдува дека производите се примени во наведената количина и во добра состојба !
+        </div>
+
+        <div class="sign-area">
+          <div class="sign-block">
+            <div class="label">Примил:</div>
+            <div class="sub-label">име и презиме:</div>
+            <div class="line"></div>
+            <div class="sub-label" style="margin-top:10px;">потпис:</div>
+            <div class="line"></div>
+          </div>
+          <div class="sign-block" style="text-align:center;">
+            <div class="label">Печат и потпис</div>
+            <div class="line" style="height:70px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </body></html>`;
+  }
+
+  // ─── КОМЕРЦИЈАЛЕН ДОКУМЕНТ (Службен весник, официјален формулар) ───
+  if (docType === 'commercial') {
+    const totalQuantity = totalKg.toFixed(2);
+    const lotNumbers = [...new Set(itemsArray.map(it => it.lot_number || sale.lot_number || ''))].join(', ');
+    const expiryStr = expiryDate ? formatDateDMY(expiryDate) : '______________________';
+    const saleDateTime = sale.sale_date ? sale.sale_date + ' ' : '______________________';
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      @page { size: A4; margin: 20mm 18mm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Times New Roman', Times, serif; font-size: 11px; color: #000; line-height: 1.6; }
+      .header-note { font-size: 9px; color: #555; margin-bottom: 10px; }
+      .doc-title { font-size: 14px; font-weight: 900; text-align: center; margin-bottom: 15px; letter-spacing: 0.5px; }
+      .operator-line { font-size: 10px; margin-bottom: 3px; }
+      .operator-line strong { font-size: 11px; }
+      .serial-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 10px; }
+      .serial-row .field { display: flex; align-items: center; gap: 5px; }
+      .serial-row .field .val { background: #ffff00; min-width: 180px; border-bottom: 1px solid #000; padding: 2px 6px; display: inline-block; min-height: 16px; }
+      .section-title { font-size: 11px; font-weight: 900; margin: 12px 0 6px 0; }
+      .form-row { font-size: 10px; margin-bottom: 4px; line-height: 1.7; }
+      .form-row .val { background: #ffff00; border-bottom: 1px solid #000; padding: 1px 6px; display: inline-block; min-width: 120px; min-height: 15px; }
+      .form-row .val-long { background: #ffff00; border-bottom: 1px solid #000; padding: 1px 6px; display: inline-block; min-width: 250px; min-height: 15px; }
+      .form-row .val-short { background: #ffff00; border-bottom: 1px solid #000; padding: 1px 6px; display: inline-block; min-width: 80px; min-height: 15px; }
+      .inline-pair { display: flex; gap: 20px; margin-bottom: 4px; }
+      .inline-pair .form-row { margin-bottom: 0; }
+      .temp-row { margin: 8px 0; font-size: 10px; }
+      .temp-row .checkbox { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; }
+      .temp-row .checkbox.checked { background: #000; }
+      .statement { margin-top: 15px; font-size: 10px; line-height: 1.7; }
+      .sign-footer { display: flex; justify-content: space-between; margin-top: 25px; align-items: flex-end; }
+      .sign-col { font-size: 10px; }
+      .sign-col .val { background: #ffff00; border-bottom: 1px solid #000; display: inline-block; min-width: 160px; min-height: 15px; padding: 1px 6px; }
+      .mp { text-align: center; font-size: 10px; }
+      hr { border: none; border-top: 1px solid #ccc; margin: 8px 0; }
+    </style></head><body>
+
+    <div class="header-note">Службен весник на РМ, бр. 38 од 21.3.2012 година</div>
+
+    <div class="doc-title">КОМЕРЦИЈАЛЕН ДОКУМЕНТ ЗА ХРАНА ОД ЖИВОТИНСКО ПОТЕКЛО ЗА ВНАТРЕШЕН ПРОМЕТ</div>
+
+    <div class="operator-line">Назив и седиште на операторот со храна кој ја испорачува храната:</div>
+    <div class="operator-line"><strong>${COMPANY.name}</strong></div>
+
+    <div style="margin:10px 0;">
+      <div class="form-row">Сериски број на Комерцијалниот Документ <span class="val">${sale.dispatch_number || ''}</span></div>
+      <div class="form-row">Архивски број од Евиденцијата на Операторот Испраќач <span class="val">${sale.invoice_number || ''}</span></div>
+    </div>
+
+    <div class="section-title">1. ПОДАТОЦИ ЗА ПРАТКАТА</div>
+    <div class="form-row">1.1 Опис на храната</div>
+    <div class="form-row" style="margin-left:20px;"><strong><u>Риба (Clarias gariepinus)</u></strong></div>
+    <div class="form-row">1.2 Волумен односно количина на храната, <span class="val">${totalQuantity}</span> кг.</div>
+    <div class="form-row">1.3 Начин на пакување на храната, <strong><u>Вакуум пакување</u></strong></div>
+    <div class="form-row">1.4. Соодветна идентификација за обезбедување на следливост на пратката - лот, партија или како што е соодветно</div>
+    <div class="form-row" style="margin-left:20px;">LOT: <span class="val">${lotNumbers}</span></div>
+    <div class="inline-pair">
+      <div class="form-row">1.5 Рок на траење на храната <span class="val">${expiryStr}</span></div>
+      <div class="form-row">1.6 Број на пропратен документ <span class="val-short">${sale.dispatch_number || ''}</span><br/><span style="font-size:9px;margin-left:20px;">(испратница):</span></div>
+    </div>
+    <div class="inline-pair">
+      <div class="form-row">Датум и Време на Испраќање <span class="val">${saleDateTime}</span></div>
+      <div class="form-row">Датум и Време на Прием <span class="val"></span></div>
+    </div>
+
+    <div class="section-title">2. ПОДАТОЦИ ЗА ИСПРАЌАЧОТ</div>
+    <div class="form-row">2.1 Испраќач: <strong>${COMPANY.name}</strong> <span style="margin-left:30px;">Единствен Идентификационен Број емб:<strong>${COMPANY.emb}</strong></span></div>
+    <div class="form-row">2.2 Адреса <strong>${COMPANY.farmAddress}, 1400 Велес, Македонија</strong></div>
+
+    <div class="section-title">3. ПОДАТОЦИ ЗА ТРАНСПОРТЕРОТ</div>
+    <div class="form-row">3.1 Транспортер: <strong>${COMPANY.name}</strong> <span style="margin-left:30px;">Единствен Идентификационен Број емб:<strong>${COMPANY.emb}</strong></span></div>
+    <div class="form-row">3.2 Адреса: <strong>${COMPANY.farmAddress}, 1400 Велес, Македонија</strong></div>
+    <div class="form-row">3.3 Вид на транспортно средство: <span class="val">${sale.transport_vehicle || ''}</span></div>
+    <div class="form-row">3.4 Регистарски број на транспортното средство <span class="val">${sale.transport_vehicle || ''}</span></div>
+    <div class="form-row">3.5 Потребна температура за транспорт и понатамошна манипулација со храната: <span class="val-short">-18</span> °C</div>
+    <div class="temp-row">
+      Амбиентална <span class="checkbox"></span> на температура од _____
+      Разладена <span class="checkbox"></span> на температура од _____
+      Длабоко замрзната <span class="checkbox checked"></span> на температура од <span class="val-short">-18</span>
+    </div>
+
+    <div class="section-title">4. ПОДАТОЦИ ЗА ПРИМАЧОТ</div>
+    <div class="form-row">4.1 Примач <span class="val-long">${sale.buyer_name || ''}</span> Единствен Идентификационен Број <span class="val-short">${sale.buyer_edb || ''}</span></div>
+    <div class="form-row">4.2 Адреса <span class="val-long">${sale.buyer_address || ''}</span></div>
+
+    <div class="section-title">5. ИЗЈАВА НА ИСПОРАЧАТЕЛОТ</div>
+    <div class="statement">
+      Погоре опишаната храна во пратката е произведена и/или со храната е манипулирано согласно соодветните законски одредби.<br/>
+      Храната се испраќа со превозно средство кое ги исполнува законските барања за транспорт на соодветната храна.
+    </div>
+
+    <div class="sign-footer">
+      <div class="sign-col">
+        Датум<br/>
+        <span class="val">${sale.sale_date || ''}</span>
+      </div>
+      <div class="mp">МП</div>
+      <div class="sign-col" style="text-align:right;">
+        Потпис на Одговорното Лице<br/>
+        <span class="val"></span>
+      </div>
+    </div>
+
+    </body></html>`;
+  }
+
+  // ─── ДЕКЛАРАЦИЈА (етикета за производ) ───
+  if (docType === 'declaration') {
+    const netKg = totalKg.toFixed(2);
+    const harvestDateStr = lotDate ? formatDateDMY(lotDate) : '—';
+    const packDateStr = harvestDateStr;
+    const expiryStr = expiryDate ? formatDateDMY(expiryDate) : '—';
+    const lotStr = firstLot || '—';
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <style>
+      @page { size: A4; margin: 30mm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a2744; display: flex; justify-content: center; padding-top: 20px; }
+      .label-card { width: 360px; border: 1px solid #dce3ed; }
+      .label-header { text-align: center; padding: 12px 15px; border-bottom: 1px solid #dce3ed; }
+      .label-header .logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+      .label-header .logo-text { font-size: 20px; font-weight: 900; color: #1a2744; letter-spacing: 2px; }
+      .label-header .title { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+      .label-header .badge { font-size: 8px; color: #555; margin-top: 2px; }
+      .product-section { text-align: center; padding: 10px 15px; border-bottom: 1px solid #dce3ed; }
+      .product-section .brand { font-size: 13px; font-weight: 900; letter-spacing: 1px; }
+      .product-section .product-name { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 3px 0; }
+      .product-section .latin { font-size: 10px; font-style: italic; color: #555; }
+      .info-banner { background: #f0f4f8; padding: 8px 15px; font-size: 9px; text-align: center; line-height: 1.5; color: #444; border-bottom: 1px solid #dce3ed; }
+      .info-banner .allergen { font-weight: 900; font-size: 10px; color: #000; margin-top: 3px; }
+      .trace-title { text-align: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 8px 15px 4px; color: #1a2744; }
+      .trace-table { width: 100%; border-collapse: collapse; }
+      .trace-table td { padding: 6px 15px; font-size: 10px; border-bottom: 1px solid #eee; }
+      .trace-table td:first-child { font-weight: 600; color: #1a2744; width: 55%; }
+      .trace-table td:last-child { text-align: right; }
+      .storage-bar { background: #e8f0f8; padding: 6px 15px; font-size: 9px; text-align: center; color: #333; border-top: 1px solid #dce3ed; }
+      .storage-bar .icon { margin-right: 4px; }
+      .producer { text-align: center; padding: 8px 15px; font-size: 8px; color: #666; line-height: 1.5; border-top: 1px solid #dce3ed; }
+      .producer strong { font-size: 9px; color: #1a2744; }
+    </style></head><body>
+    <div class="label-card">
+
+      <div class="label-header">
+        <div class="logo">
+          <span class="logo-text">CLARIO</span>
+        </div>
+        <div class="title">ДЕКЛАРАЦИЈА</div>
+        <div class="badge">100% ДОМАШНО • RAS • ВЕЛЕС</div>
       </div>
 
-      <div class="info-box" style="margin-top:15px;background:#fef3c7;border-color:#fbbf24;">
-        <h4 style="color:#92400e;">Алергени</h4>
-        <p><strong>Содржи: РИБА</strong></p>
+      <div class="product-section">
+        <div class="brand">CLARIO</div>
+        <div class="product-name">ЗАМРЗНАТ АФРИКАНСКИ СОМ</div>
+        <div class="latin">Clarias gariepinus</div>
       </div>
 
-      <div style="margin-top:15px;font-size:9px;color:#64748b;">
-        <p>Услови на чување: Од 0°C до +4°C</p>
-        <p>Датум на производство: ${sale.sale_date}</p>
-        <p>Рок на употреба: Видете на амбалажата</p>
+      <div class="info-banner">
+        Одгледано во аквакултура – контролиран RAS-систем<br/>
+        Потекло: Северна Македонија &bull; Состојки: 100% сом<br/>
+        <div class="allergen">АЛЕРГЕН: РИБА</div>
       </div>
 
-      <div class="footer">
-        <div><div class="sign-line">Одговорно лице</div></div>
+      <div class="trace-title">ПОДАТОЦИ ЗА СЛЕДЛИВОСТ</div>
+      <table class="trace-table">
+        <tr><td>НЕТО-КОЛИЧИНА</td><td>${netKg} кг</td></tr>
+        <tr><td>ДАТУМ НА ИЗЛОВ</td><td>${harvestDateStr}</td></tr>
+        <tr><td>ДАТУМ НА ПАКУВАЊЕ</td><td>${packDateStr}</td></tr>
+        <tr><td>УПОТРЕБЛИВО ДО</td><td>${expiryStr}</td></tr>
+        <tr><td>ЛОТ / СЕРИЈА</td><td>${lotStr}</td></tr>
+      </table>
+
+      <div class="storage-bar">
+        ❄ ЧУВАЊЕ: под -18°C &bull; По отворање веднаш да се употреби.
       </div>
+
+      <div class="producer">
+        ПРОИЗВОДИТЕЛ:<br/>
+        <strong>ФАМАКОМ АКВАКУЛТУРА ДОО Велес</strong><br/>
+        11 Октомври бр.2, 1400 Велес<br/>
+        РБО: ${COMPANY.bankRBO}
+      </div>
+
+    </div>
     </body></html>`;
   }
 
