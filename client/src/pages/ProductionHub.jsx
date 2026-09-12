@@ -52,7 +52,7 @@ export default function ProductionHub() {
       ],
     },
     {
-      path: '/production/sales',
+      path: '/production/sales/history',
       icon: ShoppingCart,
       title: 'Продажба',
       desc: 'Фактури, купувачи и историја на продажба',

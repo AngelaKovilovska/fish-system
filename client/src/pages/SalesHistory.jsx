@@ -96,7 +96,7 @@ export default function SalesHistory() {
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/reports')} className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад">
+        <button onClick={() => navigate('/production')} className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад">
           <ChevronLeft size={18} />
         </button>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -107,7 +107,7 @@ export default function SalesHistory() {
           <h1 className="page-title !mb-0">Продажби</h1>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">Историја и документи</p>
         </div>
-        <button onClick={() => navigate('/sales/new')} className="btn-primary text-sm flex items-center gap-1.5">
+        <button onClick={() => navigate('/production/sales')} className="btn-primary text-sm flex items-center gap-1.5">
           <Plus size={16} /> Нова
         </button>
       </div>
