@@ -1,10 +1,10 @@
 -- Ажурирање на типови производи
--- 1. Ажурирај имиња на постоечки типови
-UPDATE product_types SET name = 'Риба со глава' WHERE code = 'РСГ';
-UPDATE product_types SET name = 'Риба без глава' WHERE code = 'РБГ';
-UPDATE product_types SET name = 'Филета со кожа' WHERE code = 'ФСК';
-UPDATE product_types SET name = 'Филета без кожа' WHERE code = 'ФБК';
-UPDATE product_types SET name = 'Делови за чорба' WHERE code = 'ДЗЧ';
+-- 1. Ажурирај имиња и осигурај дека сите се активни
+UPDATE product_types SET name = 'Риба со глава', is_active = true WHERE code = 'РСГ';
+UPDATE product_types SET name = 'Риба без глава', is_active = true WHERE code = 'РБГ';
+UPDATE product_types SET name = 'Филета со кожа', is_active = true WHERE code = 'ФСК';
+UPDATE product_types SET name = 'Филета без кожа', is_active = true WHERE code = 'ФБК';
+UPDATE product_types SET name = 'Делови за чорба', is_active = true WHERE code = 'ДЗЧ';
 
 -- 2. Деактивирај ДР (димена риба) - заменета со ЧР
 UPDATE product_types SET is_active = false WHERE code = 'ДР';
