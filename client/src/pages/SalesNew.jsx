@@ -392,7 +392,7 @@ export default function SalesNew() {
 
         {/* Submit */}
         <div className="flex gap-3 justify-end animate-in-delay-4">
-          <button type="button" onClick={() => navigate(-1)} className="btn-ghost flex items-center gap-1.5">
+          <button type="button" onClick={() => navigate('/production/sales')} className="btn-ghost flex items-center gap-1.5">
             <X size={16} /> Откажи
           </button>
           <button type="submit" disabled={saving} className="btn-primary flex items-center gap-1.5">

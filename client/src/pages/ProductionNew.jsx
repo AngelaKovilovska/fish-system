@@ -264,7 +264,7 @@ export default function ProductionNew() {
       {/* ─── HEADER ─── */}
       <div className="mb-5 animate-in" ref={formTopRef}>
         <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => navigate(-1)} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+          <button onClick={() => navigate('/production')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
           <h1 className="page-title !mb-0">Производство</h1>
           <div className="flex-1" />
           <button onClick={() => { setShowSettings(!showSettings); setShowForm(false); }}

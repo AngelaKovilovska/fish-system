@@ -68,7 +68,7 @@ export default function ProductTypesPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-5 animate-in">
-        <button onClick={() => navigate(-1)} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+        <button onClick={() => navigate('/production')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Типови производи</h1>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">Цени и залиха</p>

@@ -28,7 +28,7 @@ export default function ProductInventoryPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
+        <button onClick={() => navigate('/production')} className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
         <h1 className="page-title">Залиха на производи</h1>
