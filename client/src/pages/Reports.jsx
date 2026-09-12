@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate } from '../lib/utils';
-import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Legend,
@@ -13,6 +13,9 @@ const REPORT_TYPES = [
   { key: 'daily', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
   { key: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
   { key: 'salesHistory', label: 'Историја на продажби', desc: 'Фактури и продажба на производи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
+  { key: 'salesByBuyer', label: 'Продажби по купувач', desc: 'Приходи и количини по купувач', icon: Users, needsDates: true },
+  { key: 'salesByProduct', label: 'Продажби по производ', desc: 'Продадени количини и приходи по производ', icon: Package, needsDates: true },
+  { key: 'salesByPeriod', label: 'Месечни продажби', desc: 'Месечен преглед на продажбите', icon: TrendingUp, needsDates: true },
   { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
   { key: 'weight', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
   { key: 'alerts', label: 'Аларми', desc: 'Историја на активирани аларми', icon: AlertTriangle, needsDates: true, needsPool: false },
@@ -20,6 +23,8 @@ const REPORT_TYPES = [
   { key: 'purchases', label: 'Набавки на храна', desc: 'Кога и колку храна е купена', icon: ShoppingCart, needsDates: true, needsPool: false },
   { key: 'inventory', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
 ];
+
+const MK_MONTHS_SHORT = ['Јан', 'Фев', 'Мар', 'Апр', 'Мај', 'Јун', 'Јул', 'Авг', 'Сеп', 'Окт', 'Ное', 'Дек'];
 
 // Chart colors — clean, consistent palette
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
@@ -162,6 +167,53 @@ export default function Reports() {
         case 'alerts': result = await api.previewAlertsReport(from, to); break;
         case 'sorting': result = await api.previewSortingReport(from, to); break;
         case 'purchases': result = await api.previewPurchasesReport(from, to); break;
+        case 'salesByBuyer':
+        case 'salesByProduct':
+        case 'salesByPeriod': {
+          const sRes = await api.getSales({ from, to, limit: 500 });
+          const allSales = sRes.sales || [];
+          if (activeReport === 'salesByBuyer') {
+            const byBuyer = {};
+            for (const s of allSales) {
+              const name = s.buyer_name || 'Непознат';
+              if (!byBuyer[name]) byBuyer[name] = { count: 0, totalAmount: 0, totalKg: 0 };
+              byBuyer[name].count++;
+              byBuyer[name].totalAmount += parseFloat(s.total || 0);
+              byBuyer[name].totalKg += (s.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0);
+            }
+            const rows = Object.entries(byBuyer).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.totalAmount - a.totalAmount);
+            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+          }
+          if (activeReport === 'salesByProduct') {
+            const byProduct = {};
+            for (const s of allSales) {
+              for (const item of (s.items || [])) {
+                const key = item.code || item.name || 'Непознат';
+                if (!byProduct[key]) byProduct[key] = { name: item.name || key, code: key, totalKg: 0, totalAmount: 0, count: 0 };
+                byProduct[key].totalKg += parseFloat(item.quantity_kg || 0);
+                byProduct[key].totalAmount += parseFloat(item.amount || 0);
+                byProduct[key].count++;
+              }
+            }
+            const rows = Object.values(byProduct).sort((a, b) => b.totalAmount - a.totalAmount);
+            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+          }
+          if (activeReport === 'salesByPeriod') {
+            const byMonth = {};
+            for (const s of allSales) {
+              const d = new Date(s.sale_date);
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              const label = MK_MONTHS_SHORT[d.getMonth()] + ' ' + d.getFullYear();
+              if (!byMonth[key]) byMonth[key] = { key, label, count: 0, totalAmount: 0, totalKg: 0 };
+              byMonth[key].count++;
+              byMonth[key].totalAmount += parseFloat(s.total || 0);
+              byMonth[key].totalKg += (s.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0);
+            }
+            const rows = Object.values(byMonth).sort((a, b) => a.key.localeCompare(b.key));
+            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+          }
+          break;
+        }
       }
       setPreviewData(result);
     } catch (err) { setError(err.message); }
@@ -285,6 +337,30 @@ export default function Reports() {
       ).join('');
       tableHTML = `<table><thead><tr><th>Датум</th><th>Тип храна</th><th class="r">Количина (kg)</th><th>Внесено од</th></tr></thead><tbody>${rows}</tbody></table>
         <p class="total">Вкупно набавки: ${previewData.total} | Вкупно количина: ${previewData.totalKg} kg</p>`;
+    }
+
+    if (activeReport === 'salesByBuyer') {
+      const rows = previewData.rows || [];
+      const trs = rows.map(r =>
+        `<tr><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Купувач</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Износ (ден)</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td></tr></tbody></table>`;
+    }
+
+    if (activeReport === 'salesByProduct') {
+      const rows = previewData.rows || [];
+      const trs = rows.map(r =>
+        `<tr><td>${r.code}</td><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Код</th><th>Производ</th><th class="r">Ставки</th><th class="r">Количина (кг)</th><th class="r">Износ (ден)</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td colspan="2"><strong>Вкупно</strong></td><td class="r"><strong>${rows.reduce((s, r) => s + r.count, 0)}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td></tr></tbody></table>`;
+    }
+
+    if (activeReport === 'salesByPeriod') {
+      const rows = previewData.rows || [];
+      const trs = rows.map(r =>
+        `<tr><td>${r.label}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
+      ).join('');
+      tableHTML = `<table><thead><tr><th>Месец</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Износ (ден)</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td></tr></tbody></table>`;
     }
 
     if (activeReport === 'inventory') {
@@ -570,6 +646,65 @@ ${tableHTML}
               </ResponsiveContainer>
             </div>
           )}
+        </div>
+      );
+    }
+
+    // ── Sales by buyer bar chart ──
+    if (activeReport === 'salesByBuyer' && (previewData.rows || []).length > 0) {
+      const chartData = previewData.rows.slice(0, 10).map(r => ({ name: r.name.length > 15 ? r.name.slice(0, 14) + '…' : r.name, Приход: parseFloat(r.totalAmount.toFixed(0)) }));
+      return (
+        <div className="card mb-4 animate-in">
+          <h3 className="section-title text-sm mb-4">Приход по купувач (ден)</h3>
+          <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 44 + 40)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 15, left: 5, bottom: 0 }} barCategoryGap="25%">
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltipContent suffix=" ден" />} />
+              <Bar dataKey="Приход" fill="#22c55e" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    // ── Sales by product bar chart ──
+    if (activeReport === 'salesByProduct' && (previewData.rows || []).length > 0) {
+      const chartData = previewData.rows.map(r => ({ name: r.code, Количина: parseFloat(r.totalKg.toFixed(1)), Приход: parseFloat(r.totalAmount.toFixed(0)) }));
+      return (
+        <div className="card mb-4 animate-in">
+          <h3 className="section-title text-sm mb-4">Продажби по производ</h3>
+          <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 50 + 40)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 15, left: 5, bottom: 0 }} barGap={2} barCategoryGap="25%">
+              <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.3} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltipContent />} />
+              <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'Sora, sans-serif', paddingTop: 8 }} />
+              <Bar dataKey="Количина" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Количина (кг)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    // ── Sales by period line chart ──
+    if (activeReport === 'salesByPeriod' && (previewData.rows || []).length > 1) {
+      const chartData = previewData.rows.map(r => ({ name: r.label, Приход: parseFloat(r.totalAmount.toFixed(0)), Количина: parseFloat(r.totalKg.toFixed(1)) }));
+      return (
+        <div className="card mb-4 animate-in">
+          <h3 className="section-title text-sm mb-4">Месечен тренд на продажби</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={chartData} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)', fontFamily: 'Sora, sans-serif' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltipContent />} />
+              <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'Sora, sans-serif', paddingTop: 8 }} />
+              <Line type="monotone" dataKey="Приход" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} name="Приход (ден)" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       );
     }
@@ -957,6 +1092,150 @@ ${tableHTML}
               Прикажи ги сите ({rows.length - VISIBLE_COUNT} повеќе)
             </button>
           )}
+        </div>
+      );
+    }
+
+    // ── Sales by buyer ──
+    if (activeReport === 'salesByBuyer') {
+      const rows = previewData.rows || [];
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.totalSales}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.grandKg.toFixed(1)} кг</div>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+            <table className="table-modern">
+              <thead><tr><th>Купувач</th><th className="text-right">Продажби</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td className="font-medium">{r.name}</td>
+                    <td className="text-right">{r.count}</td>
+                    <td className="text-right">{r.totalKg.toFixed(1)}</td>
+                    <td className="text-right font-bold text-[var(--primary)]">{r.totalAmount.toFixed(0)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-[var(--border)]">
+                  <td className="font-bold">Вкупно</td>
+                  <td className="text-right font-bold">{previewData.totalSales}</td>
+                  <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
+                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
+        </div>
+      );
+    }
+
+    // ── Sales by product ──
+    if (activeReport === 'salesByProduct') {
+      const rows = previewData.rows || [];
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Производи</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{rows.length}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно кг</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.grandKg.toFixed(1)}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Приход</div>
+              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+            <table className="table-modern">
+              <thead><tr><th>Код</th><th>Производ</th><th className="text-right">Ставки</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td className="font-semibold text-[var(--primary)]">{r.code}</td>
+                    <td>{r.name}</td>
+                    <td className="text-right">{r.count}</td>
+                    <td className="text-right font-semibold">{r.totalKg.toFixed(1)}</td>
+                    <td className="text-right font-bold">{r.totalAmount.toFixed(0)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-[var(--border)]">
+                  <td colSpan={2} className="font-bold">Вкупно</td>
+                  <td className="text-right font-bold">{rows.reduce((s, r) => s + r.count, 0)}</td>
+                  <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
+                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
+        </div>
+      );
+    }
+
+    // ── Sales by period (monthly) ──
+    if (activeReport === 'salesByPeriod') {
+      const rows = previewData.rows || [];
+      const avgMonthly = rows.length > 0 ? previewData.grandTotal / rows.length : 0;
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <div className="grid grid-cols-2 min-[400px]:grid-cols-4 gap-2">
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.totalSales}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Месеци</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{rows.length}</div>
+            </div>
+            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Просек/мес</div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">{(avgMonthly / 1000).toFixed(1)}к</div>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+            <table className="table-modern">
+              <thead><tr><th>Месец</th><th className="text-right">Продажби</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td className="font-medium">{r.label}</td>
+                    <td className="text-right">{r.count}</td>
+                    <td className="text-right">{r.totalKg.toFixed(1)}</td>
+                    <td className="text-right font-bold text-[var(--primary)]">{r.totalAmount.toFixed(0)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-[var(--border)]">
+                  <td className="font-bold">Вкупно</td>
+                  <td className="text-right font-bold">{previewData.totalSales}</td>
+                  <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
+                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
         </div>
       );
     }

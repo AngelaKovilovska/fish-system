@@ -46,6 +46,9 @@ export default function SalesNew() {
     notes: '',
   });
 
+  /* VAT rate */
+  const [vatRate, setVatRate] = useState(5);
+
   /* items */
   const [items, setItems] = useState([{ product_type_id: '', quantity_kg: '', price_per_kg: '' }]);
 
@@ -117,7 +120,7 @@ export default function SalesNew() {
 
   /* totals */
   const subtotal = items.reduce((s, i) => s + (parseFloat(i.quantity_kg) || 0) * (parseFloat(i.price_per_kg) || 0), 0);
-  const vatAmount = Math.round(subtotal * 5) / 100;
+  const vatAmount = Math.round(subtotal * vatRate) / 100;
   const total = subtotal + vatAmount;
   const dueDate = addDays(form.sale_date, 7);
 
@@ -139,6 +142,7 @@ export default function SalesNew() {
         product_temp: '-18',
         due_date: dueDate,
         buyer_id: buyerId,
+        vat_rate: vatRate,
         items: validItems.map(i => ({
           product_type_id: parseInt(i.product_type_id),
           quantity_kg: parseFloat(i.quantity_kg),
@@ -330,8 +334,17 @@ export default function SalesNew() {
             <div className="flex justify-between text-xs text-[var(--text-secondary)]">
               <span>Основица:</span><span>{subtotal.toFixed(2)} ден</span>
             </div>
-            <div className="flex justify-between text-xs text-[var(--text-secondary)]">
-              <span>ДДВ (5%):</span><span>{vatAmount.toFixed(2)} ден</span>
+            <div className="flex justify-between items-center text-xs text-[var(--text-secondary)]">
+              <span className="flex items-center gap-1.5">
+                ДДВ:
+                <select value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value))}
+                  className="text-xs font-semibold bg-[var(--surface-elevated)] border border-[var(--border)] rounded-md px-1.5 py-0.5 text-[var(--primary)] cursor-pointer">
+                  <option value={5}>5%</option>
+                  <option value={10}>10%</option>
+                  <option value={18}>18%</option>
+                </select>
+              </span>
+              <span>{vatAmount.toFixed(2)} ден</span>
             </div>
             <div className="flex justify-between text-sm font-bold text-[var(--text-primary)] pt-1">
               <span>Вкупно:</span><span>{total.toFixed(2)} ден</span>

@@ -1,8 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X, ChevronDown, ChevronUp, ChevronLeft } from 'lucide-react';
+import {
+  Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
+  ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
+  TrendingUp, Package,
+} from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
+
+const MK_MONTHS = [
+  'Сите месеци', 'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
+  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
+];
 
 export default function SalesHistory() {
   const navigate = useNavigate();
@@ -11,9 +20,15 @@ export default function SalesHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [tab, setTab] = useState('sales'); // 'sales' | 'buyers'
+  const [tab, setTab] = useState('sales');
   const [expandedSale, setExpandedSale] = useState(null);
   const printFrameRef = useRef(null);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMonth, setFilterMonth] = useState(0); // 0 = all
+  const [filterBuyer, setFilterBuyer] = useState(''); // '' = all
+  const [showFilters, setShowFilters] = useState(false);
 
   // Buyer editing
   const [editingBuyer, setEditingBuyer] = useState(null);
@@ -24,7 +39,7 @@ export default function SalesHistory() {
   async function loadData() {
     try {
       const [salesRes, buyersRes] = await Promise.all([
-        api.getSales({ limit: 50 }),
+        api.getSales({ limit: 200 }),
         api.getBuyers(),
       ]);
       setSales(salesRes.sales || []);
@@ -32,6 +47,54 @@ export default function SalesHistory() {
     } catch { setError('Грешка при вчитување'); }
     finally { setLoading(false); }
   }
+
+  // Filtered & sorted sales
+  const filteredSales = useMemo(() => {
+    let result = [...sales];
+
+    // Sort newest first
+    result.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
+
+    // Filter by month
+    if (filterMonth > 0) {
+      result = result.filter(s => {
+        const d = new Date(s.sale_date);
+        return d.getMonth() + 1 === filterMonth;
+      });
+    }
+
+    // Filter by buyer
+    if (filterBuyer) {
+      result = result.filter(s => s.buyer_name === filterBuyer);
+    }
+
+    // Search by invoice number or buyer name
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(s =>
+        (s.invoice_number || '').toLowerCase().includes(q) ||
+        (s.buyer_name || '').toLowerCase().includes(q) ||
+        (s.dispatch_number || '').toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [sales, filterMonth, filterBuyer, searchQuery]);
+
+  // Summary stats
+  const stats = useMemo(() => {
+    const totalAmount = filteredSales.reduce((s, x) => s + parseFloat(x.total || 0), 0);
+    const totalKg = filteredSales.reduce((s, x) =>
+      s + (x.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
+    const uniqueBuyers = new Set(filteredSales.map(s => s.buyer_name)).size;
+    return { count: filteredSales.length, totalAmount, totalKg, uniqueBuyers };
+  }, [filteredSales]);
+
+  // Unique buyer names for filter
+  const buyerNames = useMemo(() => {
+    const names = [...new Set(sales.map(s => s.buyer_name).filter(Boolean))];
+    return names.sort();
+  }, [sales]);
 
   async function handleDeleteSale(id) {
     if (!confirm('Избриши ја продажбата? Залихата ќе се врати.')) return;
@@ -80,6 +143,14 @@ export default function SalesHistory() {
       setError('Грешка при печатење: ' + err.message);
     }
   }
+
+  function clearFilters() {
+    setSearchQuery('');
+    setFilterMonth(0);
+    setFilterBuyer('');
+  }
+
+  const hasActiveFilters = searchQuery || filterMonth > 0 || filterBuyer;
 
   if (loading) {
     return (
@@ -130,34 +201,122 @@ export default function SalesHistory() {
       {/* ═══ SALES TAB ═══ */}
       {tab === 'sales' && (
         <>
-          {sales.length === 0 ? (
+          {/* Summary stats */}
+          {sales.length > 0 && (
+            <div className="grid grid-cols-2 min-[420px]:grid-cols-4 gap-2 mb-4 animate-in">
+              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
+                <div className="text-base font-bold text-[var(--text-primary)]">{stats.count}</div>
+              </div>
+              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+                <div className="text-base font-bold text-[var(--primary)]">{(stats.totalAmount / 1000).toFixed(1)}к ден</div>
+              </div>
+              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
+                <div className="text-base font-bold text-[var(--text-primary)]">{stats.totalKg.toFixed(1)} кг</div>
+              </div>
+              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>Купувачи</div>
+                <div className="text-base font-bold text-[var(--text-primary)]">{stats.uniqueBuyers}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Search + filter toggle */}
+          {sales.length > 0 && (
+            <div className="mb-4 animate-in space-y-2">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    className="input-base text-sm !pl-8" placeholder="Пребарај по фактура или купувач..." />
+                </div>
+                <button onClick={() => setShowFilters(!showFilters)}
+                  className={`btn-ghost text-xs flex items-center gap-1 flex-shrink-0 ${hasActiveFilters ? '!text-[var(--primary)] !border-[var(--primary)]' : ''}`}>
+                  <Filter size={14} />
+                  {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />}
+                </button>
+              </div>
+
+              {/* Filters panel */}
+              {showFilters && (
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r-md)] p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Месец</label>
+                      <select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))}
+                        className="input-base text-xs">
+                        {MK_MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Купувач</label>
+                      <select value={filterBuyer} onChange={e => setFilterBuyer(e.target.value)}
+                        className="input-base text-xs">
+                        <option value="">Сите купувачи</option>
+                        {buyerNames.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-[var(--danger)]">
+                      <X size={12} /> Тргни филтри
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sales list */}
+          {filteredSales.length === 0 ? (
             <div className="card text-center py-12 animate-in">
               <ShoppingCart size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
-              <p className="text-sm text-[var(--text-secondary)]">Нема продажби</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                {hasActiveFilters ? 'Нема продажби со овие филтри' : 'Нема продажби'}
+              </p>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="btn-ghost text-xs mt-2 text-[var(--primary)]">
+                  Тргни филтри
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {sales.map((sale, idx) => {
+              {filteredSales.map((sale, idx) => {
                 const isExpanded = expandedSale === sale.id;
+                const totalKg = (sale.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
                 return (
                   <div key={sale.id} className={`card animate-in-delay-${Math.min(idx, 5)}`}>
+                    {/* Main row — always visible */}
                     <div className="flex items-start justify-between cursor-pointer"
                       onClick={() => setExpandedSale(isExpanded ? null : sale.id)}>
-                      <div>
-                        <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                          {sale.invoice_number}
-                        </h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                            {sale.invoice_number}
+                          </h3>
+                          <span className="pill pill-blue text-[9px]">{sale.payment_method}</span>
+                        </div>
                         <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                           {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[var(--primary)]">{parseFloat(sale.total).toFixed(2)} ден</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-[var(--primary)]">{parseFloat(sale.total).toFixed(0)} ден</span>
+                          <p className="text-[10px] text-[var(--text-muted)]">{totalKg.toFixed(1)} кг</p>
+                        </div>
                         {isExpanded ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
                       </div>
                     </div>
 
-                    {/* Items pills */}
+                    {/* Items pills — always visible */}
                     {sale.items && sale.items.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {sale.items.map(item => (
@@ -168,30 +327,64 @@ export default function SalesHistory() {
                       </div>
                     )}
 
-                    {isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-[var(--border)]">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="pill pill-blue text-[10px]">{sale.payment_method}</span>
-                          {sale.lot_number && <span className="text-[10px] text-[var(--text-muted)]">LOT: {sale.lot_number}</span>}
-                          {sale.transport_vehicle && <span className="text-[10px] text-[var(--text-muted)]">🚛 {sale.transport_vehicle}</span>}
-                        </div>
+                    {/* Document buttons — always visible */}
+                    <div className="flex gap-2 flex-wrap mt-3 pt-2 border-t border-[var(--border)]">
+                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'invoice'); }}
+                        className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
+                        <Printer size={12} /> Фактура
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'commercial'); }}
+                        className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
+                        <FileText size={12} /> Комерцијален
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'declaration'); }}
+                        className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
+                        <FileText size={12} /> Декларација
+                      </button>
+                    </div>
 
-                        <div className="flex gap-2 flex-wrap">
-                          <button onClick={() => handlePrint(sale.id, 'invoice')}
-                            className="btn-ghost text-xs flex items-center gap-1">
-                            <Printer size={13} /> Фактура
-                          </button>
-                          <button onClick={() => handlePrint(sale.id, 'commercial')}
-                            className="btn-ghost text-xs flex items-center gap-1">
-                            <FileText size={13} /> Комерцијален
-                          </button>
-                          <button onClick={() => handlePrint(sale.id, 'declaration')}
-                            className="btn-ghost text-xs flex items-center gap-1">
-                            <FileText size={13} /> Декларација
-                          </button>
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="text-[var(--text-muted)]">Испратница: </span>
+                            <span className="font-medium">{sale.dispatch_number || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[var(--text-muted)]">ДДВ: </span>
+                            <span className="font-medium">{sale.vat_rate}% ({parseFloat(sale.vat_amount).toFixed(0)} ден)</span>
+                          </div>
+                          {sale.lot_number && (
+                            <div>
+                              <span className="text-[var(--text-muted)]">LOT: </span>
+                              <span className="font-medium">{sale.lot_number}</span>
+                            </div>
+                          )}
+                          {sale.transport_vehicle && (
+                            <div>
+                              <span className="text-[var(--text-muted)]">Возило: </span>
+                              <span className="font-medium">{sale.transport_vehicle}</span>
+                            </div>
+                          )}
+                          {sale.due_date && (
+                            <div>
+                              <span className="text-[var(--text-muted)]">Рок: </span>
+                              <span className="font-medium">{formatDateShortMK(sale.due_date)}</span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-[var(--text-muted)]">Основица: </span>
+                            <span className="font-medium">{parseFloat(sale.subtotal).toFixed(2)} ден</span>
+                          </div>
+                        </div>
+                        {sale.notes && (
+                          <p className="text-[11px] text-[var(--text-muted)] italic">📝 {sale.notes}</p>
+                        )}
+                        <div className="flex justify-end">
                           <button onClick={() => handleDeleteSale(sale.id)}
-                            className="btn-ghost text-xs text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] ml-auto flex items-center gap-1">
-                            <Trash2 size={13} /> Избриши
+                            className="btn-ghost text-[11px] text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
+                            <Trash2 size={12} /> Избриши
                           </button>
                         </div>
                       </div>
@@ -222,17 +415,17 @@ export default function SalesHistory() {
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
                         <input type="text" value={buyerForm.name} onChange={e => setBuyerForm({ ...buyerForm, name: e.target.value })}
-                          className="input text-sm" placeholder="Име *" />
+                          className="input-base text-sm" placeholder="Име *" />
                         <input type="text" value={buyerForm.edb} onChange={e => setBuyerForm({ ...buyerForm, edb: e.target.value })}
-                          className="input text-sm" placeholder="ЕДБ" />
+                          className="input-base text-sm" placeholder="ЕДБ" />
                         <input type="text" value={buyerForm.address} onChange={e => setBuyerForm({ ...buyerForm, address: e.target.value })}
-                          className="input text-sm col-span-2" placeholder="Адреса" />
+                          className="input-base text-sm col-span-2" placeholder="Адреса" />
                         <input type="text" value={buyerForm.contact_person} onChange={e => setBuyerForm({ ...buyerForm, contact_person: e.target.value })}
-                          className="input text-sm" placeholder="Контакт лице" />
+                          className="input-base text-sm" placeholder="Контакт лице" />
                         <input type="text" value={buyerForm.phone} onChange={e => setBuyerForm({ ...buyerForm, phone: e.target.value })}
-                          className="input text-sm" placeholder="Телефон" />
+                          className="input-base text-sm" placeholder="Телефон" />
                         <input type="email" value={buyerForm.email} onChange={e => setBuyerForm({ ...buyerForm, email: e.target.value })}
-                          className="input text-sm col-span-2" placeholder="Email" />
+                          className="input-base text-sm col-span-2" placeholder="Email" />
                       </div>
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => setEditingBuyer(null)} className="btn-ghost text-xs flex items-center gap-1">
@@ -318,13 +511,8 @@ function generatePrintHTML(sale, docType) {
 
   const itemsArray = sale.items || [];
 
-  // Product name format for invoices/commercial: Риба (Clarias gariepinus) - РСГ (code only)
   function productNameShort(item) {
     return `Риба (Clarias gariepinus) - ${item.code || ''}`;
-  }
-  // Product name format for declaration: full name
-  function productNameFull(item) {
-    return `Риба (Clarias gariepinus) - ${item.code || ''} (${item.name || ''})`;
   }
 
   if (docType === 'invoice') {

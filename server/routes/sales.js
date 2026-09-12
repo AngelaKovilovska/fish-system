@@ -150,7 +150,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const {
       buyer_id, sale_date, due_date, payment_method,
       lot_number, transport_vehicle, product_temp,
-      items, notes
+      items, notes, vat_rate: requestVatRate
     } = req.body;
 
     if (!buyer_id) return res.status(400).json({ error: 'Потребен е купувач' });
@@ -171,7 +171,7 @@ router.post('/', authMiddleware, async (req, res) => {
       subtotal += qty * price;
     }
 
-    const vat_rate = 5.00;
+    const vat_rate = [5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : 5.00;
     const vat_amount = Math.round(subtotal * vat_rate) / 100;
     const total = subtotal + vat_amount;
 
