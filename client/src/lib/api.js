@@ -141,6 +141,7 @@ export const api = {
   updateProductionItems: (id, items) => request(`/production/${id}/items`, { method: 'POST', body: JSON.stringify({ items }) }),
   deleteProductionBatch: (id) => request(`/production/${id}`, { method: 'DELETE' }),
   getProductInventory: () => request('/production/inventory'),
+  resetProductInventory: (items) => request('/production/inventory/reset', { method: 'PUT', body: JSON.stringify({ items }) }),
 
   // Buyers
   getBuyers: () => request('/buyers'),

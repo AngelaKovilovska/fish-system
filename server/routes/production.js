@@ -93,6 +93,38 @@ router.get('/inventory', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/production/inventory/reset - manual inventory count (попис)
+router.put('/inventory/reset', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Потребни се ставки' });
+    }
+
+    await client.query('BEGIN');
+
+    for (const item of items) {
+      const qty = parseFloat(item.quantity_kg);
+      if (isNaN(qty) || qty < 0) continue;
+      await client.query(
+        `UPDATE product_inventory SET quantity_kg = $1, updated_at = NOW()
+         WHERE product_type_id = $2`,
+        [qty, item.product_type_id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Залихата е ажурирана' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Reset inventory error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/production/:id - single batch with items
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
