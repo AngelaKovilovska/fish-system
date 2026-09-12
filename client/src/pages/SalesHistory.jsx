@@ -324,7 +324,7 @@ function generatePrintHTML(sale, docType) {
   }
   // Product name format for declaration: full name
   function productNameFull(item) {
-    return `Риба (Clarias gariepinus) - ${item.code || ''} - ${item.name || ''}`;
+    return `Риба (Clarias gariepinus) - ${item.code || ''} (${item.name || ''})`;
   }
 
   if (docType === 'invoice') {
@@ -494,7 +494,7 @@ function generatePrintHTML(sale, docType) {
       ${itemsArray.map((item, i) => `
         <div class="info-box" style="margin-bottom:10px;">
           <h4>Производ ${itemsArray.length > 1 ? i + 1 : ''}</h4>
-          <p><strong>${productNameFull(item)}</strong></p>
+          <p><strong>${productNameShort(item)}</strong></p>
           <p>LOT: ${item.lot_number || sale.lot_number || '—'}</p>
           <p>Нето: ${parseFloat(item.quantity_kg).toFixed(2)} ${item.unit || 'кг'}</p>
         </div>
