@@ -288,33 +288,74 @@ export default function ProductionNew() {
       {/* ═══ SETTINGS ═══ */}
       {showSettings && !showForm && (
         <div className="card mb-5 animate-in">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Типови производи и цени</h3>
             <button onClick={() => setShowSettings(false)} className="btn-ghost p-1.5"><X size={16} /></button>
           </div>
-          <div className="space-y-2 mb-4">
+          <p className="text-[11px] text-[var(--text-muted)] mb-4">Промени ја цената или додај нов тип на производ</p>
+
+          {/* Existing product types */}
+          <div className="space-y-2.5 mb-5">
             {productTypes.map((t, idx) => (
-              <div key={t.id} className="flex items-center gap-2 py-1.5">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                  style={{ background: ptColor(idx).light, color: ptColor(idx).bg }}>{t.code}</div>
-                <span className="text-xs font-medium text-[var(--text-primary)] flex-1 min-w-0 truncate">{t.name}</span>
-                <input type="number" step="0.01" min="0" value={editPrices[t.id] ?? ''}
-                  onChange={e => setEditPrices({ ...editPrices, [t.id]: e.target.value })}
-                  className="input-base w-24 text-sm text-right" placeholder="ден/кг" />
-                <button onClick={() => handleSavePrice(t.id)} className="btn-ghost p-1.5 text-[var(--primary)]"><Save size={14} /></button>
-                <button onClick={() => handleDeleteType(t.id)} className="btn-ghost p-1.5 text-[var(--danger)]"><Trash2 size={14} /></button>
+              <div key={t.id} className="bg-[var(--surface-elevated)] rounded-[var(--r-sm)] p-3 border border-[var(--border)]">
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                    style={{ background: ptColor(idx).light, color: ptColor(idx).bg }}>{t.code}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{t.name}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">Код: {t.code}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена (ден/кг)</label>
+                    <input type="number" step="0.01" min="0" value={editPrices[t.id] ?? ''}
+                      onChange={e => setEditPrices({ ...editPrices, [t.id]: e.target.value })}
+                      className="input-base w-full text-sm" placeholder="Внеси цена" />
+                  </div>
+                  <div className="flex gap-1 mt-4">
+                    <button onClick={() => handleSavePrice(t.id)}
+                      className="btn-ghost text-[10px] text-[var(--primary)] flex items-center gap-1 px-2 py-1.5">
+                      <Save size={12} /> Зачувај
+                    </button>
+                    <button onClick={() => handleDeleteType(t.id)}
+                      className="btn-ghost text-[10px] text-[var(--danger)] flex items-center gap-1 px-2 py-1.5">
+                      <Trash2 size={12} /> Тргни
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-          <form onSubmit={handleAddType} className="flex gap-2 items-end pt-3 border-t border-[var(--border)]">
-            <div className="flex-shrink-0"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Код</label>
-              <input type="text" value={newType.code} onChange={e => setNewType({ ...newType, code: e.target.value })} className="input-base w-16 text-sm" placeholder="ДР" /></div>
-            <div className="flex-1"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Име</label>
-              <input type="text" value={newType.name} onChange={e => setNewType({ ...newType, name: e.target.value })} className="input-base text-sm" placeholder="димена риба" /></div>
-            <div className="flex-shrink-0"><label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена</label>
-              <input type="number" step="0.01" value={newType.price_per_unit} onChange={e => setNewType({ ...newType, price_per_unit: e.target.value })} className="input-base w-20 text-sm" placeholder="0" /></div>
-            <button type="submit" className="btn-primary text-sm px-3 py-2"><Plus size={14} /></button>
-          </form>
+
+          {/* Add new product type */}
+          <div className="pt-4 border-t border-[var(--border)]">
+            <p className="text-[11px] font-semibold text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <Plus size={12} className="inline -mt-0.5 mr-1" />Додај нов производ
+            </p>
+            <form onSubmit={handleAddType} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Код (кратенка)</label>
+                  <input type="text" value={newType.code} onChange={e => setNewType({ ...newType, code: e.target.value })}
+                    className="input-base w-full text-sm" placeholder="пр. ДР" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена (ден/кг)</label>
+                  <input type="number" step="0.01" value={newType.price_per_unit} onChange={e => setNewType({ ...newType, price_per_unit: e.target.value })}
+                    className="input-base w-full text-sm" placeholder="0.00" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Целосно име</label>
+                <input type="text" value={newType.name} onChange={e => setNewType({ ...newType, name: e.target.value })}
+                  className="input-base w-full text-sm" placeholder="пр. Димена риба" />
+              </div>
+              <button type="submit" className="btn-primary text-sm w-full py-2.5 flex items-center justify-center gap-2">
+                <Plus size={14} /> Додај производ
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
