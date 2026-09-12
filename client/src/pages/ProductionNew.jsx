@@ -667,7 +667,7 @@ export default function ProductionNew() {
                 <div className="flex-1 min-w-0 relative">
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
                   <input type="text" value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                    className="input-base text-sm pl-9 py-2 w-full" placeholder="Пребарај LOT..." />
+                    className="input-base text-sm w-full" style={{ paddingLeft: '2.25rem' }} placeholder="Пребарај LOT..." />
                 </div>
                 <button onClick={() => setShowFilters(!showFilters)}
                   className={`btn-ghost px-3 flex items-center gap-1.5 text-sm ${hasActiveFilters ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : ''}`}>

@@ -29,11 +29,4 @@ INSERT INTO product_inventory (product_type_id, quantity_kg)
 SELECT id, 0 FROM product_types WHERE code IN ('ЧР', 'ЦР')
 ON CONFLICT (product_type_id) DO NOTHING;
 
--- 6. Почетна залиха (попис од 12.09.2026)
--- ФСК: LOT 260906-2 (5.060) + LOT 260911-2 (15.5) + LOT 260912-2 (20.4) = 40.96 кг
--- РБГ: LOT 260911-2 (12.3) + LOT 260912-2 (17.515) = 29.815 кг
-UPDATE product_inventory SET quantity_kg = 40.96, updated_at = NOW()
-WHERE product_type_id = (SELECT id FROM product_types WHERE code = 'ФСК');
-
-UPDATE product_inventory SET quantity_kg = 29.815, updated_at = NOW()
-WHERE product_type_id = (SELECT id FROM product_types WHERE code = 'РБГ');
+-- 6. Почетна залиха е преместена во миграција 019 (еднократно извршување)
