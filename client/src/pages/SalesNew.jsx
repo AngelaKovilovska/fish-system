@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   ChevronLeft, Plus, Trash2, ShoppingCart, Save, X,
-  Check, AlertCircle, User, Package, Truck,
+  Check, AlertCircle, User, Package, Truck, History,
 } from 'lucide-react';
 
 function addDays(dateStr, days) {
@@ -146,7 +146,7 @@ export default function SalesNew() {
         })),
       });
       setSuccess('Продажбата е зачувана');
-      setTimeout(() => navigate('/production'), 1500);
+      setTimeout(() => navigate('/production/sales/history'), 1500);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   }
@@ -168,15 +168,21 @@ export default function SalesNew() {
           className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
-            <ShoppingCart size={20} className="text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))' }}>
+              <ShoppingCart size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="page-title !mb-0">Нова продажба</h1>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Фактура-испратница</p>
+            </div>
           </div>
-          <div>
-            <h1 className="page-title !mb-0">Нова продажба</h1>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">Фактура-испратница</p>
-          </div>
+          <button onClick={() => navigate('/production/sales/history')}
+            className="flex items-center gap-1.5 text-xs font-medium text-[var(--primary)] bg-[var(--surface-elevated)] border border-[var(--border)] rounded-[var(--r-sm)] px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
+            <History size={14} /> Историја
+          </button>
         </div>
       </div>
 
