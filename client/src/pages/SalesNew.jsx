@@ -43,7 +43,6 @@ export default function SalesNew() {
     payment_method: 'фактура',
     lot_number: '',
     transport_vehicle: '',
-    product_temp: '',
     notes: '',
   });
 
@@ -137,6 +136,7 @@ export default function SalesNew() {
       }
       await api.createSale({
         ...form,
+        product_temp: '-18',
         due_date: dueDate,
         buyer_id: buyerId,
         items: validItems.map(i => ({
@@ -146,7 +146,7 @@ export default function SalesNew() {
         })),
       });
       setSuccess('Продажбата е зачувана');
-      setTimeout(() => navigate('/production/sales'), 1500);
+      setTimeout(() => navigate('/production'), 1500);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   }
@@ -164,7 +164,7 @@ export default function SalesNew() {
 
       {/* header */}
       <div className="mb-5 animate-in">
-        <button onClick={() => navigate('/production/sales')}
+        <button onClick={() => navigate('/production')}
           className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
@@ -380,10 +380,10 @@ export default function SalesNew() {
                 className="input-base text-sm" placeholder="ВЕ-1234-АА" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Температура (°C)</label>
-              <input type="number" step="0.1" value={form.product_temp}
-                onChange={e => setForm({ ...form, product_temp: e.target.value })}
-                className="input-base text-sm" placeholder="°C" />
+              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Температура</label>
+              <div className="input-base text-sm bg-[var(--surface-elevated)] !cursor-default opacity-75">
+                -18°C
+              </div>
             </div>
           </div>
 
@@ -396,7 +396,7 @@ export default function SalesNew() {
 
         {/* submit */}
         <div className="flex gap-3 animate-in">
-          <button type="button" onClick={() => navigate('/production/sales')}
+          <button type="button" onClick={() => navigate('/production')}
             className="btn-ghost flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm">
             <X size={15} /> Откажи
           </button>
