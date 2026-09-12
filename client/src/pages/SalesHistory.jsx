@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
-  TrendingUp, Package,
+  TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
 
@@ -22,13 +22,16 @@ export default function SalesHistory() {
   const [success, setSuccess] = useState('');
   const [tab, setTab] = useState('sales');
   const [expandedSale, setExpandedSale] = useState(null);
-  const printFrameRef = useRef(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMonth, setFilterMonth] = useState(0); // 0 = all
   const [filterBuyer, setFilterBuyer] = useState(''); // '' = all
   const [showFilters, setShowFilters] = useState(false);
+
+  // Document preview modal: { html, docType, fileName }
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const previewFrameRef = useRef(null);
 
   // Buyer editing
   const [editingBuyer, setEditingBuyer] = useState(null);
@@ -129,19 +132,36 @@ export default function SalesHistory() {
     } catch (err) { setError(err.message); }
   }
 
-  async function handlePrint(saleId, docType) {
+  const DOC_LABELS = { invoice: 'Фактура', commercial: 'Комерцијален', declaration: 'Декларација' };
+
+  async function openPreview(saleId, docType) {
     try {
       const sale = await api.getSale(saleId);
       const html = generatePrintHTML(sale, docType);
-      const frame = printFrameRef.current;
-      const doc = frame.contentDocument || frame.contentWindow.document;
-      doc.open();
-      doc.write(html);
-      doc.close();
-      setTimeout(() => frame.contentWindow.print(), 300);
+      const invoiceNum = sale.invoice_number || sale.dispatch_number || saleId;
+      const fileName = `${DOC_LABELS[docType]}_${invoiceNum}`.replace(/[\s/\\:*?"<>|]/g, '_');
+      setPreviewDoc({ html, docType, fileName });
     } catch (err) {
-      setError('Грешка при печатење: ' + err.message);
+      setError('Грешка при отворање: ' + err.message);
     }
+  }
+
+  function handlePreviewPrint() {
+    const frame = previewFrameRef.current;
+    if (frame) frame.contentWindow.print();
+  }
+
+  function handlePreviewDownload() {
+    if (!previewDoc) return;
+    const blob = new Blob([previewDoc.html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${previewDoc.fileName}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function clearFilters() {
@@ -163,7 +183,38 @@ export default function SalesHistory() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <iframe ref={printFrameRef} className="hidden" title="print" />
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl flex flex-col" style={{ width: '90vw', maxWidth: '900px', height: '85vh' }}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+              <h3 className="font-semibold text-sm">{DOC_LABELS[previewDoc.docType]}</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={handlePreviewPrint} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
+                  <Printer size={14} /> Печати
+                </button>
+                <button onClick={handlePreviewDownload} className="btn-ghost text-xs flex items-center gap-1.5 px-3 py-1.5">
+                  <Download size={14} /> Симни
+                </button>
+                <button onClick={() => setPreviewDoc(null)} className="btn-ghost p-1.5 rounded-lg">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            {/* Preview iframe */}
+            <div className="flex-1 overflow-hidden p-3">
+              <iframe
+                ref={previewFrameRef}
+                srcDoc={previewDoc.html}
+                title="preview"
+                className="w-full h-full rounded-lg border border-[var(--border)]"
+                style={{ background: '#fff' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 animate-in">
@@ -329,17 +380,17 @@ export default function SalesHistory() {
 
                     {/* Document buttons — always visible */}
                     <div className="flex gap-2 flex-wrap mt-3 pt-2 border-t border-[var(--border)]">
-                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'invoice'); }}
+                      <button onClick={(e) => { e.stopPropagation(); openPreview(sale.id, 'invoice'); }}
                         className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
-                        <Printer size={12} /> Фактура
+                        <Eye size={12} /> Фактура
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'commercial'); }}
+                      <button onClick={(e) => { e.stopPropagation(); openPreview(sale.id, 'commercial'); }}
                         className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
-                        <FileText size={12} /> Комерцијален
+                        <Eye size={12} /> Комерцијален
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); handlePrint(sale.id, 'declaration'); }}
+                      <button onClick={(e) => { e.stopPropagation(); openPreview(sale.id, 'declaration'); }}
                         className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
-                        <FileText size={12} /> Декларација
+                        <Eye size={12} /> Декларација
                       </button>
                     </div>
 
