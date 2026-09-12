@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import {
   Factory, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Plus, Save, X, Settings, Package, Pencil, Trash2,
-  Check, AlertCircle, Search, Filter, Fish,
+  Check, AlertCircle, Search, Filter, Fish, ClipboardList,
 } from 'lucide-react';
 
 /* ─── helpers ─── */
@@ -81,6 +81,11 @@ export default function ProductionNew() {
   /* settings */
   const [newType, setNewType] = useState({ code: '', name: '', price_per_unit: '' });
   const [editPrices, setEditPrices] = useState({});
+
+  /* попис */
+  const [showPopis, setShowPopis] = useState(false);
+  const [popisValues, setPopisValues] = useState({});
+  const [inventoryData, setInventoryData] = useState([]);
 
   const formTopRef = useRef(null);
 
@@ -202,6 +207,34 @@ export default function ProductionNew() {
   async function handleDeleteType(id) {
     if (!confirm('Деактивирај?')) return;
     try { await api.deleteProductType(id); await loadData(); } catch (e) { setError(e.message); }
+  }
+
+  /* ═══ попис ═══ */
+  async function openPopis() {
+    setShowPopis(true);
+    try {
+      const d = await api.getProductInventory();
+      const inv = d.inventory || [];
+      setInventoryData(inv);
+      const vals = {};
+      inv.forEach(i => { vals[i.product_type_id] = String(i.quantity_kg || 0); });
+      setPopisValues(vals);
+    } catch { setError('Грешка при вчитување залиха'); }
+  }
+
+  async function handleSavePopis() {
+    const items = Object.entries(popisValues)
+      .filter(([, v]) => v !== '' && !isNaN(parseFloat(v)))
+      .map(([id, v]) => ({ product_type_id: id, quantity_kg: parseFloat(v) }));
+    if (!items.length) { setError('Внесете барем една вредност'); return; }
+    setSaving(true); setError('');
+    try {
+      await api.resetProductInventory(items);
+      setSuccess('Пописот е зачуван');
+      setShowPopis(false);
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (e) { setError(e.message || 'Грешка при зачувување'); }
+    finally { setSaving(false); }
   }
 
   /* ═══ computed ═══ */
@@ -355,6 +388,64 @@ export default function ProductionNew() {
                 <Plus size={14} /> Додај производ
               </button>
             </form>
+          </div>
+
+          {/* ═══ ПОПИС ═══ */}
+          <div className="pt-4 border-t border-[var(--border)]">
+            {!showPopis ? (
+              <button onClick={openPopis}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-[var(--primary)] bg-[var(--surface-elevated)] rounded-[var(--r-sm)] border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors">
+                <ClipboardList size={15} /> Попис на залиха
+              </button>
+            ) : (
+              <div className="animate-in">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    <ClipboardList size={12} className="inline -mt-0.5 mr-1" />Попис на залиха
+                  </p>
+                  <button onClick={() => setShowPopis(false)} className="btn-ghost p-1"><X size={14} /></button>
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mb-3">Внесете ја реалната количина за секој производ (во кг)</p>
+
+                <div className="space-y-2.5 mb-4">
+                  {inventoryData.map((item, idx) => {
+                    const currentQty = parseFloat(item.quantity_kg || 0);
+                    const newQty = parseFloat(popisValues[item.product_type_id] || 0);
+                    const diff = newQty - currentQty;
+                    return (
+                      <div key={item.product_type_id} className="bg-[var(--surface-elevated)] rounded-[var(--r-sm)] p-3 border border-[var(--border)]">
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                            style={{ background: ptColor(idx).light, color: ptColor(idx).bg }}>{item.code}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-[var(--text-primary)] truncate">{item.name}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">Моментална: {currentQty.toFixed(2)} кг</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <input type="number" step="0.01" min="0"
+                              value={popisValues[item.product_type_id] ?? ''}
+                              onChange={e => setPopisValues({ ...popisValues, [item.product_type_id]: e.target.value })}
+                              className="input-base w-full text-sm" placeholder="Нова количина (кг)" />
+                          </div>
+                          {diff !== 0 && !isNaN(diff) && (
+                            <span className={`text-[10px] font-semibold flex-shrink-0 ${diff > 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                              {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button onClick={handleSavePopis} disabled={saving}
+                  className="btn-primary text-sm w-full py-2.5 flex items-center justify-center gap-2">
+                  <Save size={14} /> {saving ? 'Зачувување...' : 'Зачувај попис'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
