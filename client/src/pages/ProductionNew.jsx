@@ -328,15 +328,15 @@ export default function ProductionNew() {
           <div className="flex items-center gap-1 mb-2">
             {STEPS.map((s, idx) => (
               <div key={s.n} className="flex items-center flex-1">
-                <button onClick={() => { if (s.n < step) setStep(s.n); }} disabled={s.n > step} className="flex items-center gap-1.5 w-full">
+                <button onClick={() => { if (s.n < step || editingId) setStep(s.n); }} disabled={!editingId && s.n > step} className="flex items-center gap-1.5 w-full">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 transition-all ${
-                    s.n < step ? 'bg-[var(--primary)] text-white'
+                    s.n < step || (editingId && s.n !== step) ? 'bg-[var(--primary)] text-white'
                     : s.n === step ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]'
                     : 'bg-[var(--surface-elevated)] text-[var(--text-muted)] border border-[var(--border)]'
-                  }`}>{s.n < step ? <Check size={14} /> : s.n}</div>
-                  <span className={`text-[11px] font-medium hidden min-[400px]:inline ${s.n <= step ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
+                  }`}>{s.n < step || (editingId && s.n !== step) ? <Check size={14} /> : s.n}</div>
+                  <span className={`text-[11px] font-medium hidden min-[400px]:inline ${s.n <= step || editingId ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
                 </button>
-                {idx < STEPS.length - 1 && <div className={`h-px flex-1 mx-1 ${s.n < step ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`} />}
+                {idx < STEPS.length - 1 && <div className={`h-px flex-1 mx-1 ${s.n < step || editingId ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`} />}
               </div>
             ))}
           </div>
