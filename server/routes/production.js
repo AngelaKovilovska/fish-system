@@ -141,6 +141,17 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const batchId = result.rows[0].id;
 
+    // Subtract fish from pool inventory
+    const fishCount = parseInt(fish_count) || 0;
+    if (source_pool && fishCount > 0) {
+      await client.query(
+        `UPDATE pool_fish_inventory
+         SET current_count = GREATEST(0, current_count - $1), updated_at = NOW()
+         WHERE pool_number = $2`,
+        [fishCount, source_pool]
+      );
+    }
+
     // Insert items if provided
     if (items && Array.isArray(items)) {
       for (const item of items) {
@@ -186,7 +197,32 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const isFinished = batch.rows[0].status === 'завршено';
 
+    const oldPool = batch.rows[0].source_pool;
+    const oldFishCount = parseInt(batch.rows[0].fish_count) || 0;
+    const newPool = source_pool || oldPool;
+    const newFishCount = parseInt(fish_count) || 0;
+
     await client.query('BEGIN');
+
+    // Adjust pool fish inventory if pool or fish count changed
+    if (oldPool && oldFishCount > 0) {
+      // Return old fish to old pool
+      await client.query(
+        `UPDATE pool_fish_inventory
+         SET current_count = current_count + $1, updated_at = NOW()
+         WHERE pool_number = $2`,
+        [oldFishCount, oldPool]
+      );
+    }
+    if (newPool && newFishCount > 0) {
+      // Subtract new fish from new pool
+      await client.query(
+        `UPDATE pool_fish_inventory
+         SET current_count = GREATEST(0, current_count - $1), updated_at = NOW()
+         WHERE pool_number = $2`,
+        [newFishCount, newPool]
+      );
+    }
 
     // Regenerate LOT number when date or pool changes
     const newLot = generateLotNumber(production_date || batch.rows[0].production_date, source_pool || batch.rows[0].source_pool);
@@ -196,7 +232,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       `UPDATE production_batches
        SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, production_date = $5, lot_number = $6, updated_at = NOW()
        WHERE id = $7`,
-      [source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, newLot, req.params.id]
+      [source_pool || null, newFishCount, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, newLot, req.params.id]
     );
 
     // Update items if provided
@@ -383,7 +419,19 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Rollback inventory if batch was finished
+    // Return fish to pool
+    const delPool = batch.rows[0].source_pool;
+    const delFishCount = parseInt(batch.rows[0].fish_count) || 0;
+    if (delPool && delFishCount > 0) {
+      await client.query(
+        `UPDATE pool_fish_inventory
+         SET current_count = current_count + $1, updated_at = NOW()
+         WHERE pool_number = $2`,
+        [delFishCount, delPool]
+      );
+    }
+
+    // Rollback product inventory if batch was finished
     if (batch.rows[0].status === 'завршено') {
       const items = await client.query(
         'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1',
