@@ -23,7 +23,7 @@ export default function ProductionHub() {
         const inv = invRes.inventory || [];
         const totalKg = batches.reduce((s, b) =>
           s + (b.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
-        const salesTotal = sales.reduce((s, x) => s + parseFloat(x.total_amount || 0), 0);
+        const salesTotal = sales.reduce((s, x) => s + parseFloat(x.total || 0), 0);
         const inventoryKg = inv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         setStats({ batches: batches.length, totalKg, salesCount: sales.length, salesTotal, inventoryKg, inventoryCount: inv.length });
       } catch { /* silent */ }
@@ -60,7 +60,7 @@ export default function ProductionHub() {
       lightBg: 'rgba(34,197,94,0.08)',
       stats: [
         { label: 'Продажби', value: stats.salesCount },
-        { label: 'Вкупно', value: `${(stats.salesTotal / 1000).toFixed(0)}к ден` },
+        { label: 'Вкупно', value: `${Math.round(stats.salesTotal).toLocaleString('mk-MK')} ден` },
       ],
     },
     {
