@@ -29,6 +29,21 @@ async function request(url, options = {}) {
   }
 }
 
+// Render a document HTML to PDF on the server; returns a Blob
+export async function renderDocumentPdf(html) {
+  const res = await fetch(`${API_BASE}/documents/pdf`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Грешка при генерирање на PDF');
+  }
+  return res.blob();
+}
+
 export const api = {
   // Auth
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),

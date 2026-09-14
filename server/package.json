@@ -20,9 +20,9 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "ml-matrix": "^6.12.2",
-
     "pdfkit": "^0.17.2",
     "pg": "^8.19.0",
+    "puppeteer-core": "^23.11.1",
     "sib-api-v3-sdk": "^8.5.0",
     "xlsx": "^0.18.5"
   },

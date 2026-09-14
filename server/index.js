@@ -74,6 +74,7 @@ app.use('/api/product-types', require('./routes/productTypes'));
 app.use('/api/production', require('./routes/production'));
 app.use('/api/buyers', require('./routes/buyers'));
 app.use('/api/sales', require('./routes/sales'));
+app.use('/api/documents', require('./routes/documents'));
 
 // Health check
 app.get('/api/health', (req, res) => {

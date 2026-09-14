@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, renderDocumentPdf } from '../lib/api';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
   TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
-import html2pdf from 'html2pdf.js';
 
 const MK_MONTHS = [
   'Сите месеци', 'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -33,6 +32,7 @@ export default function SalesHistory() {
   // Document preview modal: { html, docType, fileName }
   const [previewDoc, setPreviewDoc] = useState(null);
   const previewFrameRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
 
   // Buyer editing
   const [editingBuyer, setEditingBuyer] = useState(null);
@@ -152,69 +152,24 @@ export default function SalesHistory() {
     if (frame) frame.contentWindow.print();
   }
 
-  function handlePreviewDownload() {
-    if (!previewDoc) return;
-
-    // Parse full HTML — extract styles + body into main document context
-    const parser = new DOMParser();
-    const parsed = parser.parseFromString(previewDoc.html, 'text/html');
-
-    // Scope ALL CSS selectors under .pdf-root to avoid leaking into main app
-    const scopeCSS = (css) => {
-      // Replace body → .pdf-root
-      let scoped = css.replace(/\bbody\s*\{/g, '.pdf-root {');
-      // Remove @page rules (not needed for canvas rendering)
-      scoped = scoped.replace(/@page\s*\{[^}]*\}/g, '');
-      // Scope * selector → .pdf-root *
-      scoped = scoped.replace(/^\s*\*\s*\{/gm, ':where(.pdf-root, .pdf-root *) {');
-      return scoped;
-    };
-
-    // Hidden container: off-screen VERTICALLY (not horizontally!)
-    // html2canvas clips content that's offset on the X-axis
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:absolute;left:0;top:-9999px;overflow:visible;';
-
-    parsed.querySelectorAll('style').forEach(s => {
-      const el = document.createElement('style');
-      el.textContent = scopeCSS(s.textContent);
-      wrapper.appendChild(el);
-    });
-
-    const root = document.createElement('div');
-    root.className = 'pdf-root';
-    root.style.width = '794px';
-    root.innerHTML = parsed.body.innerHTML;
-    wrapper.appendChild(root);
-
-    document.body.appendChild(wrapper);
-
-    const isInvoice = previewDoc.docType === 'invoice';
-    const opt = {
-      margin: isInvoice ? 0 : [10, 10, 10, 10],
-      filename: `${previewDoc.fileName}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794, scrollX: 0, scrollY: 0 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
-
-    const cleanup = () => { if (wrapper.parentNode) document.body.removeChild(wrapper); };
-    const fontsReady = document.fonts
-      ? Promise.all([
-          document.fonts.load("400 12px 'Candara'"),
-          document.fonts.load("700 12px 'Candara'"),
-        ]).then(() => document.fonts.ready).catch(() => null)
-      : Promise.resolve();
-
-    fontsReady
-      .then(() => html2pdf().set(opt).from(root).toPdf().get('pdf'))
-      .then((pdf) => {
-        // Single-page documents: drop any overflow page caused by sub-pixel rounding
-        while (pdf.internal.getNumberOfPages() > 1) pdf.deletePage(pdf.internal.getNumberOfPages());
-        pdf.save(`${previewDoc.fileName}.pdf`);
-      })
-      .then(cleanup)
-      .catch(cleanup);
+  async function handlePreviewDownload() {
+    if (!previewDoc || downloading) return;
+    setDownloading(true);
+    try {
+      const blob = await renderDocumentPdf(previewDoc.html);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${previewDoc.fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   function clearFilters() {
@@ -247,8 +202,8 @@ export default function SalesHistory() {
                 <button onClick={handlePreviewPrint} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
                   <Printer size={14} /> Печати
                 </button>
-                <button onClick={handlePreviewDownload} className="btn-ghost text-xs flex items-center gap-1.5 px-3 py-1.5">
-                  <Download size={14} /> Симни
+                <button onClick={handlePreviewDownload} disabled={downloading} className="btn-ghost text-xs flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-60">
+                  <Download size={14} /> {downloading ? 'Генерирам…' : 'Симни'}
                 </button>
                 <button onClick={() => setPreviewDoc(null)} className="btn-ghost p-1.5 rounded-lg">
                   <X size={16} />
@@ -624,10 +579,10 @@ function generatePrintHTML(sale, docType) {
   };
 
   const FONT_FACE = `
-      @font-face { font-family: 'Candara'; src: url('/fonts/Candara.ttf') format('truetype'); font-weight: 400; font-style: normal; }
-      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; }
-      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; }
-      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-BoldItalic.ttf') format('truetype'); font-weight: 700; font-style: italic; }`;
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara.ttf?v=2') format('truetype'); font-weight: 400; font-style: normal; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Bold.ttf?v=2') format('truetype'); font-weight: 700; font-style: normal; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Italic.ttf?v=2') format('truetype'); font-weight: 400; font-style: italic; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-BoldItalic.ttf?v=2') format('truetype'); font-weight: 700; font-style: italic; }`;
 
   const itemsArray = sale.items || [];
   const totalKg = itemsArray.reduce((s, it) => s + parseFloat(it.quantity_kg || 0), 0);
