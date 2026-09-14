@@ -198,11 +198,15 @@ export default function SalesHistory() {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
 
-    html2pdf().set(opt).from(root).save().then(() => {
-      document.body.removeChild(wrapper);
-    }).catch(() => {
-      if (wrapper.parentNode) document.body.removeChild(wrapper);
-    });
+    const cleanup = () => { if (wrapper.parentNode) document.body.removeChild(wrapper); };
+    const fontsReady = document.fonts
+      ? Promise.all([
+          document.fonts.load("400 12px 'Candara'"),
+          document.fonts.load("700 12px 'Candara'"),
+        ]).then(() => document.fonts.ready).catch(() => null)
+      : Promise.resolve();
+
+    fontsReady.then(() => html2pdf().set(opt).from(root).save()).then(cleanup).catch(cleanup);
   }
 
   function clearFilters() {
@@ -611,6 +615,12 @@ function generatePrintHTML(sale, docType) {
     bankRBO: '171507953',
   };
 
+  const FONT_FACE = `
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara.ttf') format('truetype'); font-weight: 400; font-style: normal; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; }
+      @font-face { font-family: 'Candara'; src: url('/fonts/Candara-BoldItalic.ttf') format('truetype'); font-weight: 700; font-style: italic; }`;
+
   const itemsArray = sale.items || [];
   const totalKg = itemsArray.reduce((s, it) => s + parseFloat(it.quantity_kg || 0), 0);
   const firstLot = itemsArray[0]?.lot_number || sale.lot_number || '';
@@ -633,9 +643,10 @@ function generatePrintHTML(sale, docType) {
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
+      ${FONT_FACE}
       @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Candara, 'Trebuchet MS', Corbel, Calibri, 'Segoe UI', sans-serif; font-size: 13px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: 'Candara', 'Trebuchet MS', Calibri, sans-serif; font-size: 13px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .inv-page { display: flex; min-height: 297mm; }
       @media print {
         html, body { height: 100vh; overflow: hidden; }
@@ -643,7 +654,7 @@ function generatePrintHTML(sale, docType) {
       }
 
       /* ── Sidebar ── */
-      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 26px 12px 34px 18px; display: flex; flex-direction: column; text-align: center; position: relative; }
+      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 26px 12px 60px 18px; display: flex; flex-direction: column; text-align: center; position: relative; }
       .inv-sidebar::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.6); }
       .inv-sidebar img { width: 168px; display: block; margin: 0 auto 24px; }
       .inv-co { font-weight: 700; }
@@ -652,12 +663,12 @@ function generatePrintHTML(sale, docType) {
       .inv-co .inv-addr { font-size: 7.6px; line-height: 1.5; white-space: nowrap; }
       .inv-co .inv-ids { font-size: 7.6px; letter-spacing: 0.9px; line-height: 1.7; white-space: nowrap; }
       .inv-co .inv-bank { font-size: 8.4px; letter-spacing: 1.4px; margin-top: 2px; white-space: nowrap; }
-      .inv-spacer { flex: 1; }
+      .inv-spacer { flex: 3; } .inv-spacer2 { flex: 2; }
       .inv-rbo { background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px 8px; font-size: 12px; font-weight: 700; line-height: 1.5; box-shadow: 0 0 22px rgba(255,255,255,0.14); }
-      .inv-fish { font-size: 12px; font-weight: 700; line-height: 1.6; margin-top: auto; padding-top: 40px; }
+      .inv-fish { font-size: 12px; font-weight: 700; line-height: 1.6; }
 
       /* ── Main ── */
-      .inv-main { flex: 1; padding: 20px 26px 28px 0; display: flex; flex-direction: column; }
+      .inv-main { flex: 1; min-width: 0; padding: 20px 26px 28px 0; display: flex; flex-direction: column; }
       .inv-top { display: flex; justify-content: space-between; align-items: flex-start; padding-left: 26px; }
       .inv-buyer { flex: 1; padding-right: 44px; position: relative; padding-top: 10px; }
       .inv-buyer::before { content: ''; position: absolute; left: 100px; top: 10px; bottom: 10px; border-left: 1.5px solid #1b2a5a; }
@@ -673,7 +684,7 @@ function generatePrintHTML(sale, docType) {
 
       /* ── Table box: header + rows + confirm bar, joined to sidebar ── */
       .inv-box { margin-top: 20px; border-right: 1.5px solid #1b2a5a; }
-      .inv-thead { background: #1b2a5a; color: #fff; display: flex; font-size: 13px; font-weight: 700; padding: 7px 0; }
+      .inv-thead { background: #1b2a5a; color: #fff; display: flex; font-size: 13px; font-weight: 700; padding: 7px 26px 7px 0; }
       .inv-thead span { padding-left: 8px; }
       .inv-tbody { padding: 10px 26px 12px 26px; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -690,7 +701,7 @@ function generatePrintHTML(sale, docType) {
       tbody tr.inv-vat td:first-child { border-bottom: 1.5px solid #1b2a5a; }
       tbody td.inv-sum-lbl { text-align: right; }
       tbody td.inv-sum-val { text-align: right; font-weight: 700; }
-      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 10.6px; text-align: center; padding: 7px 8px 7px 26px; white-space: nowrap; letter-spacing: -0.1px; }
+      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 10.2px; text-align: center; padding: 7px 6px 7px 26px; letter-spacing: -0.15px; line-height: 1.35; }
 
       .inv-lot { margin-top: 16px; padding-left: 26px; font-size: 12px; }
       .inv-lot strong { font-weight: 700; }
@@ -720,6 +731,7 @@ function generatePrintHTML(sale, docType) {
         <div class="inv-rbo">
           карта за идентификација<br/>на одгледувалиште<br/>(РБО ${COMPANY.bankRBO})<br/>${COMPANY.farmAddress}
         </div>
+        <div class="inv-spacer2"></div>
         <div class="inv-fish">
           Риба,<br/>Домашно одгледана<br/>во контролирани услови<br/>во RAS систем<br/>без антибиотици и хормони
         </div>
@@ -903,9 +915,10 @@ function generatePrintHTML(sale, docType) {
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
+      ${FONT_FACE}
       @page { size: A4; margin: 30mm; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a2744; display: flex; justify-content: center; padding-top: 20px; }
+      body { font-family: 'Candara', 'Trebuchet MS', Calibri, sans-serif; font-size: 11px; color: #1a2744; display: flex; justify-content: center; padding-top: 20px; }
       .label-card { width: 360px; border: 1px solid #dce3ed; }
       .label-header { text-align: center; padding: 12px 15px; border-bottom: 1px solid #dce3ed; }
       .label-header .logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
