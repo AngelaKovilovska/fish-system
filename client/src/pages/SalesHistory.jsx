@@ -155,22 +155,32 @@ export default function SalesHistory() {
   function handlePreviewDownload() {
     if (!previewDoc) return;
 
-    // Parse full HTML so styles + body are in the MAIN document context
-    // (html2canvas cannot read <style> from an iframe's <head>)
+    // Parse full HTML — extract styles + body into main document context
     const parser = new DOMParser();
     const parsed = parser.parseFromString(previewDoc.html, 'text/html');
 
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    // Scope ALL CSS selectors under .pdf-root to avoid leaking into main app
+    const scopeCSS = (css) => {
+      // Replace body → .pdf-root
+      let scoped = css.replace(/\bbody\s*\{/g, '.pdf-root {');
+      // Remove @page rules (not needed for canvas rendering)
+      scoped = scoped.replace(/@page\s*\{[^}]*\}/g, '');
+      // Scope * selector → .pdf-root *
+      scoped = scoped.replace(/^\s*\*\s*\{/gm, '.pdf-root, .pdf-root * {');
+      return scoped;
+    };
 
-    // Copy <style> tags, replacing body selector → .pdf-root
+    // Hidden container: off-screen VERTICALLY (not horizontally!)
+    // html2canvas clips content that's offset on the X-axis
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:absolute;left:0;top:-9999px;overflow:visible;';
+
     parsed.querySelectorAll('style').forEach(s => {
       const el = document.createElement('style');
-      el.textContent = s.textContent.replace(/\bbody\s*\{/g, '.pdf-root {');
+      el.textContent = scopeCSS(s.textContent);
       wrapper.appendChild(el);
     });
 
-    // Content root with body's inner HTML
     const root = document.createElement('div');
     root.className = 'pdf-root';
     root.style.width = '794px';
@@ -184,7 +194,7 @@ export default function SalesHistory() {
       margin: isInvoice ? 0 : [10, 10, 10, 10],
       filename: `${previewDoc.fileName}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794, scrollX: 0, scrollY: 0 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
 
