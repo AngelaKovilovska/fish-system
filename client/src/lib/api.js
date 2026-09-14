@@ -29,6 +29,21 @@ async function request(url, options = {}) {
   }
 }
 
+// Download a file (blob) from the API with auth cookie
+export async function downloadFile(url, fileName) {
+  const res = await fetch(`${API_BASE}${url}`, { credentials: 'include' });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Грешка при преземање');
+  }
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 2000);
+}
+
 // Render a document HTML to PDF on the server; returns a Blob
 export async function renderDocumentPdf(html) {
   const res = await fetch(`${API_BASE}/documents/pdf`, {

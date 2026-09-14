@@ -10,6 +10,80 @@ const {
 
 const router = express.Router();
 
+// ── Продажби: агрегација по купувач / производ / месец ──
+async function getSalesRows(from, to) {
+  const r = await pool.query(
+    `SELECT s.id, s.sale_date, s.total, s.payment_status, b.name AS buyer_name,
+            COALESCE((SELECT json_agg(json_build_object('code', pt.code, 'name', pt.name, 'quantity_kg', si.quantity_kg, 'amount', si.amount))
+                      FROM sale_items si JOIN product_types pt ON pt.id = si.product_type_id WHERE si.sale_id = s.id), '[]'::json) AS items
+     FROM sales s LEFT JOIN buyers b ON b.id = s.buyer_id
+     WHERE s.sale_date >= $1 AND s.sale_date <= $2
+     ORDER BY s.sale_date`,
+    [from, to]
+  );
+  return r.rows;
+}
+
+function aggregateSales(type, sales) {
+  const map = new Map();
+  const bump = (key, kg, amount, unpaid) => {
+    if (!map.has(key)) map.set(key, { key, count: 0, kg: 0, amount: 0, unpaid: 0 });
+    const m = map.get(key); m.count++; m.kg += kg; m.amount += amount; m.unpaid += unpaid;
+  };
+  for (const s of sales) {
+    const items = Array.isArray(s.items) ? s.items : [];
+    const kg = items.reduce((a, i) => a + parseFloat(i.quantity_kg || 0), 0);
+    const amount = parseFloat(s.total || 0);
+    const unpaid = s.payment_status === 'платено' ? 0 : amount;
+    if (type === 'buyer') bump(s.buyer_name || 'Непознат', kg, amount, unpaid);
+    else if (type === 'period') bump(String(s.sale_date).slice(0, 7), kg, amount, unpaid);
+    else if (type === 'product') {
+      for (const i of items) {
+        const k = `${i.code} — ${i.name}`;
+        if (!map.has(k)) map.set(k, { key: k, count: 0, kg: 0, amount: 0, unpaid: 0 });
+        const m = map.get(k); m.count++; m.kg += parseFloat(i.quantity_kg || 0); m.amount += parseFloat(i.amount || 0);
+      }
+    }
+  }
+  const rows = [...map.values()].map(r => ({ ...r, avgPrice: r.kg > 0 ? r.amount / r.kg : 0 }));
+  return type === 'period' ? rows.sort((a, b) => a.key.localeCompare(b.key)) : rows.sort((a, b) => b.amount - a.amount);
+}
+
+// GET /api/reports/sales-export?type=buyer|product|period&from&to — Excel download
+router.get('/sales-export', authMiddleware, async (req, res) => {
+  try {
+    const { type = 'buyer', from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Потребни се датуми' });
+    if (!['buyer', 'product', 'period'].includes(type)) return res.status(400).json({ error: 'Невалиден тип' });
+
+    const sales = await getSalesRows(from, to);
+    const rows = aggregateSales(type, sales);
+    const labels = { buyer: 'Купувач', product: 'Производ', period: 'Месец' };
+    const isProduct = type === 'product';
+    const headers = isProduct
+      ? [labels[type], 'Ставки', 'Количина (кг)', 'Износ (ден)', 'Просечна цена (ден/кг)']
+      : [labels[type], 'Продажби', 'Количина (кг)', 'Износ (ден)', 'Просечна цена (ден/кг)', 'Неплатено (ден)'];
+    const data = rows.map(r => isProduct
+      ? [r.key, r.count, +r.kg.toFixed(2), +r.amount.toFixed(2), +r.avgPrice.toFixed(2)]
+      : [r.key, r.count, +r.kg.toFixed(2), +r.amount.toFixed(2), +r.avgPrice.toFixed(2), +r.unpaid.toFixed(2)]);
+    const tot = rows.reduce((a, r) => ({ count: a.count + r.count, kg: a.kg + r.kg, amount: a.amount + r.amount, unpaid: a.unpaid + r.unpaid }), { count: 0, kg: 0, amount: 0, unpaid: 0 });
+    data.push(isProduct
+      ? ['ВКУПНО', tot.count, +tot.kg.toFixed(2), +tot.amount.toFixed(2), tot.kg > 0 ? +(tot.amount / tot.kg).toFixed(2) : 0]
+      : ['ВКУПНО', tot.count, +tot.kg.toFixed(2), +tot.amount.toFixed(2), tot.kg > 0 ? +(tot.amount / tot.kg).toFixed(2) : 0, +tot.unpaid.toFixed(2)]);
+    data.push([]);
+    data.push([`Период: ${from} — ${to}`]);
+
+    const buf = generateExcel(`Продажби по ${labels[type].toLowerCase()}`, headers, data);
+    const fname = { buyer: 'prodazbi-po-kupuvac', product: 'prodazbi-po-proizvod', period: 'prodazbi-po-mesec' }[type];
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}-${from}-${to}.xlsx"`);
+    res.send(buf);
+  } catch (err) {
+    console.error('Sales export error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/reports/test-email — test SMTP connection (admin only)
 router.get('/test-email', authMiddleware, async (req, res) => {
   try {

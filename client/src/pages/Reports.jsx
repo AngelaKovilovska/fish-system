@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, downloadFile } from '../lib/api';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate } from '../lib/utils';
-import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Legend,
@@ -176,10 +176,11 @@ export default function Reports() {
             const byBuyer = {};
             for (const s of allSales) {
               const name = s.buyer_name || 'Непознат';
-              if (!byBuyer[name]) byBuyer[name] = { count: 0, totalAmount: 0, totalKg: 0 };
+              if (!byBuyer[name]) byBuyer[name] = { count: 0, totalAmount: 0, totalKg: 0, unpaid: 0 };
               byBuyer[name].count++;
               byBuyer[name].totalAmount += parseFloat(s.total || 0);
               byBuyer[name].totalKg += (s.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0);
+              if (s.payment_status !== 'платено') byBuyer[name].unpaid += parseFloat(s.total || 0);
             }
             const rows = Object.entries(byBuyer).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.totalAmount - a.totalAmount);
             result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
@@ -218,6 +219,17 @@ export default function Reports() {
       setPreviewData(result);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const handleSalesExcel = async () => {
+    const type = { salesByBuyer: 'buyer', salesByProduct: 'product', salesByPeriod: 'period' }[activeReport];
+    if (!type) return;
+    setExporting(true); setError('');
+    try {
+      await downloadFile(`/reports/sales-export?type=${type}&from=${from}&to=${to}`, `prodazbi-${type}-${from}-${to}.xlsx`);
+    } catch (e) { setError(e.message); }
+    finally { setExporting(false); }
   };
 
   const handleSendEmail = async () => {
@@ -342,9 +354,9 @@ export default function Reports() {
     if (activeReport === 'salesByBuyer') {
       const rows = previewData.rows || [];
       const trs = rows.map(r =>
-        `<tr><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
+        `<tr><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r">${r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td><td class="r">${r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td></tr>`
       ).join('');
-      tableHTML = `<table><thead><tr><th>Купувач</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Износ (ден)</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td></tr></tbody></table>`;
+      tableHTML = `<table><thead><tr><th>Купувач</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Ден/кг</th><th class="r">Износ (ден)</th><th class="r">Неплатено</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandKg > 0 ? (previewData.grandTotal / previewData.grandKg).toFixed(0) : '–'}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td><td class="r"><strong>${(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</strong></td></tr></tbody></table>`;
     }
 
     if (activeReport === 'salesByProduct') {
@@ -1118,21 +1130,25 @@ ${tableHTML}
           </div>
           <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
             <table className="table-modern">
-              <thead><tr><th>Купувач</th><th className="text-right">Продажби</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
+              <thead><tr><th>Купувач</th><th className="text-right">Продажби</th><th className="text-right">Кг</th><th className="text-right">Ден/кг</th><th className="text-right">Износ (ден)</th><th className="text-right">Неплатено</th></tr></thead>
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i}>
                     <td className="font-medium">{r.name}</td>
                     <td className="text-right">{r.count}</td>
                     <td className="text-right">{r.totalKg.toFixed(1)}</td>
+                    <td className="text-right">{r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td>
                     <td className="text-right font-bold text-[var(--primary)]">{r.totalAmount.toFixed(0)}</td>
+                    <td className={`text-right ${r.unpaid > 0 ? 'text-[var(--danger)] font-semibold' : 'text-[var(--text-muted)]'}`}>{r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-[var(--border)]">
                   <td className="font-bold">Вкупно</td>
                   <td className="text-right font-bold">{previewData.totalSales}</td>
                   <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
+                  <td className="text-right font-bold">{previewData.grandKg > 0 ? (previewData.grandTotal / previewData.grandKg).toFixed(0) : '–'}</td>
                   <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                  <td className="text-right font-bold text-[var(--danger)]">{(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</td>
                 </tr>
               </tbody>
             </table>
@@ -1632,6 +1648,11 @@ ${tableHTML}
 
             {renderPreview()}
 
+            {['salesByBuyer', 'salesByProduct', 'salesByPeriod'].includes(activeReport) && (
+              <button onClick={handleSalesExcel} disabled={exporting} className="btn-secondary w-full py-3">
+                <FileSpreadsheet size={18} /> {exporting ? 'Подготвувам…' : 'Симни Excel'}
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handlePrint} className="btn-secondary w-full py-3">
                 <Printer size={18} /> Принтај
