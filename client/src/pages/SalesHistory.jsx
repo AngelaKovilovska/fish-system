@@ -621,9 +621,9 @@ function generatePrintHTML(sale, docType) {
   if (docType === 'invoice') {
     const lotNumbers = [...new Set(itemsArray.map(it => it.lot_number || sale.lot_number || '').filter(Boolean))].join(', ');
     const rows = [...itemsArray];
-    while (rows.length < 4) rows.push(null);
+    while (rows.length < 5) rows.push(null);
     const rowHTML = rows.map(item => item ? `
-      <tr class="inv-filled">
+      <tr>
         <td>Риба (Clarias gariepinus) - ${item.code || ''}</td>
         <td class="num">${parseFloat(item.quantity_kg).toFixed(2)}</td>
         <td class="num">${parseFloat(item.price_per_kg).toFixed(2)}</td>
@@ -635,7 +635,7 @@ function generatePrintHTML(sale, docType) {
     <style>
       @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Candara, Calibri, 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 12px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: Candara, 'Trebuchet MS', Corbel, Calibri, 'Segoe UI', sans-serif; font-size: 13px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .inv-page { display: flex; min-height: 297mm; }
       @media print {
         html, body { height: 100vh; overflow: hidden; }
@@ -643,66 +643,68 @@ function generatePrintHTML(sale, docType) {
       }
 
       /* ── Sidebar ── */
-      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 34px 18px 34px 22px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; position: relative; }
-      .inv-sidebar::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.55); }
-      .inv-sidebar img { width: 160px; display: block; margin: 0 auto; }
-      .inv-co .inv-desc { font-size: 8.5px; font-weight: 700; margin-bottom: 3px; }
-      .inv-co .inv-company { font-size: 14.5px; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 4px; }
-      .inv-co .inv-addr { font-size: 8.5px; font-weight: 700; line-height: 1.55; }
-      .inv-co .inv-ids { font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px; line-height: 1.7; }
-      .inv-co .inv-bank { font-size: 9.5px; font-weight: 700; letter-spacing: 1.6px; margin-top: 3px; }
-      .inv-rbo { background: rgba(255,255,255,0.13); border-radius: 12px; padding: 16px 10px; font-size: 11.5px; font-weight: 700; line-height: 1.55; box-shadow: 0 0 18px rgba(255,255,255,0.12); }
-      .inv-fish { font-size: 11.5px; font-weight: 700; line-height: 1.6; }
+      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 26px 12px 34px 18px; display: flex; flex-direction: column; text-align: center; position: relative; }
+      .inv-sidebar::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.6); }
+      .inv-sidebar img { width: 168px; display: block; margin: 0 auto 24px; }
+      .inv-co { font-weight: 700; }
+      .inv-co .inv-desc { font-size: 7.6px; margin-bottom: 2px; white-space: nowrap; }
+      .inv-co .inv-company { font-size: 14px; letter-spacing: 0.2px; margin-bottom: 3px; white-space: nowrap; }
+      .inv-co .inv-addr { font-size: 7.6px; line-height: 1.5; white-space: nowrap; }
+      .inv-co .inv-ids { font-size: 7.6px; letter-spacing: 0.9px; line-height: 1.7; white-space: nowrap; }
+      .inv-co .inv-bank { font-size: 8.4px; letter-spacing: 1.4px; margin-top: 2px; white-space: nowrap; }
+      .inv-spacer { flex: 1; }
+      .inv-rbo { background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px 8px; font-size: 12px; font-weight: 700; line-height: 1.5; box-shadow: 0 0 22px rgba(255,255,255,0.14); }
+      .inv-fish { font-size: 12px; font-weight: 700; line-height: 1.6; margin-top: auto; padding-top: 40px; }
 
       /* ── Main ── */
-      .inv-main { flex: 1; padding: 22px 28px 28px 0; display: flex; flex-direction: column; }
-      .inv-pad { padding-left: 28px; }
-      .inv-top { display: flex; justify-content: space-between; align-items: flex-start; }
-      .inv-buyer { flex: 1; padding-right: 44px; padding-top: 6px; }
-      .inv-buyer-row { display: flex; align-items: flex-end; margin-bottom: 28px; }
-      .inv-buyer-row .inv-lbl { width: 100px; font-weight: 700; font-size: 12.5px; padding-bottom: 2px; }
-      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 4px 2px; min-height: 18px; font-size: 12.5px; }
+      .inv-main { flex: 1; padding: 20px 26px 28px 0; display: flex; flex-direction: column; }
+      .inv-top { display: flex; justify-content: space-between; align-items: flex-start; padding-left: 26px; }
+      .inv-buyer { flex: 1; padding-right: 44px; position: relative; padding-top: 10px; }
+      .inv-buyer::before { content: ''; position: absolute; left: 100px; top: 10px; bottom: 10px; border-left: 1.5px solid #1b2a5a; }
+      .inv-buyer-row { display: flex; align-items: flex-end; height: 64px; }
+      .inv-buyer-row .inv-lbl { width: 100px; font-size: 13px; padding-bottom: 3px; }
+      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 6px 3px; min-height: 20px; font-size: 13px; }
       .inv-titles { width: 200px; text-align: right; }
-      .inv-titles .inv-sub { font-size: 17px; font-weight: 700; border-bottom: 1.5px solid #1b2a5a; display: inline-block; padding-bottom: 1px; }
-      .inv-titles .inv-title { font-size: 27px; font-weight: 900; line-height: 1; margin-top: 2px; }
-      .inv-numbox { margin-top: 28px; }
-      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; margin-top: 20px; font-size: 12.5px; text-align: center; }
-      .inv-numbox .inv-field strong { display: block; font-size: 12.5px; margin-bottom: 1px; }
+      .inv-titles .inv-sub { font-size: 18px; font-weight: 700; border-bottom: 1.5px solid #1b2a5a; display: inline-block; line-height: 1; padding-bottom: 2px; }
+      .inv-titles .inv-title { font-size: 28px; font-weight: 700; line-height: 1; margin-top: 1px; }
+      .inv-numbox { margin-top: 44px; }
+      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; font-size: 13px; text-align: center; height: 62px; }
+      .inv-numbox .inv-field strong { display: block; font-size: 13px; margin-bottom: 1px; }
 
-      /* ── Table (header joined to sidebar) ── */
-      .inv-table-wrap { margin-top: 26px; }
+      /* ── Table box: header + rows + confirm bar, joined to sidebar ── */
+      .inv-box { margin-top: 20px; border-right: 1.5px solid #1b2a5a; }
+      .inv-thead { background: #1b2a5a; color: #fff; display: flex; font-size: 13px; font-weight: 700; padding: 7px 0; }
+      .inv-thead span { padding-left: 8px; }
+      .inv-tbody { padding: 10px 26px 12px 26px; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      col.c1 { width: auto; } col.c2 { width: 110px; } col.c3 { width: 100px; } col.c4 { width: 120px; }
-      thead th { background: #1b2a5a; color: #fff; padding: 9px 10px; text-align: left; font-size: 12.5px; font-weight: 700; }
-      thead th:first-child { padding-left: 28px; }
-      thead th.num { text-align: right; }
-      tbody td { height: 40px; padding: 4px 10px; border-bottom: 1.5px solid #1b2a5a; border-right: 2.5px solid #1b2a5a; font-size: 12.5px; vertical-align: middle; }
-      tbody td:first-child { padding-left: 28px; border-left: 2.5px solid #1b2a5a; }
-      tbody td:last-child { border-right: 2.5px solid #1b2a5a; }
-      tbody tr.inv-filled td { font-weight: 700; }
+      col.c1 { width: auto; } col.c2 { width: 100px; } col.c3 { width: 100px; } col.c4 { width: 130px; }
+      .inv-thead .h1 { flex: 1; padding-left: 26px; } .inv-thead .h2 { width: 100px; } .inv-thead .h3 { width: 100px; } .inv-thead .h4 { width: 130px; }
+      tbody td { height: 34px; padding: 3px 8px; border-bottom: 1.5px solid #1b2a5a; border-right: 1.5px solid #1b2a5a; font-size: 13px; vertical-align: bottom; }
+      tbody td:first-child { padding-left: 0; }
+      tbody td:last-child { border-right: none; }
       tbody td.num { text-align: right; }
-      tbody tr.inv-sum td:first-child, tbody tr.inv-sum td:nth-child(2) { border-bottom: none; border-left: none; }
-      tbody tr.inv-sum td:first-child { border-right: none; }
-      tbody tr.inv-sum td.inv-sum-lbl { text-align: right; font-weight: 700; border-left: 2.5px solid #1b2a5a; }
-      tbody tr.inv-sum td.inv-sum-val { text-align: right; font-weight: 700; }
-      tbody tr.inv-total td.inv-sum-lbl, tbody tr.inv-total td.inv-sum-val { font-size: 13.5px; }
+      tbody tr.inv-sum td { border-bottom: none; }
+      tbody tr.inv-sum td:first-child { border-right: 1.5px solid #1b2a5a; }
+      tbody tr.inv-vat td:nth-child(3), tbody tr.inv-vat td:nth-child(4) { border-bottom: 1.5px solid #1b2a5a; }
+      tbody tr.inv-vat td:nth-child(2) { border-bottom: 1.5px solid #1b2a5a; }
+      tbody tr.inv-vat td:first-child { border-bottom: 1.5px solid #1b2a5a; }
+      tbody td.inv-sum-lbl { text-align: right; }
+      tbody td.inv-sum-val { text-align: right; font-weight: 700; }
+      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 10.6px; text-align: center; padding: 7px 8px 7px 26px; white-space: nowrap; letter-spacing: -0.1px; }
 
-      /* ── Confirm bar joined to sidebar ── */
-      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 11.5px; text-align: center; padding: 9px 10px 9px 28px; margin-top: 26px; }
-
-      .inv-lot { margin-top: 16px; font-size: 11.5px; }
+      .inv-lot { margin-top: 16px; padding-left: 26px; font-size: 12px; }
       .inv-lot strong { font-weight: 700; }
 
       /* ── Bottom ── */
-      .inv-bottom { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 44px; }
-      .inv-recv { width: 290px; }
-      .inv-recv .inv-recv-lbl { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 14.5px; padding: 5px 16px 5px 28px; width: 150px; margin-bottom: 8px; }
-      .inv-recv .inv-recv-row { display: flex; align-items: flex-end; margin-bottom: 24px; padding-left: 28px; }
-      .inv-recv .inv-recv-row span { font-size: 12.5px; padding-bottom: 2px; white-space: nowrap; }
-      .inv-recv .inv-recv-row .inv-l { flex: 1; border-bottom: 1.5px solid #1b2a5a; margin-left: 6px; }
-      .inv-stamp { width: 230px; text-align: center; padding-top: 78px; }
+      .inv-bottom { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 54px; }
+      .inv-recv { width: 340px; }
+      .inv-recv .inv-recv-lbl { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 16px; padding: 4px 16px 4px 26px; width: 150px; }
+      .inv-recv .inv-recv-row { display: flex; align-items: flex-end; height: 44px; padding-left: 26px; }
+      .inv-recv .inv-recv-row span { font-size: 13px; padding-bottom: 2px; white-space: nowrap; }
+      .inv-recv .inv-recv-row .inv-l { flex: 1; border-bottom: 1.5px solid #1b2a5a; margin-left: 4px; }
+      .inv-stamp { width: 210px; text-align: center; padding-top: 96px; }
       .inv-stamp .inv-l { border-bottom: 1.5px solid #1b2a5a; }
-      .inv-stamp .inv-lbl { font-size: 12.5px; margin-top: 4px; }
+      .inv-stamp .inv-lbl { font-size: 13px; margin-top: 3px; }
     </style></head><body>
     <div class="inv-page">
       <div class="inv-sidebar">
@@ -714,6 +716,7 @@ function generatePrintHTML(sale, docType) {
           <div class="inv-ids">едб.:${COMPANY.edb}, емб.:${COMPANY.emb}</div>
           <div class="inv-bank">${COMPANY.bankNLB} НЛБ Банка АД</div>
         </div>
+        <div class="inv-spacer"></div>
         <div class="inv-rbo">
           карта за идентификација<br/>на одгледувалиште<br/>(РБО ${COMPANY.bankRBO})<br/>${COMPANY.farmAddress}
         </div>
@@ -723,7 +726,7 @@ function generatePrintHTML(sale, docType) {
       </div>
 
       <div class="inv-main">
-        <div class="inv-top inv-pad">
+        <div class="inv-top">
           <div class="inv-buyer">
             <div class="inv-buyer-row"><span class="inv-lbl">Купувач:</span><span class="inv-val">${sale.buyer_name || ''}</span></div>
             <div class="inv-buyer-row"><span class="inv-lbl">адреса:</span><span class="inv-val">${sale.buyer_address || ''}</span></div>
@@ -739,38 +742,34 @@ function generatePrintHTML(sale, docType) {
           </div>
         </div>
 
-        <div class="inv-table-wrap">
-          <table>
-            <colgroup><col class="c1"/><col class="c2"/><col class="c3"/><col class="c4"/></colgroup>
-            <thead>
-              <tr>
-                <th>Производ</th>
-                <th class="num">Количина (кг)</th>
-                <th class="num">Ед.цена</th>
-                <th class="num">Износ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowHTML}
-              <tr class="inv-sum">
-                <td></td><td></td>
-                <td class="inv-sum-lbl">ДДВ ${sale.vat_rate || 5}% :</td>
-                <td class="inv-sum-val">${parseFloat(sale.vat_amount).toFixed(2)}</td>
-              </tr>
-              <tr class="inv-sum inv-total">
-                <td></td><td></td>
-                <td class="inv-sum-lbl">СЕ ВКУПНО :</td>
-                <td class="inv-sum-val">${parseFloat(sale.total).toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="inv-box">
+          <div class="inv-thead">
+            <span class="h1">Производ</span><span class="h2">Количина (кг)</span><span class="h3">Ед.цена</span><span class="h4">Износ</span>
+          </div>
+          <div class="inv-tbody">
+            <table>
+              <colgroup><col class="c1"/><col class="c2"/><col class="c3"/><col class="c4"/></colgroup>
+              <tbody>
+                ${rowHTML}
+                <tr class="inv-sum inv-vat">
+                  <td></td><td></td>
+                  <td class="inv-sum-lbl">ДДВ ${sale.vat_rate || 5}% :</td>
+                  <td class="inv-sum-val">${parseFloat(sale.vat_amount).toFixed(2)}</td>
+                </tr>
+                <tr class="inv-sum">
+                  <td></td><td></td>
+                  <td class="inv-sum-lbl">СЕ ВКУПНО :</td>
+                  <td class="inv-sum-val">${parseFloat(sale.total).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="inv-confirm">
+            Со потписот, примачот потврдува дека производите се примени во наведената количина и во добра состојба !
+          </div>
         </div>
 
-        <div class="inv-confirm">
-          Со потписот, примачот потврдува дека производите се примени во наведената количина и во добра состојба !
-        </div>
-
-        <div class="inv-lot inv-pad"><strong>LOT / серија:</strong> ${lotNumbers || '—'}</div>
+        <div class="inv-lot"><strong>LOT / серија:</strong> ${lotNumbers || '—'}</div>
 
         <div class="inv-bottom">
           <div class="inv-recv">
