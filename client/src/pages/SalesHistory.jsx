@@ -153,10 +153,10 @@ export default function SalesHistory() {
   }
 
   function handlePreviewDownload() {
-    if (!previewDoc) return;
-    const container = document.createElement('div');
-    container.innerHTML = previewDoc.html;
-    document.body.appendChild(container);
+    if (!previewDoc || !previewFrameRef.current) return;
+    const frameDoc = previewFrameRef.current.contentDocument || previewFrameRef.current.contentWindow.document;
+    const source = frameDoc.body || frameDoc.documentElement;
+    if (!source) return;
 
     const isInvoice = previewDoc.docType === 'invoice';
     const opt = {
@@ -167,11 +167,7 @@ export default function SalesHistory() {
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
 
-    html2pdf().set(opt).from(container).save().then(() => {
-      document.body.removeChild(container);
-    }).catch(() => {
-      document.body.removeChild(container);
-    });
+    html2pdf().set(opt).from(source).save();
   }
 
   function clearFilters() {
@@ -553,6 +549,13 @@ function formatDateDMY(d) {
   return `${dd}.${mm}.${yyyy}`;
 }
 
+function formatISODate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return isoStr;
+  return formatDateDMY(d);
+}
+
 function addMonths(date, months) {
   if (!date) return null;
   const d = new Date(date);
@@ -674,7 +677,7 @@ function generatePrintHTML(sale, docType) {
 
         <div class="num-row">
           <div class="item"><span class="lbl">број </span><span class="val">${sale.invoice_number || ''}</span></div>
-          <div class="item"><span class="lbl">датум </span><span class="val">${sale.sale_date || ''}</span></div>
+          <div class="item"><span class="lbl">датум </span><span class="val">${formatISODate(sale.sale_date)}</span></div>
         </div>
 
         <table>
@@ -735,7 +738,7 @@ function generatePrintHTML(sale, docType) {
     const totalQuantity = totalKg.toFixed(2);
     const lotNumbers = [...new Set(itemsArray.map(it => it.lot_number || sale.lot_number || ''))].join(', ');
     const expiryStr = expiryDate ? formatDateDMY(expiryDate) : '______________________';
-    const saleDateTime = sale.sale_date ? sale.sale_date + ' ' : '______________________';
+    const saleDateTime = sale.sale_date ? formatISODate(sale.sale_date) : '______________________';
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <style>
@@ -824,7 +827,7 @@ function generatePrintHTML(sale, docType) {
     <div class="sign-footer">
       <div class="sign-col">
         Датум<br/>
-        <span class="val">${sale.sale_date || ''}</span>
+        <span class="val">${formatISODate(sale.sale_date)}</span>
       </div>
       <div class="mp">МП</div>
       <div class="sign-col" style="text-align:right;">
