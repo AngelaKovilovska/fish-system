@@ -75,7 +75,8 @@ function AppRoutes() {
           <Route path="/ai-calculator" element={<AICalculator />} />
           <Route path="/production" element={<ProductionHub />} />
           <Route path="/production/processing" element={<ProductionNew />} />
-          <Route path="/production/sales" element={<SalesNew />} />
+          <Route path="/production/sales" element={<SalesNew key="new" />} />
+          <Route path="/production/sales/:id/edit" element={<SalesNew key="edit" />} />
           <Route path="/production/sales/history" element={<SalesHistory />} />
           <Route path="/inventory" element={<InventoryHub />} />
           <Route path="/inventory/food" element={<FoodInventoryPage />} />

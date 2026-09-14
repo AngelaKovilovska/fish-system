@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import {
   ChevronLeft, Plus, Trash2, ShoppingCart, Save, X,
@@ -21,6 +21,10 @@ function fmtDate(s) {
 
 export default function SalesNew() {
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEdit = Boolean(editId);
+  const [editSale, setEditSale] = useState(null);
+  const [originalItems, setOriginalItems] = useState([]);
   const [productTypes, setProductTypes] = useState([]);
   const [buyers, setBuyers] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -51,7 +55,7 @@ export default function SalesNew() {
   /* items */
   const [items, setItems] = useState([{ product_type_id: '', lot_number: '', quantity_kg: '', price_per_kg: '' }]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [editId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function handleClick(e) {
@@ -63,14 +67,39 @@ export default function SalesNew() {
 
   async function loadData() {
     try {
-      const [t, b, inv] = await Promise.all([
+      const [t, b, inv, sale] = await Promise.all([
         api.getProductTypes(),
         api.getBuyers(),
         api.getProductInventory(),
+        editId ? api.getSale(editId) : Promise.resolve(null),
       ]);
       setProductTypes(t.productTypes || []);
       setBuyers(b.buyers || []);
       setInventory(inv.inventory || []);
+      if (sale) {
+        setEditSale(sale);
+        setSelectedBuyerId(sale.buyer_id);
+        setBuyer({
+          name: sale.buyer_name || '', edb: sale.buyer_edb || '', address: sale.buyer_address || '',
+          contact_person: sale.buyer_contact || '', phone: sale.buyer_phone || '', email: sale.buyer_email || '',
+        });
+        setForm({
+          sale_date: (sale.sale_date || '').slice(0, 10),
+          payment_method: sale.payment_method || 'фактура',
+          lot_number: sale.lot_number || '',
+          transport_vehicle: sale.transport_vehicle || '',
+          notes: sale.notes || '',
+        });
+        setVatRate(parseFloat(sale.vat_rate) || 5);
+        const its = (sale.items || []).map(i => ({
+          product_type_id: String(i.product_type_id), lot_number: i.lot_number || '',
+          quantity_kg: String(i.quantity_kg), price_per_kg: String(i.price_per_kg),
+        }));
+        setItems(its.length ? its : [{ product_type_id: '', lot_number: '', quantity_kg: '', price_per_kg: '' }]);
+        setOriginalItems((sale.items || []).map(i => ({
+          product_type_id: i.product_type_id, lot_number: i.lot_number || '', quantity_kg: parseFloat(i.quantity_kg) || 0,
+        })));
+      }
     } catch { setError('Грешка при вчитување'); }
     finally { setLoading(false); }
   }
@@ -120,8 +149,20 @@ export default function SalesNew() {
 
   /* LOT-ови со залиха за производ (FIFO редослед доаѓа од серверот) */
   function lotsFor(productTypeId) {
-    const inv = inventory.find(i => i.product_type_id === parseInt(productTypeId));
-    return (inv?.lots || []).filter(l => parseFloat(l.quantity_kg) > 0);
+    const ptId = parseInt(productTypeId);
+    const inv = inventory.find(i => i.product_type_id === ptId);
+    const lots = (inv?.lots || []).map(l => ({ ...l, quantity_kg: parseFloat(l.quantity_kg) || 0 }));
+    // При уредување: количините од оваа продажба се „вратени“ во нивните LOT-ови
+    for (const o of originalItems) {
+      if (o.product_type_id !== ptId || !o.lot_number) continue;
+      const found = lots.find(l => l.lot_number === o.lot_number);
+      if (found) found.quantity_kg += o.quantity_kg;
+      else lots.push({ lot_number: o.lot_number, quantity_kg: o.quantity_kg, expiry_date: null });
+    }
+    return lots.filter(l => l.quantity_kg > 0);
+  }
+  function availableInv(productTypeId) {
+    return lotsFor(productTypeId).reduce((s, l) => s + l.quantity_kg, 0);
   }
   function fmtShort(d) {
     if (!d) return '';
@@ -148,7 +189,7 @@ export default function SalesNew() {
         const created = await api.createBuyer(buyer);
         buyerId = created.id;
       }
-      await api.createSale({
+      const payload = {
         ...form,
         product_temp: '-18',
         due_date: dueDate,
@@ -160,8 +201,10 @@ export default function SalesNew() {
           quantity_kg: parseFloat(i.quantity_kg),
           price_per_kg: parseFloat(i.price_per_kg) || 0,
         })),
-      });
-      setSuccess('Продажбата е зачувана');
+      };
+      if (isEdit) await api.updateSale(editId, payload);
+      else await api.createSale(payload);
+      setSuccess(isEdit ? 'Продажбата е ажурирана' : 'Продажбата е зачувана');
       setTimeout(() => navigate('/production/sales/history'), 1500);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
@@ -190,8 +233,8 @@ export default function SalesNew() {
               <ShoppingCart size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="page-title !mb-0">Нова продажба</h1>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">Фактура-испратница</p>
+              <h1 className="page-title !mb-0">{isEdit ? 'Уреди продажба' : 'Нова продажба'}</h1>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{isEdit && editSale ? `Фактура ${editSale.invoice_number}` : 'Фактура-испратница'}</p>
             </div>
           </div>
           <button onClick={() => navigate('/production/sales/history')}
@@ -315,7 +358,7 @@ export default function SalesNew() {
                     return (
                       <div className="mb-2 ml-7">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">
-                          LOT / серија <span className="normal-case font-normal">— вкупно на залиха {parseFloat(inv.quantity_kg).toFixed(2)} кг</span>
+                          LOT / серија <span className="normal-case font-normal">— вкупно на залиха {availableInv(item.product_type_id).toFixed(2)} кг</span>
                         </label>
                         {lots.length === 0 ? (
                           <p className="text-[11px] text-[var(--danger)] font-medium">Нема залиха за овој производ</p>
@@ -453,7 +496,7 @@ export default function SalesNew() {
           </button>
           <button type="submit" disabled={saving}
             className="btn-primary flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm">
-            <Save size={15} /> {saving ? 'Зачувување...' : 'Зачувај продажба'}
+            <Save size={15} /> {saving ? 'Зачувување...' : isEdit ? 'Зачувај промени' : 'Зачувај продажба'}
           </button>
         </div>
       </form>

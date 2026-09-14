@@ -239,6 +239,101 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/sales/:id - edit sale (invoice number stays; LOT inventory corrected by difference)
+router.put('/:id', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const {
+      buyer_id, sale_date, due_date, payment_method,
+      lot_number, transport_vehicle, product_temp,
+      items, notes, vat_rate: requestVatRate
+    } = req.body;
+
+    if (!buyer_id) return res.status(400).json({ error: 'Потребен е купувач' });
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Потребни се ставки' });
+    }
+
+    await client.query('BEGIN');
+
+    const existing = await client.query('SELECT * FROM sales WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (existing.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Продажбата не е пронајдена' });
+    }
+
+    // 1. Return old items to their LOTs
+    const oldItems = await client.query(
+      'SELECT product_type_id, lot_number, quantity_kg FROM sale_items WHERE sale_id = $1', [req.params.id]
+    );
+    for (const it of oldItems.rows) {
+      await inv.returnToLot(client, { productTypeId: it.product_type_id, lotNumber: it.lot_number, qty: it.quantity_kg });
+    }
+    await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
+
+    // 2. Resolve LOTs for new items (explicit or FIFO)
+    for (const item of items) {
+      const qty = parseFloat(item.quantity_kg) || 0;
+      if (qty <= 0) continue;
+      let lot = (item.lot_number || lot_number || '').trim();
+      if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
+      if (!lot) {
+        await client.query('ROLLBACK');
+        const pt = await pool.query('SELECT code FROM product_types WHERE id = $1', [item.product_type_id]);
+        return res.status(400).json({ error: `Нема LOT со доволна залиха за ${pt.rows[0]?.code || 'производот'} (${qty.toFixed(2)} кг)` });
+      }
+      item.lot_number = lot;
+    }
+
+    // 3. Totals
+    let subtotal = 0;
+    for (const item of items) {
+      subtotal += (parseFloat(item.quantity_kg) || 0) * (parseFloat(item.price_per_kg) || 0);
+    }
+    const vat_rate = [5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : parseFloat(existing.rows[0].vat_rate) || 5;
+    const vat_amount = Math.round(subtotal * vat_rate) / 100;
+    const total = subtotal + vat_amount;
+
+    // 4. Insert new items and deduct from LOTs
+    for (const item of items) {
+      const qty = parseFloat(item.quantity_kg) || 0;
+      const price = parseFloat(item.price_per_kg) || 0;
+      if (qty <= 0) continue;
+      await client.query(
+        `INSERT INTO sale_items (sale_id, product_type_id, lot_number, quantity_kg, price_per_kg, amount)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [req.params.id, item.product_type_id, item.lot_number || null, qty, price, qty * price]
+      );
+      await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
+    }
+
+    // 5. Update sale header
+    const result = await client.query(
+      `UPDATE sales SET buyer_id = $1, sale_date = $2, due_date = $3, payment_method = $4,
+         lot_number = $5, transport_vehicle = $6, product_temp = $7,
+         subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12, updated_at = NOW()
+       WHERE id = $13 RETURNING *`,
+      [
+        buyer_id, sale_date || existing.rows[0].sale_date, due_date || existing.rows[0].due_date,
+        payment_method || existing.rows[0].payment_method,
+        lot_number || items.find(i => i.lot_number)?.lot_number || null,
+        transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
+        subtotal, vat_rate, vat_amount, total, notes || null, req.params.id
+      ]
+    );
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.status === 400) return res.status(400).json({ error: err.message });
+    console.error('Update sale error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
 // DELETE /api/sales/:id - delete sale (rollback inventory)
 router.delete('/:id', authMiddleware, async (req, res) => {
   const client = await pool.connect();

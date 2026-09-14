@@ -463,7 +463,11 @@ export default function SalesHistory() {
                         {sale.notes && (
                           <p className="text-[11px] text-[var(--text-muted)] italic">📝 {sale.notes}</p>
                         )}
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => navigate(`/production/sales/${sale.id}/edit`)}
+                            className="btn-ghost text-[11px] text-[var(--primary)] flex items-center gap-1">
+                            <Pencil size={12} /> Уреди
+                          </button>
                           <button onClick={() => handleDeleteSale(sale.id)}
                             className="btn-ghost text-[11px] text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
                             <Trash2 size={12} /> Избриши
