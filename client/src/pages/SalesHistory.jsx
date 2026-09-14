@@ -153,21 +153,46 @@ export default function SalesHistory() {
   }
 
   function handlePreviewDownload() {
-    if (!previewDoc || !previewFrameRef.current) return;
-    const frameDoc = previewFrameRef.current.contentDocument || previewFrameRef.current.contentWindow.document;
-    const source = frameDoc.body || frameDoc.documentElement;
-    if (!source) return;
+    if (!previewDoc) return;
+
+    // Parse full HTML so styles + body are in the MAIN document context
+    // (html2canvas cannot read <style> from an iframe's <head>)
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(previewDoc.html, 'text/html');
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;';
+
+    // Copy <style> tags, replacing body selector → .pdf-root
+    parsed.querySelectorAll('style').forEach(s => {
+      const el = document.createElement('style');
+      el.textContent = s.textContent.replace(/\bbody\s*\{/g, '.pdf-root {');
+      wrapper.appendChild(el);
+    });
+
+    // Content root with body's inner HTML
+    const root = document.createElement('div');
+    root.className = 'pdf-root';
+    root.style.width = '794px';
+    root.innerHTML = parsed.body.innerHTML;
+    wrapper.appendChild(root);
+
+    document.body.appendChild(wrapper);
 
     const isInvoice = previewDoc.docType === 'invoice';
     const opt = {
       margin: isInvoice ? 0 : [10, 10, 10, 10],
       filename: `${previewDoc.fileName}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
 
-    html2pdf().set(opt).from(source).save();
+    html2pdf().set(opt).from(root).save().then(() => {
+      document.body.removeChild(wrapper);
+    }).catch(() => {
+      if (wrapper.parentNode) document.body.removeChild(wrapper);
+    });
   }
 
   function clearFilters() {
