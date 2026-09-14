@@ -206,7 +206,15 @@ export default function SalesHistory() {
         ]).then(() => document.fonts.ready).catch(() => null)
       : Promise.resolve();
 
-    fontsReady.then(() => html2pdf().set(opt).from(root).save()).then(cleanup).catch(cleanup);
+    fontsReady
+      .then(() => html2pdf().set(opt).from(root).toPdf().get('pdf'))
+      .then((pdf) => {
+        // Single-page documents: drop any overflow page caused by sub-pixel rounding
+        while (pdf.internal.getNumberOfPages() > 1) pdf.deletePage(pdf.internal.getNumberOfPages());
+        pdf.save(`${previewDoc.fileName}.pdf`);
+      })
+      .then(cleanup)
+      .catch(cleanup);
   }
 
   function clearFilters() {
