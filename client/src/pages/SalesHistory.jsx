@@ -166,7 +166,7 @@ export default function SalesHistory() {
       // Remove @page rules (not needed for canvas rendering)
       scoped = scoped.replace(/@page\s*\{[^}]*\}/g, '');
       // Scope * selector → .pdf-root *
-      scoped = scoped.replace(/^\s*\*\s*\{/gm, '.pdf-root, .pdf-root * {');
+      scoped = scoped.replace(/^\s*\*\s*\{/gm, ':where(.pdf-root, .pdf-root *) {');
       return scoped;
     };
 
@@ -624,7 +624,7 @@ function generatePrintHTML(sale, docType) {
       @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a2744; }
-      .inv-page { display: flex; min-height: 100vh; }
+      .inv-page { display: flex; min-height: 297mm; }
       .inv-sidebar { width: 220px; background: #1a2744; color: #fff; padding: 30px 20px; display: flex; flex-direction: column; justify-content: space-between; }
       .inv-sidebar .inv-logo { font-size: 32px; font-weight: 900; letter-spacing: 3px; margin-bottom: 4px; }
       .inv-sidebar .inv-tagline { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #8fa4c4; margin-bottom: 30px; }
@@ -648,7 +648,7 @@ function generatePrintHTML(sale, docType) {
       .inv-num-row { display: flex; justify-content: flex-end; gap: 30px; margin-bottom: 15px; }
       .inv-num-row .inv-item { font-size: 11px; }
       .inv-num-row .inv-item .inv-lbl { color: #666; }
-      .inv-num-row .inv-item .inv-val { font-weight: 700; border-bottom: 1px solid #1a2744; padding: 0 5px 2px; }
+      .inv-num-row .inv-item .inv-val { display: inline-block; font-weight: 700; border-bottom: 1px solid #1a2744; padding: 0 5px 2px; }
       table { width: 100%; border-collapse: collapse; margin: 10px 0; }
       thead th { background: #1a2744; color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
       thead th:last-child, thead th:nth-child(3), thead th:nth-child(4) { text-align: right; }
