@@ -627,7 +627,7 @@ function generatePrintHTML(sale, docType) {
       .inv-co .inv-ids { font-size: 7.6px; letter-spacing: 0.9px; line-height: 1.7; white-space: nowrap; }
       .inv-co .inv-bank { font-size: 8.4px; letter-spacing: 1.4px; margin-top: 2px; white-space: nowrap; }
       .inv-spacer { flex: 3; } .inv-spacer2 { flex: 2; }
-      .inv-rbo { background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px 8px; font-size: 12px; font-weight: 700; line-height: 1.5; box-shadow: 0 0 22px rgba(255,255,255,0.14); }
+      .inv-rbo { background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px 8px; font-size: 12px; font-weight: 700; line-height: 1.5; }
       .inv-fish { font-size: 12px; font-weight: 700; line-height: 1.6; }
 
       /* ── Main ── */
