@@ -160,6 +160,31 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Verify stock for every item (row-locked) before touching anything
+    for (const item of items) {
+      const qty = parseFloat(item.quantity_kg) || 0;
+      if (qty <= 0) continue;
+      const inv = await client.query(
+        `SELECT pi.quantity_kg, pt.code, pt.name
+         FROM product_types pt
+         LEFT JOIN product_inventory pi ON pi.product_type_id = pt.id
+         WHERE pt.id = $1
+         FOR UPDATE OF pi`,
+        [item.product_type_id]
+      );
+      if (inv.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Непознат тип на производ' });
+      }
+      const available = parseFloat(inv.rows[0].quantity_kg) || 0;
+      if (available < qty) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Недоволна залиха за ${inv.rows[0].code || inv.rows[0].name}: има ${available.toFixed(2)} кг, барате ${qty.toFixed(2)} кг`,
+        });
+      }
+    }
+
     const invoice_number = await generateInvoiceNumber();
     const dispatch_number = await generateDispatchNumber();
 
@@ -210,7 +235,7 @@ router.post('/', authMiddleware, async (req, res) => {
       if (qty > 0) {
         await client.query(
           `UPDATE product_inventory
-           SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW()
+           SET quantity_kg = quantity_kg - $1, updated_at = NOW()
            WHERE product_type_id = $2`,
           [qty, item.product_type_id]
         );
@@ -242,9 +267,10 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     for (const item of items.rows) {
       await client.query(
-        `UPDATE product_inventory
-         SET quantity_kg = quantity_kg + $1, updated_at = NOW()
-         WHERE product_type_id = $2`,
+        `INSERT INTO product_inventory (product_type_id, quantity_kg, updated_at)
+         VALUES ($2, $1, NOW())
+         ON CONFLICT (product_type_id)
+         DO UPDATE SET quantity_kg = product_inventory.quantity_kg + EXCLUDED.quantity_kg, updated_at = NOW()`,
         [parseFloat(item.quantity_kg), item.product_type_id]
       );
     }
