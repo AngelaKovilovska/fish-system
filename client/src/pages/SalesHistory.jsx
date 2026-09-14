@@ -4,9 +4,21 @@ import { api, renderDocumentPdf } from '../lib/api';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
-  TrendingUp, Package, Download, Eye,
+  TrendingUp, Package, Download, Eye, Check,
 } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
+
+// Статус на плаќање → { label, cls }
+function paymentBadge(sale) {
+  if (sale.payment_status === 'платено') {
+    return { label: sale.paid_at ? `Платено ${formatDateShortMK(sale.paid_at)}` : 'Платено', cls: 'pill-success' };
+  }
+  if (sale.due_date) {
+    const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(sale.due_date.slice(0, 10) + 'T00:00:00')) / 86400000);
+    if (days > 0) return { label: `Доцни ${days} ${days === 1 ? 'ден' : 'дена'}`, cls: 'pill-danger' };
+  }
+  return { label: 'Неплатено', cls: 'pill-warning' };
+}
 
 const MK_MONTHS = [
   'Сите месеци', 'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -27,6 +39,7 @@ export default function SalesHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMonth, setFilterMonth] = useState(0); // 0 = all
   const [filterBuyer, setFilterBuyer] = useState(''); // '' = all
+  const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // Document preview modal: { html, docType, fileName }
@@ -73,6 +86,11 @@ export default function SalesHistory() {
       result = result.filter(s => s.buyer_name === filterBuyer);
     }
 
+    // Only unpaid
+    if (filterUnpaid) {
+      result = result.filter(s => s.payment_status !== 'платено');
+    }
+
     // Search by invoice number or buyer name
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -84,7 +102,7 @@ export default function SalesHistory() {
     }
 
     return result;
-  }, [sales, filterMonth, filterBuyer, searchQuery]);
+  }, [sales, filterMonth, filterBuyer, filterUnpaid, searchQuery]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -92,7 +110,9 @@ export default function SalesHistory() {
     const totalKg = filteredSales.reduce((s, x) =>
       s + (x.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
     const uniqueBuyers = new Set(filteredSales.map(s => s.buyer_name)).size;
-    return { count: filteredSales.length, totalAmount, totalKg, uniqueBuyers };
+    const unpaid = filteredSales.filter(s => s.payment_status !== 'платено');
+    const unpaidAmount = unpaid.reduce((s, x) => s + parseFloat(x.total || 0), 0);
+    return { count: filteredSales.length, totalAmount, totalKg, uniqueBuyers, unpaidCount: unpaid.length, unpaidAmount };
   }, [filteredSales]);
 
   // Unique buyer names for filter
@@ -199,9 +219,20 @@ export default function SalesHistory() {
     setSearchQuery('');
     setFilterMonth(0);
     setFilterBuyer('');
+    setFilterUnpaid(false);
   }
 
-  const hasActiveFilters = searchQuery || filterMonth > 0 || filterBuyer;
+  const hasActiveFilters = searchQuery || filterMonth > 0 || filterBuyer || filterUnpaid;
+
+  async function togglePaid(sale) {
+    const paid = sale.payment_status !== 'платено';
+    try {
+      await api.setSalePayment(sale.id, paid, paid ? new Date().toISOString().slice(0, 10) : null);
+      setSales(prev => prev.map(s => s.id === sale.id
+        ? { ...s, payment_status: paid ? 'платено' : 'неплатено', paid_at: paid ? new Date().toISOString().slice(0, 10) : null }
+        : s));
+    } catch (err) { setError(err.message); }
+  }
 
   if (loading) {
     return (
@@ -301,11 +332,15 @@ export default function SalesHistory() {
                   style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
                 <div className="text-base font-bold text-[var(--text-primary)]">{stats.totalKg.toFixed(1)} кг</div>
               </div>
-              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
+              <button type="button" onClick={() => setFilterUnpaid(v => !v)}
+                className={`rounded-[var(--r-md)] bg-[var(--surface)] border p-2.5 text-center transition-colors ${filterUnpaid ? 'border-[var(--danger)]' : 'border-[var(--border)]'}`}>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
-                  style={{ fontFamily: 'Sora, sans-serif' }}>Купувачи</div>
-                <div className="text-base font-bold text-[var(--text-primary)]">{stats.uniqueBuyers}</div>
-              </div>
+                  style={{ fontFamily: 'Sora, sans-serif' }}>Неплатено</div>
+                <div className={`text-base font-bold ${stats.unpaidCount > 0 ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                  {(stats.unpaidAmount / 1000).toFixed(1)}к ден
+                </div>
+                <div className="text-[9px] text-[var(--text-muted)]">{stats.unpaidCount} факт.</div>
+              </button>
             </div>
           )}
 
@@ -345,6 +380,10 @@ export default function SalesHistory() {
                       </select>
                     </div>
                   </div>
+                  <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+                    <input type="checkbox" checked={filterUnpaid} onChange={e => setFilterUnpaid(e.target.checked)} />
+                    Само неплатени
+                  </label>
                   {hasActiveFilters && (
                     <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-[var(--danger)]">
                       <X size={12} /> Тргни филтри
@@ -384,6 +423,7 @@ export default function SalesHistory() {
                             {sale.invoice_number}
                           </h3>
                           <span className="pill pill-blue text-[9px]">{sale.payment_method}</span>
+                          {(() => { const b = paymentBadge(sale); return <span className={`pill ${b.cls} text-[9px]`}>{b.label}</span>; })()}
                         </div>
                         <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                           {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
@@ -463,7 +503,11 @@ export default function SalesHistory() {
                         {sale.notes && (
                           <p className="text-[11px] text-[var(--text-muted)] italic">📝 {sale.notes}</p>
                         )}
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
+                          <button onClick={() => togglePaid(sale)}
+                            className={`btn-ghost text-[11px] flex items-center gap-1 ${sale.payment_status === 'платено' ? 'text-[var(--text-muted)]' : 'text-[#16a34a]'}`}>
+                            <Check size={12} /> {sale.payment_status === 'платено' ? 'Врати на неплатено' : 'Означи како платено'}
+                          </button>
                           <button onClick={() => navigate(`/production/sales/${sale.id}/edit`)}
                             className="btn-ghost text-[11px] text-[var(--primary)] flex items-center gap-1">
                             <Pencil size={12} /> Уреди

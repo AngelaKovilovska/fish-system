@@ -173,5 +173,6 @@ export const api = {
   getSale: (id) => request(`/sales/${id}`),
   createSale: (data) => request('/sales', { method: 'POST', body: JSON.stringify(data) }),
   updateSale: (id, data) => request(`/sales/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setSalePayment: (id, paid, paid_at) => request(`/sales/${id}/payment`, { method: 'PUT', body: JSON.stringify({ paid, paid_at }) }),
   deleteSale: (id) => request(`/sales/${id}`, { method: 'DELETE' }),
 };

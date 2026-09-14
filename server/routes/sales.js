@@ -190,20 +190,24 @@ router.post('/', authMiddleware, async (req, res) => {
     const vat_amount = Math.round(subtotal * vat_rate) / 100;
     const total = subtotal + vat_amount;
 
-    // Create sale
+    // Create sale (готово/гратис = платено на денот)
+    const method = payment_method || 'фактура';
+    const isPaidNow = ['готово', 'гратис'].includes(method);
+    const saleDateVal = sale_date || new Date().toISOString().slice(0, 10);
     const saleResult = await client.query(
       `INSERT INTO sales (invoice_number, dispatch_number, buyer_id, sale_date, due_date,
         payment_method, lot_number, transport_vehicle, product_temp,
-        subtotal, vat_rate, vat_amount, total, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+        subtotal, vat_rate, vat_amount, total, notes, created_by, payment_status, paid_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
       [
         invoice_number, dispatch_number, buyer_id,
-        sale_date || new Date().toISOString().slice(0, 10),
-        due_date || null, payment_method || 'фактура',
+        saleDateVal,
+        due_date || null, method,
         lot_number || items.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
         product_temp != null ? parseFloat(product_temp) : null,
         subtotal, vat_rate, vat_amount, total,
-        notes || null, req.user.id
+        notes || null, req.user.id,
+        isPaidNow ? 'платено' : 'неплатено', isPaidNow ? saleDateVal : null
       ]
     );
 
@@ -307,18 +311,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
       await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
     }
 
-    // 5. Update sale header
+    // 5. Update sale header (готово/гратис → автоматски платено)
+    const newMethod = payment_method || existing.rows[0].payment_method;
+    const newSaleDate = sale_date || existing.rows[0].sale_date;
+    let paymentStatus = existing.rows[0].payment_status || 'неплатено';
+    let paidAt = existing.rows[0].paid_at;
+    if (['готово', 'гратис'].includes(newMethod) && paymentStatus !== 'платено') {
+      paymentStatus = 'платено'; paidAt = newSaleDate;
+    }
     const result = await client.query(
       `UPDATE sales SET buyer_id = $1, sale_date = $2, due_date = $3, payment_method = $4,
          lot_number = $5, transport_vehicle = $6, product_temp = $7,
-         subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12, updated_at = NOW()
+         subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12,
+         payment_status = $14, paid_at = $15, updated_at = NOW()
        WHERE id = $13 RETURNING *`,
       [
-        buyer_id, sale_date || existing.rows[0].sale_date, due_date || existing.rows[0].due_date,
-        payment_method || existing.rows[0].payment_method,
+        buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
+        newMethod,
         lot_number || items.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
-        subtotal, vat_rate, vat_amount, total, notes || null, req.params.id
+        subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
+        paymentStatus, paidAt
       ]
     );
 
@@ -331,6 +344,24 @@ router.put('/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {
     client.release();
+  }
+});
+
+// PUT /api/sales/:id/payment - mark as paid / unpaid
+router.put('/:id/payment', authMiddleware, async (req, res) => {
+  try {
+    const { paid, paid_at } = req.body || {};
+    const isPaid = Boolean(paid);
+    const paidDate = isPaid ? (paid_at || new Date().toISOString().slice(0, 10)) : null;
+    const result = await pool.query(
+      `UPDATE sales SET payment_status = $1, paid_at = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [isPaid ? 'платено' : 'неплатено', paidDate, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Продажбата не е пронајдена' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update payment error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
   }
 });
 
