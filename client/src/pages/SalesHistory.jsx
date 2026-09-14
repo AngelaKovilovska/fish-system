@@ -4,7 +4,7 @@ import { api, renderDocumentPdf } from '../lib/api';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
-  TrendingUp, Package, Download, Eye, Check,
+  TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
 
@@ -504,10 +504,13 @@ export default function SalesHistory() {
                           <p className="text-[11px] text-[var(--text-muted)] italic">📝 {sale.notes}</p>
                         )}
                         <div className="flex justify-end gap-1 flex-wrap">
-                          <button onClick={() => togglePaid(sale)}
-                            className={`btn-ghost text-[11px] flex items-center gap-1 ${sale.payment_status === 'платено' ? 'text-[var(--text-muted)]' : 'text-[#16a34a]'}`}>
-                            <Check size={12} /> {sale.payment_status === 'платено' ? 'Врати на неплатено' : 'Означи како платено'}
-                          </button>
+                          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none mr-auto pl-1">
+                            <input type="checkbox" checked={sale.payment_status === 'платено'} onChange={() => togglePaid(sale)}
+                              className="w-3.5 h-3.5 accent-[#16a34a]" />
+                            <span className={sale.payment_status === 'платено' ? 'text-[#16a34a] font-semibold' : 'text-[var(--text-secondary)]'}>
+                              {sale.payment_status === 'платено' ? `Платено${sale.paid_at ? ' ' + formatDateShortMK(sale.paid_at) : ''}` : 'Неплатено'}
+                            </span>
+                          </label>
                           <button onClick={() => navigate(`/production/sales/${sale.id}/edit`)}
                             className="btn-ghost text-[11px] text-[var(--primary)] flex items-center gap-1">
                             <Pencil size={12} /> Уреди
