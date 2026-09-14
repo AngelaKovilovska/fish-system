@@ -647,14 +647,14 @@ function generatePrintHTML(sale, docType) {
       @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: 'Candara', 'Trebuchet MS', Calibri, sans-serif; font-size: 13px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .inv-page { display: flex; min-height: 297mm; }
+      .inv-page { display: flex; width: 794px; min-height: 297mm; overflow: hidden; }
       @media print {
         html, body { height: 100vh; overflow: hidden; }
         .inv-page { min-height: 0; height: 100vh; overflow: hidden; }
       }
 
       /* ── Sidebar ── */
-      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 26px 12px 60px 18px; display: flex; flex-direction: column; text-align: center; position: relative; }
+      .inv-sidebar { width: 210px; flex: 0 0 210px; overflow: hidden; background: #1b2a5a; color: #fff; padding: 26px 12px 60px 18px; display: flex; flex-direction: column; text-align: center; position: relative; }
       .inv-sidebar::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.6); }
       .inv-sidebar img { width: 168px; display: block; margin: 0 auto 24px; }
       .inv-co { font-weight: 700; }
@@ -668,19 +668,19 @@ function generatePrintHTML(sale, docType) {
       .inv-fish { font-size: 12px; font-weight: 700; line-height: 1.6; }
 
       /* ── Main ── */
-      .inv-main { flex: 1; min-width: 0; padding: 20px 26px 28px 0; display: flex; flex-direction: column; }
+      .inv-main { width: 584px; flex: 0 0 584px; overflow: hidden; padding: 18px 26px 28px 0; display: flex; flex-direction: column; }
       .inv-top { display: flex; justify-content: space-between; align-items: flex-start; padding-left: 26px; }
-      .inv-buyer { flex: 1; padding-right: 44px; position: relative; padding-top: 10px; }
-      .inv-buyer::before { content: ''; position: absolute; left: 100px; top: 10px; bottom: 10px; border-left: 1.5px solid #1b2a5a; }
-      .inv-buyer-row { display: flex; align-items: flex-end; height: 64px; }
-      .inv-buyer-row .inv-lbl { width: 100px; font-size: 13px; padding-bottom: 3px; }
-      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 6px 3px; min-height: 20px; font-size: 13px; }
-      .inv-titles { width: 200px; text-align: right; }
-      .inv-titles .inv-sub { font-size: 18px; font-weight: 700; border-bottom: 1.5px solid #1b2a5a; display: inline-block; line-height: 1; padding-bottom: 2px; }
-      .inv-titles .inv-title { font-size: 28px; font-weight: 700; line-height: 1; margin-top: 1px; }
-      .inv-numbox { margin-top: 44px; }
-      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; font-size: 13px; text-align: center; height: 62px; }
-      .inv-numbox .inv-field strong { display: block; font-size: 13px; margin-bottom: 1px; }
+      .inv-buyer { flex: 1; padding-right: 50px; position: relative; padding-top: 8px; }
+      .inv-buyer::before { content: ''; position: absolute; left: 135px; top: 4px; bottom: -18px; border-left: 1.5px solid #1b2a5a; }
+      .inv-buyer-row { display: flex; align-items: flex-end; height: 66px; }
+      .inv-buyer-row .inv-lbl { width: 135px; font-size: 13.5px; font-weight: 700; padding-bottom: 4px; }
+      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 6px 4px; min-height: 22px; font-size: 13.5px; }
+      .inv-titles { width: 220px; flex: 0 0 220px; text-align: right; }
+      .inv-titles .inv-sub { font-size: 21px; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1.5px solid #1b2a5a; display: inline-block; line-height: 1; padding: 0 8px 2px; }
+      .inv-titles .inv-title { font-size: 32px; font-weight: 700; line-height: 0.95; margin-top: 2px; padding-right: 8px; }
+      .inv-numbox { margin-top: 58px; }
+      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; font-size: 13.5px; text-align: center; height: 66px; }
+      .inv-numbox .inv-field strong { display: block; font-size: 13.5px; margin-bottom: 1px; }
 
       /* ── Table box: header + rows + confirm bar, joined to sidebar ── */
       .inv-box { margin-top: 20px; border-right: 1.5px solid #1b2a5a; }
