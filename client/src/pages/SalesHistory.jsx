@@ -623,7 +623,7 @@ function generatePrintHTML(sale, docType) {
     const rows = [...itemsArray];
     while (rows.length < 4) rows.push(null);
     const rowHTML = rows.map(item => item ? `
-      <tr>
+      <tr class="inv-filled">
         <td>Риба (Clarias gariepinus) - ${item.code || ''}</td>
         <td class="num">${parseFloat(item.quantity_kg).toFixed(2)}</td>
         <td class="num">${parseFloat(item.price_per_kg).toFixed(2)}</td>
@@ -635,65 +635,85 @@ function generatePrintHTML(sale, docType) {
     <style>
       @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Candara, Calibri, Arial, Helvetica, sans-serif; font-size: 12px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: Candara, Calibri, 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 12px; color: #1b2a5a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .inv-page { display: flex; min-height: 297mm; }
       @media print {
         html, body { height: 100vh; overflow: hidden; }
         .inv-page { min-height: 0; height: 100vh; overflow: hidden; }
       }
-      .inv-sidebar { width: 200px; background: #1b2a5a; color: #fff; padding: 28px 16px 24px; display: flex; flex-direction: column; text-align: center; }
-      .inv-sidebar img { width: 150px; display: block; margin: 0 auto 26px; }
-      .inv-sidebar .inv-desc { font-size: 8.5px; font-weight: 700; margin-bottom: 2px; }
-      .inv-sidebar .inv-company { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 3px; }
-      .inv-sidebar .inv-addr { font-size: 8.5px; font-weight: 700; line-height: 1.5; }
-      .inv-sidebar .inv-ids { font-size: 8.5px; font-weight: 700; letter-spacing: 1px; line-height: 1.6; }
-      .inv-sidebar .inv-bank { font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; margin-top: 2px; }
-      .inv-sidebar .inv-rbo { background: rgba(255,255,255,0.14); border-radius: 8px; padding: 14px 10px; margin: 60px 0 0; font-size: 11px; font-weight: 700; line-height: 1.5; }
-      .inv-sidebar .inv-fish { margin-top: auto; padding-top: 40px; font-size: 11px; font-weight: 700; line-height: 1.55; }
-      .inv-main { flex: 1; padding: 20px 28px 24px 28px; display: flex; flex-direction: column; }
+
+      /* ── Sidebar ── */
+      .inv-sidebar { width: 210px; background: #1b2a5a; color: #fff; padding: 34px 18px 34px 22px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; position: relative; }
+      .inv-sidebar::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.55); }
+      .inv-sidebar img { width: 160px; display: block; margin: 0 auto; }
+      .inv-co .inv-desc { font-size: 8.5px; font-weight: 700; margin-bottom: 3px; }
+      .inv-co .inv-company { font-size: 14.5px; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 4px; }
+      .inv-co .inv-addr { font-size: 8.5px; font-weight: 700; line-height: 1.55; }
+      .inv-co .inv-ids { font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px; line-height: 1.7; }
+      .inv-co .inv-bank { font-size: 9.5px; font-weight: 700; letter-spacing: 1.6px; margin-top: 3px; }
+      .inv-rbo { background: rgba(255,255,255,0.13); border-radius: 12px; padding: 16px 10px; font-size: 11.5px; font-weight: 700; line-height: 1.55; box-shadow: 0 0 18px rgba(255,255,255,0.12); }
+      .inv-fish { font-size: 11.5px; font-weight: 700; line-height: 1.6; }
+
+      /* ── Main ── */
+      .inv-main { flex: 1; padding: 22px 28px 28px 0; display: flex; flex-direction: column; }
+      .inv-pad { padding-left: 28px; }
       .inv-top { display: flex; justify-content: space-between; align-items: flex-start; }
-      .inv-buyer { flex: 1; padding-right: 40px; padding-top: 4px; }
-      .inv-buyer-row { display: flex; align-items: flex-end; margin-bottom: 26px; }
-      .inv-buyer-row .inv-lbl { width: 100px; font-weight: 700; font-size: 12px; padding-bottom: 2px; }
-      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 4px 2px; min-height: 18px; font-size: 12px; }
+      .inv-buyer { flex: 1; padding-right: 44px; padding-top: 6px; }
+      .inv-buyer-row { display: flex; align-items: flex-end; margin-bottom: 28px; }
+      .inv-buyer-row .inv-lbl { width: 100px; font-weight: 700; font-size: 12.5px; padding-bottom: 2px; }
+      .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 4px 2px; min-height: 18px; font-size: 12.5px; }
       .inv-titles { width: 200px; text-align: right; }
       .inv-titles .inv-sub { font-size: 17px; font-weight: 700; border-bottom: 1.5px solid #1b2a5a; display: inline-block; padding-bottom: 1px; }
-      .inv-titles .inv-title { font-size: 26px; font-weight: 900; line-height: 1; margin-top: 2px; }
-      .inv-numbox { margin-top: 26px; }
-      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; margin-top: 18px; font-size: 12px; text-align: center; }
-      .inv-numbox .inv-field strong { display: block; font-size: 12px; margin-bottom: 1px; }
-      .inv-table-wrap { margin-top: 30px; }
-      table { width: 100%; border-collapse: collapse; }
-      thead th { background: #1b2a5a; color: #fff; padding: 9px 10px; text-align: left; font-size: 12px; font-weight: 700; }
+      .inv-titles .inv-title { font-size: 27px; font-weight: 900; line-height: 1; margin-top: 2px; }
+      .inv-numbox { margin-top: 28px; }
+      .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; margin-top: 20px; font-size: 12.5px; text-align: center; }
+      .inv-numbox .inv-field strong { display: block; font-size: 12.5px; margin-bottom: 1px; }
+
+      /* ── Table (header joined to sidebar) ── */
+      .inv-table-wrap { margin-top: 26px; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      col.c1 { width: auto; } col.c2 { width: 110px; } col.c3 { width: 100px; } col.c4 { width: 120px; }
+      thead th { background: #1b2a5a; color: #fff; padding: 9px 10px; text-align: left; font-size: 12.5px; font-weight: 700; }
+      thead th:first-child { padding-left: 28px; }
       thead th.num { text-align: right; }
-      tbody td { height: 40px; padding: 4px 10px; border-bottom: 1.5px solid #1b2a5a; border-right: 2px solid #1b2a5a; font-size: 12px; vertical-align: middle; }
-      tbody td:last-child { border-right: none; }
+      tbody td { height: 40px; padding: 4px 10px; border-bottom: 1.5px solid #1b2a5a; border-right: 2.5px solid #1b2a5a; font-size: 12.5px; vertical-align: middle; }
+      tbody td:first-child { padding-left: 28px; border-left: 2.5px solid #1b2a5a; }
+      tbody td:last-child { border-right: 2.5px solid #1b2a5a; }
+      tbody tr.inv-filled td { font-weight: 700; }
       tbody td.num { text-align: right; }
-      tbody tr.inv-sum td { border-bottom: 1.5px solid #1b2a5a; }
-      tbody tr.inv-sum td:first-child, tbody tr.inv-sum td:nth-child(2) { border-bottom: none; }
-      tbody tr.inv-sum td.inv-sum-lbl { text-align: right; font-weight: 700; }
+      tbody tr.inv-sum td:first-child, tbody tr.inv-sum td:nth-child(2) { border-bottom: none; border-left: none; }
+      tbody tr.inv-sum td:first-child { border-right: none; }
+      tbody tr.inv-sum td.inv-sum-lbl { text-align: right; font-weight: 700; border-left: 2.5px solid #1b2a5a; }
       tbody tr.inv-sum td.inv-sum-val { text-align: right; font-weight: 700; }
-      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 11.5px; text-align: center; padding: 9px 10px; margin-top: 30px; }
-      .inv-lot { margin-top: 18px; font-size: 11px; }
+      tbody tr.inv-total td.inv-sum-lbl, tbody tr.inv-total td.inv-sum-val { font-size: 13.5px; }
+
+      /* ── Confirm bar joined to sidebar ── */
+      .inv-confirm { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 11.5px; text-align: center; padding: 9px 10px 9px 28px; margin-top: 26px; }
+
+      .inv-lot { margin-top: 16px; font-size: 11.5px; }
       .inv-lot strong { font-weight: 700; }
-      .inv-bottom { display: flex; justify-content: space-between; margin-top: 40px; }
-      .inv-recv { width: 250px; }
-      .inv-recv .inv-recv-lbl { display: inline-block; background: #1b2a5a; color: #fff; font-weight: 700; font-size: 14px; padding: 4px 14px; margin-bottom: 8px; }
-      .inv-recv .inv-recv-row { display: flex; align-items: flex-end; margin-bottom: 22px; }
-      .inv-recv .inv-recv-row span { font-size: 12px; padding-bottom: 2px; }
+
+      /* ── Bottom ── */
+      .inv-bottom { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 44px; }
+      .inv-recv { width: 290px; }
+      .inv-recv .inv-recv-lbl { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 14.5px; padding: 5px 16px 5px 28px; width: 150px; margin-bottom: 8px; }
+      .inv-recv .inv-recv-row { display: flex; align-items: flex-end; margin-bottom: 24px; padding-left: 28px; }
+      .inv-recv .inv-recv-row span { font-size: 12.5px; padding-bottom: 2px; white-space: nowrap; }
       .inv-recv .inv-recv-row .inv-l { flex: 1; border-bottom: 1.5px solid #1b2a5a; margin-left: 6px; }
-      .inv-stamp { width: 220px; text-align: center; padding-top: 70px; }
+      .inv-stamp { width: 230px; text-align: center; padding-top: 78px; }
       .inv-stamp .inv-l { border-bottom: 1.5px solid #1b2a5a; }
-      .inv-stamp .inv-lbl { font-size: 12px; margin-top: 4px; }
+      .inv-stamp .inv-lbl { font-size: 12.5px; margin-top: 4px; }
     </style></head><body>
     <div class="inv-page">
       <div class="inv-sidebar">
         <img src="/images/clario-logo-white.png" alt="CLARIO" />
-        <div class="inv-desc">${COMPANY.desc}</div>
-        <div class="inv-company">${COMPANY.fullName}</div>
-        <div class="inv-addr">${COMPANY.address}</div>
-        <div class="inv-ids">едб.:${COMPANY.edb}, емб.:${COMPANY.emb}</div>
-        <div class="inv-bank">${COMPANY.bankNLB} НЛБ Банка АД</div>
+        <div class="inv-co">
+          <div class="inv-desc">${COMPANY.desc}</div>
+          <div class="inv-company">${COMPANY.fullName}</div>
+          <div class="inv-addr">${COMPANY.address}</div>
+          <div class="inv-ids">едб.:${COMPANY.edb}, емб.:${COMPANY.emb}</div>
+          <div class="inv-bank">${COMPANY.bankNLB} НЛБ Банка АД</div>
+        </div>
         <div class="inv-rbo">
           карта за идентификација<br/>на одгледувалиште<br/>(РБО ${COMPANY.bankRBO})<br/>${COMPANY.farmAddress}
         </div>
@@ -703,7 +723,7 @@ function generatePrintHTML(sale, docType) {
       </div>
 
       <div class="inv-main">
-        <div class="inv-top">
+        <div class="inv-top inv-pad">
           <div class="inv-buyer">
             <div class="inv-buyer-row"><span class="inv-lbl">Купувач:</span><span class="inv-val">${sale.buyer_name || ''}</span></div>
             <div class="inv-buyer-row"><span class="inv-lbl">адреса:</span><span class="inv-val">${sale.buyer_address || ''}</span></div>
@@ -721,6 +741,7 @@ function generatePrintHTML(sale, docType) {
 
         <div class="inv-table-wrap">
           <table>
+            <colgroup><col class="c1"/><col class="c2"/><col class="c3"/><col class="c4"/></colgroup>
             <thead>
               <tr>
                 <th>Производ</th>
@@ -736,7 +757,7 @@ function generatePrintHTML(sale, docType) {
                 <td class="inv-sum-lbl">ДДВ ${sale.vat_rate || 5}% :</td>
                 <td class="inv-sum-val">${parseFloat(sale.vat_amount).toFixed(2)}</td>
               </tr>
-              <tr class="inv-sum">
+              <tr class="inv-sum inv-total">
                 <td></td><td></td>
                 <td class="inv-sum-lbl">СЕ ВКУПНО :</td>
                 <td class="inv-sum-val">${parseFloat(sale.total).toFixed(2)}</td>
@@ -749,7 +770,7 @@ function generatePrintHTML(sale, docType) {
           Со потписот, примачот потврдува дека производите се примени во наведената количина и во добра состојба !
         </div>
 
-        <div class="inv-lot"><strong>LOT / серија:</strong> ${lotNumbers || '—'}</div>
+        <div class="inv-lot inv-pad"><strong>LOT / серија:</strong> ${lotNumbers || '—'}</div>
 
         <div class="inv-bottom">
           <div class="inv-recv">
