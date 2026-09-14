@@ -676,7 +676,8 @@ function generatePrintHTML(sale, docType) {
       .inv-buyer-row .inv-lbl { width: 135px; font-size: 13.5px; font-weight: 700; padding-bottom: 4px; }
       .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 6px 4px; min-height: 22px; font-size: 13.5px; }
       .inv-titles { width: 220px; flex: 0 0 220px; text-align: right; }
-      .inv-titles .inv-sub { font-size: 21px; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1.5px solid #1b2a5a; display: inline-block; line-height: 1; padding: 0 8px 2px; }
+      .inv-titles .inv-sub { font-size: 21px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.1; padding-right: 8px; }
+      .inv-titles .inv-sub-line { width: 160px; height: 0; border-top: 1.5px solid #1b2a5a; margin: 1px 0 0 auto; }
       .inv-titles .inv-title { font-size: 32px; font-weight: 700; line-height: 0.95; margin-top: 2px; padding-right: 8px; }
       .inv-numbox { margin-top: 58px; }
       .inv-numbox .inv-field { border-top: 1.5px solid #1b2a5a; padding-top: 3px; font-size: 13.5px; text-align: center; height: 66px; }
@@ -688,9 +689,9 @@ function generatePrintHTML(sale, docType) {
       .inv-thead span { padding-left: 8px; }
       .inv-tbody { padding: 10px 26px 12px 26px; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      col.c1 { width: auto; } col.c2 { width: 100px; } col.c3 { width: 100px; } col.c4 { width: 130px; }
-      .inv-thead .h1 { flex: 1; padding-left: 26px; } .inv-thead .h2 { width: 100px; } .inv-thead .h3 { width: 100px; } .inv-thead .h4 { width: 130px; }
-      tbody td { height: 34px; padding: 3px 8px; border-bottom: 1.5px solid #1b2a5a; border-right: 1.5px solid #1b2a5a; font-size: 13px; vertical-align: bottom; }
+      col.c1 { width: auto; } col.c2 { width: 88px; } col.c3 { width: 92px; } col.c4 { width: 112px; }
+      .inv-thead .h1 { flex: 1; padding-left: 26px; } .inv-thead .h2 { width: 88px; } .inv-thead .h3 { width: 92px; } .inv-thead .h4 { width: 112px; }
+      tbody td { height: 34px; padding: 3px 6px; border-bottom: 1.5px solid #1b2a5a; border-right: 1.5px solid #1b2a5a; font-size: 12.5px; vertical-align: bottom; white-space: nowrap; overflow: hidden; }
       tbody td:first-child { padding-left: 0; }
       tbody td:last-child { border-right: none; }
       tbody td.num { text-align: right; }
@@ -745,7 +746,7 @@ function generatePrintHTML(sale, docType) {
             <div class="inv-buyer-row"><span class="inv-lbl">даночен број:</span><span class="inv-val">${sale.buyer_edb || ''}</span></div>
           </div>
           <div class="inv-titles">
-            <div class="inv-sub">ИСПРАТНИЦА</div>
+            <div class="inv-sub">ИСПРАТНИЦА</div><div class="inv-sub-line"></div>
             <div class="inv-title">ФАКТУРА</div>
             <div class="inv-numbox">
               <div class="inv-field"><strong>${sale.invoice_number || ''}</strong>број</div>
