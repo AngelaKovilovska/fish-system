@@ -7,6 +7,7 @@ import {
   TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
 import { formatDateShortMK } from '../lib/utils';
+import html2pdf from 'html2pdf.js';
 
 const MK_MONTHS = [
   'Сите месеци', 'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
@@ -153,15 +154,24 @@ export default function SalesHistory() {
 
   function handlePreviewDownload() {
     if (!previewDoc) return;
-    const blob = new Blob([previewDoc.html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${previewDoc.fileName}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const container = document.createElement('div');
+    container.innerHTML = previewDoc.html;
+    document.body.appendChild(container);
+
+    const isInvoice = previewDoc.docType === 'invoice';
+    const opt = {
+      margin: isInvoice ? 0 : [10, 10, 10, 10],
+      filename: `${previewDoc.fileName}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    };
+
+    html2pdf().set(opt).from(container).save().then(() => {
+      document.body.removeChild(container);
+    }).catch(() => {
+      document.body.removeChild(container);
+    });
   }
 
   function clearFilters() {
