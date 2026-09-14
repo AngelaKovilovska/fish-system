@@ -33,6 +33,7 @@ export default function SalesHistory() {
   const [previewDoc, setPreviewDoc] = useState(null);
   const previewFrameRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   // Buyer editing
   const [editingBuyer, setEditingBuyer] = useState(null);
@@ -147,9 +148,31 @@ export default function SalesHistory() {
     }
   }
 
-  function handlePreviewPrint() {
-    const frame = previewFrameRef.current;
-    if (frame) frame.contentWindow.print();
+  // Print the server-rendered PDF (same file as "Симни") for identical output
+  async function handlePreviewPrint() {
+    if (!previewDoc || printing) return;
+    setPrinting(true);
+    try {
+      const blob = await renderDocumentPdf(previewDoc.html);
+      const url = URL.createObjectURL(blob);
+      const frame = document.createElement('iframe');
+      frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+      frame.src = url;
+      frame.onload = () => {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+        } catch {
+          window.open(url, '_blank');
+        }
+        setTimeout(() => { frame.remove(); URL.revokeObjectURL(url); }, 60000);
+      };
+      document.body.appendChild(frame);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPrinting(false);
+    }
   }
 
   async function handlePreviewDownload() {
@@ -199,8 +222,8 @@ export default function SalesHistory() {
             <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
               <h3 className="font-semibold text-sm">{DOC_LABELS[previewDoc.docType]}</h3>
               <div className="flex items-center gap-2">
-                <button onClick={handlePreviewPrint} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
-                  <Printer size={14} /> Печати
+                <button onClick={handlePreviewPrint} disabled={printing} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-60">
+                  <Printer size={14} /> {printing ? 'Подготвувам…' : 'Печати'}
                 </button>
                 <button onClick={handlePreviewDownload} disabled={downloading} className="btn-ghost text-xs flex items-center gap-1.5 px-3 py-1.5 disabled:opacity-60">
                   <Download size={14} /> {downloading ? 'Генерирам…' : 'Симни'}
