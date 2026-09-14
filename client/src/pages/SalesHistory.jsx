@@ -633,21 +633,21 @@ function generatePrintHTML(sale, docType) {
       /* ── Main ── */
       .inv-main { width: 584px; flex: 0 0 584px; overflow: hidden; padding: 18px 26px 28px 0; display: flex; flex-direction: column; }
       .inv-top { display: flex; justify-content: space-between; align-items: flex-start; padding-left: 26px; }
-      .inv-buyer { flex: 1; padding-right: 50px; position: relative; padding-top: 8px; }
-      .inv-buyer::before { content: ''; position: absolute; left: 135px; top: 2px; bottom: -12px; border-left: 1.5px solid #1b2a5a; }
-      .inv-buyer-row { display: flex; align-items: flex-end; height: 44px; }
+      .inv-buyer { flex: 1; padding-right: 50px; position: relative; padding-top: 4px; }
+      .inv-buyer::before { content: ''; position: absolute; left: 135px; top: 0; bottom: -10px; border-left: 1.5px solid #1b2a5a; }
+      .inv-buyer-row { display: flex; align-items: flex-end; height: 36px; }
       .inv-buyer-row .inv-lbl { width: 135px; font-size: 13.5px; font-weight: 700; padding-bottom: 4px; }
       .inv-buyer-row .inv-val { flex: 1; border-bottom: 1.5px solid #1b2a5a; padding: 0 6px 4px; min-height: 22px; font-size: 13.5px; }
       .inv-titles { width: 220px; flex: 0 0 220px; text-align: right; }
       .inv-titles .inv-sub { font-size: 21px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.1; padding-right: 8px; }
       .inv-titles .inv-sub-line { width: 160px; height: 0; border-top: 1.5px solid #1b2a5a; margin: 1px 0 0 auto; }
       .inv-titles .inv-title { font-size: 32px; font-weight: 700; line-height: 0.95; margin-top: 2px; padding-right: 8px; }
-      .inv-numbox { margin-top: 26px; }
-      .inv-numbox .inv-field { font-size: 13.5px; text-align: center; height: 52px; }
+      .inv-numbox { margin-top: 10px; }
+      .inv-numbox .inv-field { font-size: 13.5px; text-align: center; height: 48px; }
       .inv-numbox .inv-field strong { display: block; font-size: 13.5px; border-bottom: 1.5px solid #1b2a5a; padding-bottom: 2px; min-height: 20px; margin-bottom: 2px; }
 
       /* ── Table box: header + rows + confirm bar, joined to sidebar ── */
-      .inv-box { margin-top: 20px; border-right: 1.5px solid #1b2a5a; }
+      .inv-box { margin-top: 22px; border-right: 1.5px solid #1b2a5a; }
       .inv-thead { background: #1b2a5a; color: #fff; display: flex; font-size: 13px; font-weight: 700; padding: 7px 26px 7px 0; }
       .inv-thead span { padding-left: 8px; }
       .inv-tbody { padding: 10px 26px 12px 26px; }
@@ -670,16 +670,17 @@ function generatePrintHTML(sale, docType) {
       .inv-lot { margin-top: 16px; padding-left: 26px; font-size: 12px; }
       .inv-lot strong { font-weight: 700; }
 
-      /* ── Bottom ── */
-      .inv-bottom { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 40px; }
-      .inv-recv { width: 350px; }
-      .inv-recv .inv-recv-lbl { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 15px; line-height: 20px; padding: 3px 16px 3px 26px; width: 150px; height: 26px; }
-      .inv-recv .inv-recv-row { display: flex; align-items: flex-end; height: 32px; padding-left: 26px; }
-      .inv-recv .inv-recv-row span { font-size: 13px; padding-bottom: 2px; white-space: nowrap; }
-      .inv-recv .inv-recv-row .inv-l { flex: 1; border-bottom: 1.5px solid #1b2a5a; margin-left: 4px; }
-      .inv-stamp { width: 208px; text-align: center; padding-top: 90px; }
-      .inv-stamp .inv-l { border-bottom: 1.5px solid #1b2a5a; }
-      .inv-stamp .inv-lbl { font-size: 13px; margin-top: 3px; }
+      /* ── Bottom (Примил / Печат и потпис) ── */
+      .inv-bottom { margin-top: 36px; }
+      .inv-recv-lbl { background: #1b2a5a; color: #fff; font-weight: 700; font-size: 15px; line-height: 20px; padding: 3px 16px 3px 26px; width: 150px; height: 26px; }
+      .inv-row { display: flex; align-items: flex-end; height: 30px; padding-left: 26px; }
+      .inv-row .inv-t { font-size: 13.5px; padding-bottom: 2px; white-space: nowrap; }
+      .inv-row .inv-l { border-bottom: 1.5px solid #1b2a5a; margin-left: 4px; }
+      .inv-row.r1 .inv-l { width: 300px; }
+      .inv-row.r2 .inv-l { width: 240px; }
+      .inv-row.r2 .inv-stamp { margin-left: 24px; width: 208px; text-align: center; margin-bottom: -21px; }
+      .inv-row.r2 .inv-stamp .inv-sl { border-bottom: 1.5px solid #1b2a5a; }
+      .inv-row.r2 .inv-stamp .inv-t { display: block; padding-top: 3px; }
     </style></head><body>
     <div class="inv-page">
       <div class="inv-sidebar">
@@ -746,14 +747,11 @@ function generatePrintHTML(sale, docType) {
         <div class="inv-lot"><strong>LOT / серија:</strong> ${lotNumbers || '—'}</div>
 
         <div class="inv-bottom">
-          <div class="inv-recv">
-            <div class="inv-recv-lbl">Примил:</div>
-            <div class="inv-recv-row"><span>име и презиме:</span><span class="inv-l"></span></div>
-            <div class="inv-recv-row"><span>потпис:</span><span class="inv-l"></span></div>
-          </div>
-          <div class="inv-stamp">
-            <div class="inv-l"></div>
-            <div class="inv-lbl">Печат и потпис</div>
+          <div class="inv-recv-lbl">Примил:</div>
+          <div class="inv-row r1"><span class="inv-t">име и презиме:</span><span class="inv-l"></span></div>
+          <div class="inv-row r2">
+            <span class="inv-t">потпис:</span><span class="inv-l"></span>
+            <div class="inv-stamp"><div class="inv-sl"></div><span class="inv-t">Печат и потпис</span></div>
           </div>
         </div>
       </div>
