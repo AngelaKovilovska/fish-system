@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { productStockWarnings } from '../lib/utils';
 import { ChevronLeft, Fish, Package as PackageIcon, AlertTriangle, ClipboardList, Save, X, Check, AlertCircle } from 'lucide-react';
 
 const PRODUCT_COLORS = [
@@ -33,6 +34,20 @@ export default function ProductInventoryPage() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  /* праг за ниска залиха */
+  const [editingThreshold, setEditingThreshold] = useState(null);
+  const [thresholdValue, setThresholdValue] = useState('');
+
+  async function saveThreshold(item) {
+    const v = parseFloat(thresholdValue);
+    setEditingThreshold(null);
+    if (isNaN(v) || v < 0 || v === parseFloat(item.min_stock_kg ?? 5)) return;
+    try {
+      await api.updateProductType(item.product_type_id, { min_stock_kg: v });
+      setInventory(prev => prev.map(i => i.product_type_id === item.product_type_id ? { ...i, min_stock_kg: v } : i));
+    } catch (e) { setError(e.message || 'Грешка при зачувување на прагот'); }
+  }
 
   /* попис */
   const [showPopis, setShowPopis] = useState(false);
@@ -188,7 +203,8 @@ export default function ProductInventoryPage() {
             const qty = parseFloat(item.quantity_kg || 0);
             const pct = Math.min((qty / barMax) * 100, 100);
             const isEmpty = qty <= 0;
-            const isLow = qty > 0 && qty <= 2;
+            const minStock = item.min_stock_kg != null ? parseFloat(item.min_stock_kg) : 5;
+            const isLow = qty > 0 && qty < minStock;
             const barColor = isEmpty ? 'var(--text-muted)' : isLow ? 'var(--warning)' : 'var(--primary)';
             const barBg = isEmpty ? 'rgba(100,100,100,0.08)' : isLow ? 'rgba(245,158,11,0.08)' : 'rgba(59,130,246,0.08)';
 
@@ -215,11 +231,30 @@ export default function ProductInventoryPage() {
                     style={{ width: `${pct}%`, background: barColor, minWidth: qty > 0 ? 4 : 0 }}
                   />
                 </div>
-                {item.price_per_unit && (
-                  <p className="text-[10px] text-[var(--text-muted)] text-right mt-0.5">
-                    {parseFloat(item.price_per_unit).toFixed(0)} ден/{item.unit || 'кг'}
-                  </p>
-                )}
+                <div className="flex items-center justify-between mt-0.5">
+                  {editingThreshold === item.product_type_id ? (
+                    <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                      праг
+                      <input type="number" step="0.5" min="0" autoFocus value={thresholdValue}
+                        onChange={e => setThresholdValue(e.target.value)}
+                        onBlur={() => saveThreshold(item)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveThreshold(item); if (e.key === 'Escape') setEditingThreshold(null); }}
+                        className="input-base !py-0 !px-1 !text-[10px] !h-5 w-14" />
+                      кг
+                    </span>
+                  ) : (
+                    <button type="button"
+                      onClick={() => { setEditingThreshold(item.product_type_id); setThresholdValue(String(minStock)); }}
+                      className="text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] underline decoration-dotted">
+                      праг {minStock.toFixed(1)} кг
+                    </button>
+                  )}
+                  {item.price_per_unit && (
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {parseFloat(item.price_per_unit).toFixed(0)} ден/{item.unit || 'кг'}
+                    </p>
+                  )}
+                </div>
                 {Array.isArray(item.lots) && item.lots.length > 0 && (
                   <div className="mt-1.5 ml-1 space-y-0.5">
                     {item.lots.map(lot => {
@@ -243,12 +278,19 @@ export default function ProductInventoryPage() {
             );
           })}
 
-          {inventory.some(i => parseFloat(i.quantity_kg) <= 0) && (
-            <p className="text-[11px] text-[var(--warning)] font-medium mt-1 flex items-center gap-1.5">
-              <AlertTriangle size={12} />
-              Некои производи се без залиха
-            </p>
-          )}
+          {(() => {
+            const warnings = productStockWarnings(inventory);
+            if (warnings.length === 0) return null;
+            return (
+              <div className="mt-2 pt-2 border-t border-[var(--border)] space-y-1">
+                {warnings.map((w, i) => (
+                  <p key={i} className={`text-[11px] font-medium flex items-center gap-1.5 ${w.level === 'danger' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'}`}>
+                    <AlertTriangle size={12} className="flex-shrink-0" /> {w.text}
+                  </p>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

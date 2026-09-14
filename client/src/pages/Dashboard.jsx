@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { formatDateMK } from '../lib/utils';
+import { formatDateMK , productStockWarnings } from '../lib/utils';
 import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer, Archive, Package } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
@@ -233,6 +233,8 @@ export default function Dashboard() {
         const totalProductKg = productInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         const totalFoodKg = foodInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         const lowFoodItems = foodInv.filter(i => parseFloat(i.quantity_kg || 0) < 50);
+        const productWarnings = productStockWarnings(productInv);
+        const productDanger = productWarnings.some(w => w.level === 'danger');
         return (
           <div className="animate-in-delay-2">
             <div className="flex items-center justify-between mb-2.5">
@@ -250,8 +252,8 @@ export default function Dashboard() {
               <Link to="/inventory/products" className="card !p-3.5 transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(139,92,246,0.1)' }}>
-                    <Archive size={15} className="text-purple-500" />
+                    style={{ background: productWarnings.length > 0 ? (productDanger ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)') : 'rgba(139,92,246,0.1)' }}>
+                    <Archive size={15} className={productWarnings.length > 0 ? (productDanger ? 'text-red-500' : 'text-amber-500') : 'text-purple-500'} />
                   </div>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold"
                     style={{ fontFamily: 'Sora, sans-serif' }}>Производи</p>
@@ -259,9 +261,15 @@ export default function Dashboard() {
                 <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
                   {totalProductKg.toFixed(0)} <span className="text-xs font-normal text-[var(--text-muted)]">кг</span>
                 </p>
-                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
-                  {productInv.length} {productInv.length === 1 ? 'производ' : 'производи'}
-                </p>
+                {productWarnings.length > 0 ? (
+                  <p className={`text-[10px] mt-0.5 font-medium ${productDanger ? 'text-red-500' : 'text-amber-500'}`}>
+                    ⚠ {productWarnings.length} {productWarnings.length === 1 ? 'предупредување' : 'предупредувања'}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                    {productInv.length} {productInv.length === 1 ? 'производ' : 'производи'}
+                  </p>
+                )}
               </Link>
 
               {/* Food inventory */}
@@ -288,6 +296,25 @@ export default function Dashboard() {
                 )}
               </Link>
             </div>
+
+            {/* Product stock warnings: low stock, expiring / expired LOTs */}
+            {productWarnings.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {productWarnings.slice(0, 6).map((w, i) => (
+                  <Link key={i} to="/inventory/products"
+                    className="card !p-2.5 !py-2 flex items-center gap-2 text-[11px] hover:scale-[1.005] transition-all"
+                    style={{ borderLeft: `3px solid ${w.level === 'danger' ? 'var(--danger)' : 'var(--warning)'}` }}>
+                    <AlertTriangle size={13} className={w.level === 'danger' ? 'text-[var(--danger)] flex-shrink-0' : 'text-amber-500 flex-shrink-0'} />
+                    <span className="text-[var(--text-secondary)]">{w.text}</span>
+                  </Link>
+                ))}
+                {productWarnings.length > 6 && (
+                  <Link to="/inventory/products" className="text-[11px] text-[var(--primary)] font-medium hover:underline block pl-1">
+                    + уште {productWarnings.length - 6}
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         );
       })()}

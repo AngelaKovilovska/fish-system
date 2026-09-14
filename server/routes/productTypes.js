@@ -64,16 +64,18 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/product-types/:id - update price or name
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { name, price_per_unit, code } = req.body;
+    const { name, price_per_unit, code, min_stock_kg } = req.body;
 
     const result = await pool.query(
       `UPDATE product_types
        SET name = COALESCE($1, name),
            price_per_unit = COALESCE($2, price_per_unit),
            code = COALESCE($3, code),
+           min_stock_kg = COALESCE($5, min_stock_kg),
            updated_at = NOW()
        WHERE id = $4 RETURNING *`,
-      [name || null, price_per_unit != null ? parseFloat(price_per_unit) : null, code || null, req.params.id]
+      [name || null, price_per_unit != null ? parseFloat(price_per_unit) : null, code || null, req.params.id,
+       min_stock_kg != null && !isNaN(parseFloat(min_stock_kg)) ? Math.max(0, parseFloat(min_stock_kg)) : null]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Типот не е пронајден' });
     res.json(result.rows[0]);

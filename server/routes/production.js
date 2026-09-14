@@ -81,7 +81,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/inventory', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT pi.*, pt.code, pt.name, pt.price_per_unit, pt.unit,
+      `SELECT pi.*, pt.code, pt.name, pt.price_per_unit, pt.unit, pt.min_stock_kg,
               COALESCE((
                 SELECT json_agg(json_build_object(
                   'lot_number', pl.lot_number, 'quantity_kg', pl.quantity_kg, 'initial_kg', pl.initial_kg,
