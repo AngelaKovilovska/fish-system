@@ -24,7 +24,6 @@ export default function SalesNew() {
   const [productTypes, setProductTypes] = useState([]);
   const [buyers, setBuyers] = useState([]);
   const [inventory, setInventory] = useState([]);
-  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +49,7 @@ export default function SalesNew() {
   const [vatRate, setVatRate] = useState(5);
 
   /* items */
-  const [items, setItems] = useState([{ product_type_id: '', quantity_kg: '', price_per_kg: '' }]);
+  const [items, setItems] = useState([{ product_type_id: '', lot_number: '', quantity_kg: '', price_per_kg: '' }]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -64,16 +63,14 @@ export default function SalesNew() {
 
   async function loadData() {
     try {
-      const [t, b, inv, bat] = await Promise.all([
+      const [t, b, inv] = await Promise.all([
         api.getProductTypes(),
         api.getBuyers(),
         api.getProductInventory(),
-        api.getProductionBatches({ limit: 50 }),
       ]);
       setProductTypes(t.productTypes || []);
       setBuyers(b.buyers || []);
       setInventory(inv.inventory || []);
-      setBatches(bat.batches || []);
     } catch { setError('Грешка при вчитување'); }
     finally { setLoading(false); }
   }
@@ -106,16 +103,30 @@ export default function SalesNew() {
   }
 
   /* items */
-  function addItem() { setItems([...items, { product_type_id: '', quantity_kg: '', price_per_kg: '' }]); }
+  function addItem() { setItems([...items, { product_type_id: '', lot_number: '', quantity_kg: '', price_per_kg: '' }]); }
   function removeItem(idx) { if (items.length <= 1) return; setItems(items.filter((_, i) => i !== idx)); }
   function updateItem(idx, field, value) {
     const updated = [...items];
     updated[idx][field] = value;
-    if (field === 'product_type_id' && value) {
+    if (field === 'product_type_id') {
       const pt = productTypes.find(t => t.id === parseInt(value));
       if (pt && pt.price_per_unit > 0) updated[idx].price_per_kg = pt.price_per_unit;
+      // FIFO: најстар LOT со залиха
+      const lots = lotsFor(value);
+      updated[idx].lot_number = lots[0]?.lot_number || '';
     }
     setItems(updated);
+  }
+
+  /* LOT-ови со залиха за производ (FIFO редослед доаѓа од серверот) */
+  function lotsFor(productTypeId) {
+    const inv = inventory.find(i => i.product_type_id === parseInt(productTypeId));
+    return (inv?.lots || []).filter(l => parseFloat(l.quantity_kg) > 0);
+  }
+  function fmtShort(d) {
+    if (!d) return '';
+    const x = new Date(d);
+    return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
   }
 
   /* totals */
@@ -145,6 +156,7 @@ export default function SalesNew() {
         vat_rate: vatRate,
         items: validItems.map(i => ({
           product_type_id: parseInt(i.product_type_id),
+          lot_number: i.lot_number || null,
           quantity_kg: parseFloat(i.quantity_kg),
           price_per_kg: parseFloat(i.price_per_kg) || 0,
         })),
@@ -155,7 +167,6 @@ export default function SalesNew() {
     finally { setSaving(false); }
   }
 
-  const lotNumbers = batches.filter(b => b.lot_number).map(b => b.lot_number);
 
   if (loading) return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -298,11 +309,34 @@ export default function SalesNew() {
                       className="btn-ghost p-1.5 text-[var(--danger)] flex-shrink-0"><Trash2 size={13} /></button>
                   </div>
 
-                  {inv && (
-                    <p className="text-[10px] text-[var(--text-muted)] mb-2 ml-7">
-                      На залиха: <span className="font-semibold">{parseFloat(inv.quantity_kg).toFixed(1)} кг</span>
-                    </p>
-                  )}
+                  {inv && (() => {
+                    const lots = lotsFor(item.product_type_id);
+                    const sel = lots.find(l => l.lot_number === item.lot_number);
+                    return (
+                      <div className="mb-2 ml-7">
+                        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">
+                          LOT / серија <span className="normal-case font-normal">— вкупно на залиха {parseFloat(inv.quantity_kg).toFixed(2)} кг</span>
+                        </label>
+                        {lots.length === 0 ? (
+                          <p className="text-[11px] text-[var(--danger)] font-medium">Нема залиха за овој производ</p>
+                        ) : (
+                          <select value={item.lot_number} onChange={e => updateItem(idx, 'lot_number', e.target.value)}
+                            className="input-base text-sm w-full">
+                            {lots.map(l => (
+                              <option key={l.lot_number} value={l.lot_number}>
+                                {l.lot_number} · {parseFloat(l.quantity_kg).toFixed(2)} кг{l.expiry_date ? ` · рок ${fmtShort(l.expiry_date)}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {sel && parseFloat(item.quantity_kg) > parseFloat(sel.quantity_kg) && (
+                          <p className="text-[11px] text-[var(--danger)] font-medium mt-1">
+                            Во LOT {sel.lot_number} има само {parseFloat(sel.quantity_kg).toFixed(2)} кг — поделете во две ставки
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div className="grid grid-cols-2 gap-2 ml-7">
                     <div>
@@ -386,11 +420,9 @@ export default function SalesNew() {
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">LOT број</label>
-              <select value={form.lot_number} onChange={e => setForm({ ...form, lot_number: e.target.value })}
-                className="input-base text-sm">
-                <option value="">— Без LOT —</option>
-                {lotNumbers.map(lot => <option key={lot} value={lot}>{lot}</option>)}
-              </select>
+              <div className="input-base text-sm bg-[var(--surface-elevated)] text-[var(--text-secondary)]">
+                {[...new Set(items.map(i => i.lot_number).filter(Boolean))].join(', ') || '— се одредува по ставка —'}
+              </div>
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Рег. ознака на возило</label>

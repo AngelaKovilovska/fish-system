@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const inv = require('../lib/inventory');
 
 const router = express.Router();
 
@@ -80,7 +81,15 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/inventory', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT pi.*, pt.code, pt.name, pt.price_per_unit, pt.unit
+      `SELECT pi.*, pt.code, pt.name, pt.price_per_unit, pt.unit,
+              COALESCE((
+                SELECT json_agg(json_build_object(
+                  'lot_number', pl.lot_number, 'quantity_kg', pl.quantity_kg, 'initial_kg', pl.initial_kg,
+                  'production_date', pl.production_date, 'expiry_date', pl.expiry_date, 'batch_id', pl.batch_id
+                ) ORDER BY pl.production_date NULLS LAST, pl.id)
+                FROM product_lots pl
+                WHERE pl.product_type_id = pi.product_type_id AND pl.quantity_kg > 0
+              ), '[]'::json) AS lots
        FROM product_inventory pi
        JOIN product_types pt ON pt.id = pi.product_type_id
        WHERE pt.is_active = true
@@ -107,11 +116,7 @@ router.put('/inventory/reset', authMiddleware, async (req, res) => {
     for (const item of items) {
       const qty = parseFloat(item.quantity_kg);
       if (isNaN(qty) || qty < 0) continue;
-      await client.query(
-        `UPDATE product_inventory SET quantity_kg = $1, updated_at = NOW()
-         WHERE product_type_id = $2`,
-        [qty, item.product_type_id]
-      );
+      await inv.adjustToTotal(client, item.product_type_id, qty);
     }
 
     await client.query('COMMIT');
@@ -194,14 +199,12 @@ router.post('/', authMiddleware, async (req, res) => {
             [batchId, item.product_type_id, qty]
           );
 
-          // Add to inventory if completing
+          // Add to LOT inventory if completing
           if (complete) {
-            await client.query(
-              `UPDATE product_inventory
-               SET quantity_kg = quantity_kg + $1, updated_at = NOW()
-               WHERE product_type_id = $2`,
-              [qty, item.product_type_id]
-            );
+            await inv.addToLot(client, {
+              productTypeId: item.product_type_id, lotNumber: lot_number, batchId,
+              productionDate: result.rows[0].production_date, qty,
+            });
           }
         }
       }
@@ -268,26 +271,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     );
 
     // Update items if provided
+    const newProdDate = production_date || batch.rows[0].production_date;
     if (items && Array.isArray(items)) {
-      // If finished, rollback old inventory first
-      if (isFinished) {
-        const oldItems = await client.query(
-          'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1',
-          [req.params.id]
-        );
-        for (const old of oldItems.rows) {
-          await client.query(
-            `UPDATE product_inventory
-             SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW()
-             WHERE product_type_id = $2`,
-            [parseFloat(old.quantity_kg), old.product_type_id]
-          );
-        }
-      }
-
-      // Remove old items and insert new
       await client.query('DELETE FROM production_items WHERE batch_id = $1', [req.params.id]);
-
       for (const item of items) {
         const qty = parseFloat(item.quantity_kg);
         if (qty > 0) {
@@ -295,17 +281,21 @@ router.put('/:id', authMiddleware, async (req, res) => {
             'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
             [req.params.id, item.product_type_id, qty]
           );
-
-          // Re-add to inventory if finished
-          if (isFinished) {
-            await client.query(
-              `UPDATE product_inventory
-               SET quantity_kg = quantity_kg + $1, updated_at = NOW()
-               WHERE product_type_id = $2`,
-              [qty, item.product_type_id]
-            );
-          }
         }
+      }
+    }
+
+    // Keep LOT inventory in sync for finished batches (also renames LOT if date/pool changed)
+    if (isFinished) {
+      const currentItems = await client.query(
+        'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1', [req.params.id]
+      );
+      await inv.setBatchLots(client, {
+        batchId: parseInt(req.params.id), lotNumber: newLot, productionDate: newProdDate, items: currentItems.rows,
+      });
+      if (newLot !== batch.rows[0].lot_number) {
+        await client.query('UPDATE sale_items SET lot_number = $1 WHERE lot_number = $2', [newLot, batch.rows[0].lot_number]);
+        await client.query('UPDATE sales SET lot_number = $1 WHERE lot_number = $2', [newLot, batch.rows[0].lot_number]);
       }
     }
 
@@ -323,6 +313,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     res.json(updated.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Update production batch error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {
@@ -368,12 +359,10 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
       );
 
       for (const item of items.rows) {
-        await client.query(
-          `UPDATE product_inventory
-           SET quantity_kg = quantity_kg + $1, updated_at = NOW()
-           WHERE product_type_id = $2`,
-          [parseFloat(item.quantity_kg), item.product_type_id]
-        );
+        await inv.addToLot(client, {
+          productTypeId: item.product_type_id, lotNumber: batch.rows[0].lot_number,
+          batchId: batch.rows[0].id, productionDate: batch.rows[0].production_date, qty: item.quantity_kg,
+        });
       }
     }
 
@@ -420,6 +409,13 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
       }
     }
 
+    if (batch.rows[0].status === 'завршено') {
+      await inv.setBatchLots(client, {
+        batchId: batch.rows[0].id, lotNumber: batch.rows[0].lot_number,
+        productionDate: batch.rows[0].production_date, items,
+      });
+    }
+
     await client.query('COMMIT');
 
     // Return updated items
@@ -435,6 +431,7 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
     res.json({ items: updated.rows });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Update production items error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {
@@ -463,20 +460,19 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       );
     }
 
-    // Rollback product inventory if batch was finished
+    // Rollback LOT inventory if batch was finished (blocked when part is already sold)
     if (batch.rows[0].status === 'завршено') {
-      const items = await client.query(
-        'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1',
-        [req.params.id]
-      );
-      for (const item of items.rows) {
-        await client.query(
-          `UPDATE product_inventory
-           SET quantity_kg = GREATEST(0, quantity_kg - $1), updated_at = NOW()
-           WHERE product_type_id = $2`,
-          [parseFloat(item.quantity_kg), item.product_type_id]
-        );
+      const sold = await inv.soldFromBatch(client, req.params.id);
+      if (sold.length > 0) {
+        await client.query('ROLLBACK');
+        const totalSold = sold.reduce((s, r) => s + parseFloat(r.sold), 0);
+        return res.status(400).json({
+          error: `Серијата не може да се избрише: од LOT ${batch.rows[0].lot_number} веќе се продадени ${totalSold.toFixed(2)} кг`,
+        });
       }
+      const lots = await client.query('SELECT DISTINCT product_type_id FROM product_lots WHERE batch_id = $1', [req.params.id]);
+      await client.query('DELETE FROM product_lots WHERE batch_id = $1', [req.params.id]);
+      for (const r of lots.rows) await inv.syncInventory(client, r.product_type_id);
     }
 
     await client.query('DELETE FROM production_batches WHERE id = $1', [req.params.id]);

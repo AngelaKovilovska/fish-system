@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const inv = require('../lib/inventory');
 
 const router = express.Router();
 
@@ -160,29 +161,18 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Verify stock for every item (row-locked) before touching anything
+    // Resolve LOT for every item (explicit or FIFO) — stock is verified & locked in takeFromLot
     for (const item of items) {
       const qty = parseFloat(item.quantity_kg) || 0;
       if (qty <= 0) continue;
-      const inv = await client.query(
-        `SELECT pi.quantity_kg, pt.code, pt.name
-         FROM product_types pt
-         LEFT JOIN product_inventory pi ON pi.product_type_id = pt.id
-         WHERE pt.id = $1
-         FOR UPDATE OF pi`,
-        [item.product_type_id]
-      );
-      if (inv.rows.length === 0) {
+      let lot = (item.lot_number || lot_number || '').trim();
+      if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
+      if (!lot) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'Непознат тип на производ' });
+        const pt = await pool.query('SELECT code FROM product_types WHERE id = $1', [item.product_type_id]);
+        return res.status(400).json({ error: `Нема LOT со доволна залиха за ${pt.rows[0]?.code || 'производот'} (${qty.toFixed(2)} кг)` });
       }
-      const available = parseFloat(inv.rows[0].quantity_kg) || 0;
-      if (available < qty) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({
-          error: `Недоволна залиха за ${inv.rows[0].code || inv.rows[0].name}: има ${available.toFixed(2)} кг, барате ${qty.toFixed(2)} кг`,
-        });
-      }
+      item.lot_number = lot;
     }
 
     const invoice_number = await generateInvoiceNumber();
@@ -210,7 +200,7 @@ router.post('/', authMiddleware, async (req, res) => {
         invoice_number, dispatch_number, buyer_id,
         sale_date || new Date().toISOString().slice(0, 10),
         due_date || null, payment_method || 'фактура',
-        lot_number || null, transport_vehicle || null,
+        lot_number || items.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
         product_temp != null ? parseFloat(product_temp) : null,
         subtotal, vat_rate, vat_amount, total,
         notes || null, req.user.id
@@ -228,17 +218,12 @@ router.post('/', authMiddleware, async (req, res) => {
       await client.query(
         `INSERT INTO sale_items (sale_id, product_type_id, lot_number, quantity_kg, price_per_kg, amount)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [saleId, item.product_type_id, item.lot_number || lot_number || null, qty, price, amount]
+        [saleId, item.product_type_id, item.lot_number || null, qty, price, amount]
       );
 
-      // Deduct from product inventory
+      // Deduct from LOT inventory (verifies availability, row-locked)
       if (qty > 0) {
-        await client.query(
-          `UPDATE product_inventory
-           SET quantity_kg = quantity_kg - $1, updated_at = NOW()
-           WHERE product_type_id = $2`,
-          [qty, item.product_type_id]
-        );
+        await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
       }
     }
 
@@ -246,6 +231,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json(saleResult.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Create sale error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {
@@ -261,18 +247,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // Rollback inventory
     const items = await client.query(
-      'SELECT product_type_id, quantity_kg FROM sale_items WHERE sale_id = $1',
+      'SELECT product_type_id, lot_number, quantity_kg FROM sale_items WHERE sale_id = $1',
       [req.params.id]
     );
 
     for (const item of items.rows) {
-      await client.query(
-        `INSERT INTO product_inventory (product_type_id, quantity_kg, updated_at)
-         VALUES ($2, $1, NOW())
-         ON CONFLICT (product_type_id)
-         DO UPDATE SET quantity_kg = product_inventory.quantity_kg + EXCLUDED.quantity_kg, updated_at = NOW()`,
-        [parseFloat(item.quantity_kg), item.product_type_id]
-      );
+      await inv.returnToLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty: item.quantity_kg });
     }
 
     await client.query('DELETE FROM sales WHERE id = $1', [req.params.id]);

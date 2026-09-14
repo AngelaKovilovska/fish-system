@@ -13,6 +13,22 @@ const PRODUCT_COLORS = [
 ];
 function ptColor(idx) { return PRODUCT_COLORS[idx % PRODUCT_COLORS.length]; }
 
+function fmtDate(d) {
+  if (!d) return '';
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return '';
+  return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
+}
+
+// Рок на траење: { label, cls } или null
+function expiryInfo(expiry) {
+  if (!expiry) return null;
+  const days = Math.ceil((new Date(expiry) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  if (days < 0) return { label: `истечено ${fmtDate(expiry)}`, cls: 'bg-[rgba(239,68,68,0.12)] text-[var(--danger)] font-semibold' };
+  if (days <= 14) return { label: `рок ${fmtDate(expiry)} (${days} д.)`, cls: 'bg-[rgba(245,158,11,0.14)] text-[var(--warning)] font-semibold' };
+  return { label: `рок ${fmtDate(expiry)}`, cls: '' };
+}
+
 export default function ProductInventoryPage() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
@@ -203,6 +219,25 @@ export default function ProductInventoryPage() {
                   <p className="text-[10px] text-[var(--text-muted)] text-right mt-0.5">
                     {parseFloat(item.price_per_unit).toFixed(0)} ден/{item.unit || 'кг'}
                   </p>
+                )}
+                {Array.isArray(item.lots) && item.lots.length > 0 && (
+                  <div className="mt-1.5 ml-1 space-y-0.5">
+                    {item.lots.map(lot => {
+                      const exp = expiryInfo(lot.expiry_date);
+                      return (
+                        <div key={lot.lot_number} className="flex items-center justify-between text-[10.5px]">
+                          <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                            <span className="font-mono text-[var(--text-secondary)]">LOT {lot.lot_number}</span>
+                            {lot.production_date && <span>· {fmtDate(lot.production_date)}</span>}
+                            {exp && (
+                              <span className={`px-1 rounded ${exp.cls}`}>{exp.label}</span>
+                            )}
+                          </span>
+                          <span className="font-semibold text-[var(--text-secondary)]">{parseFloat(lot.quantity_kg).toFixed(2)} кг</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             );
