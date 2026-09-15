@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { ChevronLeft, Plus, Pencil, Trash2, Users, Save, X } from 'lucide-react';
 
 export default function BuyersPage() {
-  const navigate = useNavigate();
+  const goBack = useBack('/production/sales');
   const [buyers, setBuyers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,7 +66,7 @@ export default function BuyersPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-5 animate-in">
-        <button onClick={() => navigate('/production/sales')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+        <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Купувачи</h1>
           <p className="text-xs text-(--text-secondary) mt-0.5">{buyers.length} зачувани</p>

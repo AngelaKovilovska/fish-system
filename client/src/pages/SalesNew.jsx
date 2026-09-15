@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import {
   ChevronLeft, Plus, Trash2, ShoppingCart, Save, X,
   Check, AlertCircle, User, Package, Truck, History,
@@ -21,6 +22,7 @@ function fmtDate(s) {
 
 export default function SalesNew() {
   const navigate = useNavigate();
+  const goBack = useBack('/production');
   const { id: editId } = useParams();
   const isEdit = Boolean(editId);
   const [editSale, setEditSale] = useState(null);
@@ -222,7 +224,7 @@ export default function SalesNew() {
 
       {/* header */}
       <div className="mb-5 animate-in">
-        <button onClick={() => navigate('/production')}
+        <button onClick={goBack}
           className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, downloadFile } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate } from '../lib/utils';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet } from 'lucide-react';
@@ -92,6 +93,7 @@ function parseDDMMYYYY(str) {
 
 export default function Reports() {
   const navigate = useNavigate();
+  const goBack = useBack('/');
   const currentYear = new Date().getFullYear();
   const defaultFrom = `${currentYear}-01-01`;
   const defaultTo = `${currentYear}-12-31`;
@@ -1767,7 +1769,7 @@ ${tableHTML}
   return (
     <div className="max-w-[900px] mx-auto">
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
+        <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <h1 className="page-title !mb-0">Извештаи</h1>

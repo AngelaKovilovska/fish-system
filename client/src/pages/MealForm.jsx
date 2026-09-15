@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, FOOD_TYPES, MEAL_LABELS } from '../lib/constants';
 import { UtensilsCrossed, Fish, Weight, ChevronLeft, Save, Trash2, Sunrise, Sun, Moon, Info, Calendar, Brain, Zap, Copy, Plus, X } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const MEAL_ICONS = {
 
 export default function MealForm() {
   const navigate = useNavigate();
+  const goBack = useBack('/entry');
   const { mealType } = useParams();
   const [activePool, setActivePool] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -480,7 +482,7 @@ export default function MealForm() {
 
       {/* Buttons */}
       <div className="flex gap-3 animate-in-delay-3">
-        <button type="button" onClick={() => navigate('/entry')} className="btn-secondary py-2.5 px-4">
+        <button type="button" onClick={goBack} className="btn-secondary py-2.5 px-4">
           <ChevronLeft size={16} />
         </button>
         {isEdit && (

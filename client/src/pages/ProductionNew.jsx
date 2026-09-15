@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import {
   Factory, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Calendar, Plus, Save, X, Settings, Package, Pencil, Trash2,
@@ -47,7 +47,7 @@ const PRODUCT_COLORS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function ProductionNew() {
-  const navigate = useNavigate();
+  const goBackPage = useBack('/production');
 
   /* data */
   const [productTypes, setProductTypes] = useState([]);
@@ -264,7 +264,7 @@ export default function ProductionNew() {
       {/* ─── HEADER ─── */}
       <div className="mb-5 animate-in" ref={formTopRef}>
         <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => navigate('/production')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+          <button onClick={goBackPage} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
           <h1 className="page-title !mb-0">Производство</h1>
           <div className="flex-1" />
           <button onClick={() => { setShowSettings(!showSettings); setShowForm(false); }}

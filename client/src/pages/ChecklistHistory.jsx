@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import {
   ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle,
   ClipboardList, Sunrise, Sun, Moon, X, Flame,
@@ -23,6 +24,7 @@ function getFirstDayOfWeek(year, month) {
 
 export default function ChecklistHistory() {
   const navigate = useNavigate();
+  const goBack = useBack('/reports');
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [calendarData, setCalendarData] = useState({});
@@ -122,7 +124,7 @@ export default function ChecklistHistory() {
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 animate-in">
-        <button onClick={() => navigate('/reports')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
+        <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <h1 className="page-title">Историја на записи</h1>

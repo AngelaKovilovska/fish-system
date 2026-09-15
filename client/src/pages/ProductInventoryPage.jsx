@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { productStockWarnings } from '../lib/utils';
 import { ChevronLeft, Fish, Package as PackageIcon, AlertTriangle, ClipboardList, Save, X, Check, AlertCircle } from 'lucide-react';
 
@@ -31,7 +31,7 @@ function expiryInfo(expiry) {
 }
 
 export default function ProductInventoryPage() {
-  const navigate = useNavigate();
+  const goBack = useBack('/production');
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +102,7 @@ export default function ProductInventoryPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <button onClick={() => navigate('/production')} className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
+        <button onClick={goBack} className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
         <div className="flex items-center justify-between">

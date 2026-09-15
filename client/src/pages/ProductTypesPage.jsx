@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { ChevronLeft, Plus, Save, Trash2, Package, X } from 'lucide-react';
 
 export default function ProductTypesPage() {
-  const navigate = useNavigate();
+  const goBack = useBack('/production');
   const [types, setTypes] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export default function ProductTypesPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-5 animate-in">
-        <button onClick={() => navigate('/production')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
+        <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Типови производи</h1>
           <p className="text-xs text-(--text-secondary) mt-0.5">Цени и залиха</p>

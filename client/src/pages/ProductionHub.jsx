@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import {
   Factory, ShoppingCart, ChevronRight, ChevronLeft, Package, Archive,
 } from 'lucide-react';
 
 export default function ProductionHub() {
-  const navigate = useNavigate();
+  const goBack = useBack('/');
   const [stats, setStats] = useState({ batches: 0, totalKg: 0, salesCount: 0, salesTotal: 0, inventoryKg: 0, inventoryCount: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +83,7 @@ export default function ProductionHub() {
       {/* Header */}
       <div className="mb-6 animate-in">
         <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
+          <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
             <ChevronLeft size={20} />
           </button>
           <h1 className="page-title !mb-0">Производство</h1>

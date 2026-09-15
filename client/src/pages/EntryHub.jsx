@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { MK_MONTHS, MK_DAYS } from '../lib/constants';
 import {
   ClipboardList, Sunrise, Sun, Moon,
@@ -15,7 +16,7 @@ const MEALS = [
 ];
 
 export default function EntryHub() {
-  const navigate = useNavigate();
+  const goBack = useBack('/');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const today = new Date().toISOString().split('T')[0];
@@ -68,7 +69,7 @@ export default function EntryHub() {
       {/* Header */}
       <div className="mb-5 animate-in">
         <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => navigate('/')} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
+          <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5" aria-label="Назад">
             <ChevronLeft size={20} />
           </button>
           <h1 className="page-title !mb-0">Внес на податоци</h1>

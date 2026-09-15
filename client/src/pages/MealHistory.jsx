@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { MK_MONTHS, MK_DAYS } from '../lib/constants';
 import { UtensilsCrossed, Search, X, ChevronLeft, ChevronRight, Sunrise, Sun, Moon, Calendar } from 'lucide-react';
 
@@ -13,7 +14,7 @@ const MEAL_INFO = {
 };
 
 export default function MealHistory() {
-  const navigate = useNavigate();
+  const goBack = useBack('/entry');
   const [dates, setDates] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ export default function MealHistory() {
   return (
     <div className="overflow-hidden">
       <div className="flex items-center gap-3 mb-4 animate-in">
-        <button onClick={() => navigate('/entry')} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0" aria-label="Назад">
+        <button onClick={goBack} className="btn-ghost p-1.5 -ml-1.5 flex-shrink-0" aria-label="Назад">
           <ChevronLeft size={20} />
         </button>
         <div className="icon-box"

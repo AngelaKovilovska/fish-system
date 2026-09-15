@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useBack } from '../lib/useBack';
 import { PARAMETER_LABELS, FILTRATION_LABELS, FISH_VISUAL_LABELS, MK_MONTHS, MK_DAYS, MEAL_LABELS } from '../lib/constants';
 import {
   AlertTriangle, Mail, Pencil, Trash2, Loader2, Check, X,
@@ -32,6 +33,7 @@ const ALERT_LABELS = {
 export default function RecordDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const goBack = useBack('/history');
   const [data, setData] = useState(null);
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -251,7 +253,7 @@ ${html}
       {/* Back + Header */}
       <div className="card !p-3 animate-in">
         <div className="flex items-start gap-3">
-          <button onClick={() => navigate('/history')}
+          <button onClick={goBack}
             className="btn-ghost p-1.5 rounded-xl mt-0.5 flex-shrink-0">
             <ChevronLeft size={20} />
           </button>
