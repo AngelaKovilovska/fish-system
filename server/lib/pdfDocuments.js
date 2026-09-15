@@ -93,10 +93,11 @@ async function buildInvoice(sale) {
   draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 10, font: B, align: 'center' });
   draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 10, font: B, align: 'center' });
 
-  // Ставки — 9 реда, линии на овие „top“ позиции
+  // Ставки — линии на овие „top“ позиции; првиот ред се прескокнува (ставките почнуваат од вториот)
   const ROWS = [328.5, 356.9, 385.2, 413.6, 441.9, 470.3, 498.6, 527.0, 555.3];
-  items.slice(0, ROWS.length).forEach((it, i) => {
-    const base = ROWS[i] - 8.5;
+  const FIRST_ROW = 1;
+  items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
+    const base = ROWS[i + FIRST_ROW] - 8.5;
     const name = `${it.name ? it.name.charAt(0).toUpperCase() + it.name.slice(1) : 'Риба'} (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 10, maxWidth: 236 });
     draw(ctx, num(it.quantity_kg), { x: 369, top: base, size: 10, align: 'right' });
