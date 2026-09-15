@@ -49,6 +49,158 @@ function aggregateSales(type, sales) {
   return type === 'period' ? rows.sort((a, b) => a.key.localeCompare(b.key)) : rows.sort((a, b) => b.amount - a.amount);
 }
 
+// POST /api/reports/sales — продажби (по купувач / производ / месец) со е-пошта
+router.post('/sales', authMiddleware, async (req, res) => {
+  try {
+    const { from, to, view = 'buyer', sendEmail } = req.body;
+    if (!from || !to) return res.status(400).json({ error: 'Внесете период (од-до)' });
+    if (!['buyer', 'product', 'period'].includes(view)) return res.status(400).json({ error: 'Невалиден преглед' });
+
+    const sales = await getSalesRows(from, to);
+    const rows = aggregateSales(view, sales);
+    const labels = { buyer: 'Продажби по купувач', product: 'Продажби по производ', period: 'Продажби по месец' };
+    const colLabel = { buyer: 'Купувач', product: 'Производ', period: 'Месец' }[view];
+    const tot = rows.reduce((a, r) => ({ count: a.count + r.count, kg: a.kg + r.kg, amount: a.amount + r.amount, unpaid: a.unpaid + r.unpaid }), { count: 0, kg: 0, amount: 0, unpaid: 0 });
+
+    if (sendEmail) {
+      const isProduct = view === 'product';
+      const headers = isProduct
+        ? [colLabel, 'Ставки', 'Количина (кг)', 'Износ (ден)', 'Ден/кг']
+        : [colLabel, 'Продажби', 'Количина (кг)', 'Износ (ден)', 'Ден/кг', 'Неплатено (ден)'];
+      const tableRows = rows.map(r => isProduct
+        ? [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2)]
+        : [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2), r.unpaid.toFixed(2)]);
+      tableRows.push(isProduct
+        ? ['ВКУПНО', tot.count, tot.kg.toFixed(2), tot.amount.toFixed(2), tot.kg > 0 ? (tot.amount / tot.kg).toFixed(2) : '0.00']
+        : ['ВКУПНО', tot.count, tot.kg.toFixed(2), tot.amount.toFixed(2), tot.kg > 0 ? (tot.amount / tot.kg).toFixed(2) : '0.00', tot.unpaid.toFixed(2)]);
+
+      const excelBuffer = generateExcel(labels[view], headers, tableRows);
+      const pdfBuffer = await generatePDF(`${labels[view]} (${fmtDate(from)} - ${fmtDate(to)})`, [
+        { lines: [`Вкупно продажби: ${sales.length}`, `Вкупна количина: ${tot.kg.toFixed(2)} kg`, `Вкупен износ: ${tot.amount.toFixed(2)} ден`, `Неплатено: ${tot.unpaid.toFixed(2)} ден`] },
+        { table: { headers, rows: tableRows } },
+      ]);
+
+      const recipientEmail = getRequesterEmail(req);
+      if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
+      const emailResult = await sendReportEmail({
+        to: recipientEmail,
+        subject: `${labels[view]} (${fmtDate(from)} - ${fmtDate(to)})`,
+        html: buildEmailHTML({
+          title: labels[view],
+          subtitle: `Период: ${fmtDate(from)} — ${fmtDate(to)}`,
+          sections: [
+            { type: 'keyvalue', items: [
+              { label: 'Вкупно продажби', value: `${sales.length}` },
+              { label: 'Вкупна количина', value: `${tot.kg.toFixed(2)} kg` },
+              { label: 'Вкупен износ', value: `${tot.amount.toFixed(2)} ден` },
+              { label: 'Неплатено', value: `${tot.unpaid.toFixed(2)} ден` },
+            ]},
+            { type: 'keyvalue', heading: colLabel, items: rows.slice(0, 15).map(r => ({
+              label: `${r.key} (${r.kg.toFixed(2)} kg)`, value: `${r.amount.toFixed(2)} ден`,
+            }))},
+          ],
+          footerNote: rows.length > 15 ? `Прикажани 15 од ${rows.length} — целосен список во прилог.` : 'Детален извештај е во прилог (Excel и PDF).',
+        }),
+        attachments: [
+          { filename: `prodazbi-${view}-${from}-${to}.xlsx`, content: excelBuffer },
+          { filename: `prodazbi-${view}-${from}-${to}.pdf`, content: pdfBuffer },
+        ],
+      });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
+      return res.json({ message: 'Извештајот е испратен на вашиот email', rows, totals: tot });
+    }
+
+    res.json({ rows, totals: tot, totalSales: sales.length });
+  } catch (err) {
+    console.error('Sales report error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
+// POST /api/reports/production — преработка по серии (LOT) со е-пошта
+router.post('/production', authMiddleware, async (req, res) => {
+  try {
+    const { from, to, pool: poolNumber, product_type, sendEmail } = req.body;
+    if (!from || !to) return res.status(400).json({ error: 'Внесете период (од-до)' });
+
+    const params = [from, to];
+    let where = `WHERE pb.status = 'завршено' AND pb.production_date >= $1 AND pb.production_date <= $2`;
+    if (poolNumber) { params.push(parseInt(poolNumber)); where += ` AND pb.source_pool = $${params.length}`; }
+
+    const r = await pool.query(
+      `SELECT pb.id, pb.lot_number, pb.production_date, pb.source_pool, pb.fish_count, pb.total_weight_kg,
+              COALESCE((SELECT json_agg(json_build_object('code', pt.code, 'name', pt.name, 'quantity_kg', pi.quantity_kg) ORDER BY pt.sort_order)
+                        FROM production_items pi JOIN product_types pt ON pt.id = pi.product_type_id WHERE pi.batch_id = pb.id), '[]'::json) AS items
+       FROM production_batches pb ${where}
+       ORDER BY pb.production_date, pb.id`,
+      params
+    );
+    let batches = r.rows;
+    if (product_type) batches = batches.filter(b => (b.items || []).some(i => i.name === product_type || i.code === product_type));
+
+    const productTotals = {};
+    let totalFish = 0, totalRawKg = 0;
+    for (const b of batches) {
+      totalFish += parseInt(b.fish_count || 0);
+      totalRawKg += parseFloat(b.total_weight_kg || 0);
+      for (const it of (b.items || [])) {
+        if (product_type && it.name !== product_type && it.code !== product_type) continue;
+        productTotals[it.name] = (productTotals[it.name] || 0) + parseFloat(it.quantity_kg || 0);
+      }
+    }
+    const totalProcessedKg = Object.values(productTotals).reduce((a, v) => a + v, 0);
+
+    if (sendEmail) {
+      const headers = ['LOT', 'Датум', 'Базен', 'Риби', 'Сурова маса (кг)', 'Производи'];
+      const tableRows = batches.map(b => [
+        b.lot_number, fmtDate(b.production_date), b.source_pool ? `Б${b.source_pool}` : '-', b.fish_count || 0,
+        parseFloat(b.total_weight_kg || 0).toFixed(2),
+        (b.items || []).map(i => `${i.code} ${parseFloat(i.quantity_kg).toFixed(2)} kg`).join(', '),
+      ]);
+      const totalsRows = Object.entries(productTotals).map(([name, kg]) => [name, kg.toFixed(2)]);
+
+      const excelBuffer = generateExcel('Преработка', headers, tableRows);
+      const pdfBuffer = await generatePDF(`Преработка (${fmtDate(from)} - ${fmtDate(to)})`, [
+        { lines: [`Серии: ${batches.length}`, `Вкупно риби: ${totalFish}`, `Сурова маса: ${totalRawKg.toFixed(2)} kg`, `Преработено: ${totalProcessedKg.toFixed(2)} kg`, `Искористеност: ${totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : 0}%`] },
+        { table: { headers: ['Производ', 'Количина (кг)'], rows: totalsRows } },
+        { table: { headers, rows: tableRows } },
+      ]);
+
+      const recipientEmail = getRequesterEmail(req);
+      if (!recipientEmail) return res.status(400).json({ error: 'Вашиот профил нема email адреса' });
+      const emailResult = await sendReportEmail({
+        to: recipientEmail,
+        subject: `Преработка (${fmtDate(from)} - ${fmtDate(to)})`,
+        html: buildEmailHTML({
+          title: 'Преработка',
+          subtitle: `Период: ${fmtDate(from)} — ${fmtDate(to)}${poolNumber ? ` | Базен ${poolNumber}` : ''}`,
+          sections: [
+            { type: 'keyvalue', items: [
+              { label: 'Серии', value: `${batches.length}` },
+              { label: 'Вкупно риби', value: `${totalFish}` },
+              { label: 'Сурова маса', value: `${totalRawKg.toFixed(2)} kg` },
+              { label: 'Преработено', value: `${totalProcessedKg.toFixed(2)} kg` },
+            ]},
+            { type: 'keyvalue', heading: 'По производ', items: Object.entries(productTotals).map(([name, kg]) => ({ label: name, value: `${kg.toFixed(2)} kg` })) },
+          ],
+          footerNote: 'Детален извештај е во прилог (Excel и PDF).',
+        }),
+        attachments: [
+          { filename: `prerabotka-${from}-${to}.xlsx`, content: excelBuffer },
+          { filename: `prerabotka-${from}-${to}.pdf`, content: pdfBuffer },
+        ],
+      });
+      if (!emailResult.success) return res.status(500).json({ error: `Грешка при испраќање: ${emailResult.error}` });
+      return res.json({ message: 'Извештајот е испратен на вашиот email', batches, productTotals });
+    }
+
+    res.json({ batches, productTotals, totalFish, totalRawKg, totalProcessedKg });
+  } catch (err) {
+    console.error('Production report error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/reports/sales-export?type=buyer|product|period&from&to — Excel download
 router.get('/sales-export', authMiddleware, async (req, res) => {
   try {

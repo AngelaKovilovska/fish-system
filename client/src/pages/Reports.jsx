@@ -50,7 +50,7 @@ function periodPreset(kind) {
 }
 
 // Извештаи што имаат серверско испраќање на е-пошта
-const EMAIL_REPORTS = ['food', 'weight', 'alerts', 'sorting', 'purchases'];
+const EMAIL_REPORTS = ['food', 'weight', 'alerts', 'sorting', 'purchases', 'sales', 'production'];
 
 const MK_MONTHS_SHORT = ['Јан', 'Фев', 'Мар', 'Апр', 'Мај', 'Јун', 'Јул', 'Авг', 'Сеп', 'Окт', 'Ное', 'Дек'];
 
@@ -271,6 +271,8 @@ export default function Reports() {
         case 'alerts': result = await api.sendAlertsReport(from, to); break;
         case 'sorting': result = await api.sendSortingReport(from, to); break;
         case 'purchases': result = await api.sendPurchasesReport(from, to); break;
+        case 'sales': result = await api.sendSalesReport(from, to, { salesByBuyer: 'buyer', salesByProduct: 'product', salesByPeriod: 'period' }[viewKey]); break;
+        case 'production': result = await api.sendProductionReport(from, to, pool, productTypeFilter || null); break;
       }
       if (result?.sent === false) {
         setError(result.message || 'Email не е испратен');
