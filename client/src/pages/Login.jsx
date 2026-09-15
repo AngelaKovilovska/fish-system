@@ -47,14 +47,14 @@ export default function Login() {
             className="w-[140px] h-[140px] object-contain"
             style={{ mixBlendMode: theme === 'dark' ? 'screen' : 'multiply' }}
           />
-          <p className="text-xs text-[var(--text-muted)] mt-1 tracking-wide"
+          <p className="text-xs text-(--text-muted) mt-1 tracking-wide"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             Систем за управување со RAS систем
           </p>
         </div>
 
         {/* ── Form card ── */}
-        <div className="bg-[var(--surface)] rounded-[var(--r-lg)] p-8 max-[400px]:p-6 border border-[var(--border)]"
+        <div className="bg-(--surface) rounded-(--r-lg) p-8 max-[400px]:p-6 border border-(--border)"
           style={{ boxShadow: theme === 'dark' ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.08)' }}>
 
           {/* ── Error display ── */}
@@ -94,7 +94,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Сокриј лозинка' : 'Покажи лозинка'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 btn-ghost p-1.5 text-[var(--text-muted)]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 btn-ghost p-1.5 text-(--text-muted)"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -117,7 +117,7 @@ export default function Login() {
         </div>
 
         {/* ── Footer ── */}
-        <p className="text-center text-[11px] text-[var(--text-muted)] mt-5 opacity-60"
+        <p className="text-center text-[11px] text-(--text-muted) mt-5 opacity-60"
           style={{ fontFamily: 'Sora, sans-serif' }}>
           Фамаком Аквакултура &middot; v2.0
         </p>

@@ -621,25 +621,25 @@ ${tableHTML}
 
       return (
         <div className="card mb-4 animate-in space-y-4">
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-(--text-secondary)">
             Преглед на набавки на храна во избраниот период по тип и количина.
           </p>
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-[var(--success)]">{totalKg} kg</div>
+              <div className="text-sm font-bold text-(--success)">{totalKg} kg</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Набавки</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{totalCount}</div>
+              <div className="text-sm font-bold text-(--text-primary)">{totalCount}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Последна</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{lastDate}</div>
+              <div className="text-sm font-bold text-(--text-primary)">{lastDate}</div>
             </div>
           </div>
 
@@ -745,27 +745,27 @@ ${tableHTML}
 
       return (
         <div className="card mb-4 animate-in space-y-4">
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-(--text-secondary)">
             Преглед на сите сортирања во избраниот период со просечен интервал помеѓу нив.
           </p>
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Последно</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{lastDate}</div>
+              <div className="text-sm font-bold text-(--text-primary)">{lastDate}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Просечно</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">
+              <div className="text-sm font-bold text-(--text-primary)">
                 {avgInterval != null ? `${avgInterval} дена` : '–'}
               </div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1"
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1"
                 style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{dates.length}</div>
+              <div className="text-sm font-bold text-(--text-primary)">{dates.length}</div>
             </div>
           </div>
 
@@ -802,35 +802,35 @@ ${tableHTML}
 
       return (
         <div className="space-y-4">
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-(--text-muted)">
             Период: {fmtDate(from)} — {fmtDate(to)} | Завршени серии: {batches.length}
           </p>
 
           {/* Summary cards */}
           <div className="grid grid-cols-2 min-[400px]:grid-cols-4 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Серии</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{batches.length}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Серии</div>
+              <div className="text-sm font-bold text-(--text-primary)">{batches.length}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Риби</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{totalFish.toLocaleString()}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Риби</div>
+              <div className="text-sm font-bold text-(--text-primary)">{totalFish.toLocaleString()}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Сурова</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{totalRawKg.toFixed(1)} kg</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Сурова</div>
+              <div className="text-sm font-bold text-(--text-primary)">{totalRawKg.toFixed(1)} kg</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Рандман</div>
-              <div className="text-sm font-bold text-[var(--primary)]">{randman}%</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Рандман</div>
+              <div className="text-sm font-bold text-(--primary)">{randman}%</div>
             </div>
           </div>
 
           {/* Totals by product */}
           {Object.keys(productTotals).length > 0 && (
-            <div className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
-              <div className="px-3 py-2 bg-[var(--surface)]">
-                <p className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно по производ</p>
+            <div className="rounded-(--r-md) border border-(--border) overflow-hidden">
+              <div className="px-3 py-2 bg-(--surface)">
+                <p className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно по производ</p>
               </div>
               <table className="table-modern">
                 <thead><tr><th>Производ</th><th className="text-right">Количина (kg)</th></tr></thead>
@@ -838,12 +838,12 @@ ${tableHTML}
                   {Object.entries(productTotals).sort((a, b) => b[1] - a[1]).map(([name, kg]) => (
                     <tr key={name}>
                       <td className="font-medium">{name}</td>
-                      <td className="text-right font-bold text-[var(--primary)]">{kg.toFixed(2)}</td>
+                      <td className="text-right font-bold text-(--primary)">{kg.toFixed(2)}</td>
                     </tr>
                   ))}
-                  <tr className="border-t-2 border-[var(--border)]">
+                  <tr className="border-t-2 border-(--border)">
                     <td className="font-bold">Вкупно преработено</td>
-                    <td className="text-right font-bold text-[var(--success)]">{totalProcessedKg.toFixed(2)} kg</td>
+                    <td className="text-right font-bold text-(--success)">{totalProcessedKg.toFixed(2)} kg</td>
                   </tr>
                 </tbody>
               </table>
@@ -852,28 +852,28 @@ ${tableHTML}
 
           {/* Per-batch detail */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Детали по серија</p>
+            <p className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>Детали по серија</p>
             {batches.map(b => {
               const batchKg = (b.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
               const bRandman = parseFloat(b.total_weight_kg) > 0 ? ((batchKg / parseFloat(b.total_weight_kg)) * 100).toFixed(1) : '–';
               return (
-                <div key={b.id} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-[var(--surface)]">
+                <div key={b.id} className="rounded-(--r-md) border border-(--border) overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-(--surface)">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[var(--primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{b.lot_number}</span>
-                      <span className="text-[10px] text-[var(--text-muted)]">{fmtDate(b.production_date)}</span>
-                      {b.source_pool && <span className="text-[10px] text-[var(--text-muted)]">Б{b.source_pool}</span>}
+                      <span className="text-xs font-bold text-(--primary)" style={{ fontFamily: 'Sora, sans-serif' }}>{b.lot_number}</span>
+                      <span className="text-[10px] text-(--text-muted)">{fmtDate(b.production_date)}</span>
+                      {b.source_pool && <span className="text-[10px] text-(--text-muted)">Б{b.source_pool}</span>}
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+                    <div className="flex items-center gap-3 text-[10px] text-(--text-muted)">
                       <span>{b.fish_count} риби</span>
                       <span>{parseFloat(b.total_weight_kg).toFixed(1)} kg → {batchKg.toFixed(1)} kg</span>
-                      <span className="font-semibold text-[var(--primary)]">{bRandman}%</span>
+                      <span className="font-semibold text-(--primary)">{bRandman}%</span>
                     </div>
                   </div>
                   {(b.items || []).length > 0 && (
                     <div className="px-3 py-1.5 flex flex-wrap gap-2">
                       {(b.items || []).map((item, i) => (
-                        <span key={i} className="text-[11px] text-[var(--text-secondary)]">
+                        <span key={i} className="text-[11px] text-(--text-secondary)">
                           {item.name}: <strong>{parseFloat(item.quantity_kg).toFixed(2)} kg</strong>
                         </span>
                       ))}
@@ -883,7 +883,7 @@ ${tableHTML}
               );
             })}
             {batches.length === 0 && (
-              <div className="info-box text-sm text-[var(--text-muted)]">Нема завршени серии во овој период.</div>
+              <div className="info-box text-sm text-(--text-muted)">Нема завршени серии во овој период.</div>
             )}
           </div>
         </div>
@@ -893,10 +893,10 @@ ${tableHTML}
     if (activeReport === 'food') {
       return (
         <div className="space-y-3">
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-(--text-muted)">
             Период: {from} — {to} {poolNumber ? ` | Базен ${poolNumber}` : ' | Сите базени'}
           </p>
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
             <table className="table-modern">
               <thead><tr>
                 <th>Тип храна</th>
@@ -912,23 +912,23 @@ ${tableHTML}
                       {d.purchased_kg != null ? (
                         <span className="font-semibold">{parseFloat(d.purchased_kg).toFixed(2)}</span>
                       ) : (
-                        <span className="text-[var(--text-muted)]">–</span>
+                        <span className="text-(--text-muted)">–</span>
                       )}
                     </td>
                     <td className="text-right font-semibold">{(parseFloat(d.total_gr) / 1000).toFixed(2)}</td>
                     <td className="text-right">
                       {d.remaining_kg != null ? (
-                        <span className={`font-bold ${parseFloat(d.remaining_kg) <= 5 ? 'text-[var(--danger)]' : parseFloat(d.remaining_kg) <= 15 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                        <span className={`font-bold ${parseFloat(d.remaining_kg) <= 5 ? 'text-(--danger)' : parseFloat(d.remaining_kg) <= 15 ? 'text-(--warning)' : 'text-(--success)'}`}>
                           {parseFloat(d.remaining_kg).toFixed(2)}
                         </span>
                       ) : (
-                        <span className="text-[var(--text-muted)]">–</span>
+                        <span className="text-(--text-muted)">–</span>
                       )}
                     </td>
                   </tr>
                 ))}
                 {(previewData.data || []).length === 0 && (
-                  <tr><td colSpan={4} className="p-4 text-center text-[var(--text-muted)]">Нема податоци.</td></tr>
+                  <tr><td colSpan={4} className="p-4 text-center text-(--text-muted)">Нема податоци.</td></tr>
                 )}
               </tbody>
             </table>
@@ -942,7 +942,7 @@ ${tableHTML}
 
     if (activeReport === 'weight') {
       return (
-        <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+        <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
           <table className="table-modern">
             <thead><tr>
               <th>Датум</th><th>Базен</th>
@@ -959,7 +959,7 @@ ${tableHTML}
               ))}
             </tbody>
           </table>
-          {(previewData.data || []).length === 0 && <p className="text-[var(--text-muted)] text-center py-4 text-sm">Нема податоци.</p>}
+          {(previewData.data || []).length === 0 && <p className="text-(--text-muted) text-center py-4 text-sm">Нема податоци.</p>}
         </div>
       );
     }
@@ -992,15 +992,15 @@ ${tableHTML}
               const isOpen = expandedAlertGroups.has(paramKey);
               const label = PARAM_LABELS[paramKey] || paramKey;
               return (
-                <div key={paramKey} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+                <div key={paramKey} className="rounded-(--r-md) border border-(--border) overflow-hidden">
                   {/* Accordion header */}
                   <button
                     onClick={() => toggleGroup(paramKey)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors text-left"
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-(--surface) hover:bg-(--surface-hover) transition-colors text-left"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <AlertTriangle size={14} className="text-[var(--danger)] flex-shrink-0" />
-                      <span className="text-sm font-semibold text-[var(--text-primary)] truncate"
+                      <AlertTriangle size={14} className="text-(--danger) flex-shrink-0" />
+                      <span className="text-sm font-semibold text-(--text-primary) truncate"
                         style={{ fontFamily: 'Sora, sans-serif' }}>
                         {label}
                       </span>
@@ -1009,13 +1009,13 @@ ${tableHTML}
                       <span className="pill pill-danger text-[10px]">{alerts.length}</span>
                       <ChevronDown
                         size={16}
-                        className={`text-[var(--text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`text-(--text-muted) transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                       />
                     </div>
                   </button>
                   {/* Accordion body */}
                   {isOpen && (
-                    <div className="border-t border-[var(--border)]">
+                    <div className="border-t border-(--border)">
                       <table className="table-modern">
                         <thead><tr>
                           <th>Датум</th>
@@ -1027,7 +1027,7 @@ ${tableHTML}
                           {alerts.map((d, i) => (
                             <tr key={i}>
                               <td>{fmtDate(d.date)}</td>
-                              <td className="text-right text-[var(--danger)] font-bold">{d.value}</td>
+                              <td className="text-right text-(--danger) font-bold">{d.value}</td>
                               <td className="text-right">{d.min_norm ?? '–'}</td>
                               <td className="text-right">{d.max_norm ?? '–'}</td>
                             </tr>
@@ -1070,7 +1070,7 @@ ${tableHTML}
 
       return (
         <div className="space-y-3">
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
             <table className="table-modern">
               <thead><tr>
                 <th>Бр.</th>
@@ -1084,11 +1084,11 @@ ${tableHTML}
                     <td>{r.date}</td>
                     <td className="text-right">
                       {r.gap != null ? (
-                        <span className={`font-semibold ${r.gap <= 3 ? 'text-[var(--success)]' : r.gap >= 30 ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                        <span className={`font-semibold ${r.gap <= 3 ? 'text-(--success)' : r.gap >= 30 ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
                           {r.gap}
                         </span>
                       ) : (
-                        <span className="text-[var(--text-muted)]">—</span>
+                        <span className="text-(--text-muted)">—</span>
                       )}
                     </td>
                   </tr>
@@ -1113,22 +1113,22 @@ ${tableHTML}
       const rows = previewData.rows || [];
       return (
         <div className="space-y-3">
-          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <p className="text-xs text-(--text-muted)">Период: {fmtDate(from)} — {fmtDate(to)}</p>
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.totalSales}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
+              <div className="text-sm font-bold text-(--text-primary)">{previewData.totalSales}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.grandKg.toFixed(1)} кг</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
+              <div className="text-sm font-bold text-(--text-primary)">{previewData.grandKg.toFixed(1)} кг</div>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
             <table className="table-modern">
               <thead><tr><th>Купувач</th><th className="text-right">Продажби</th><th className="text-right">Кг</th><th className="text-right">Ден/кг</th><th className="text-right">Износ (ден)</th><th className="text-right">Неплатено</th></tr></thead>
               <tbody>
@@ -1138,22 +1138,22 @@ ${tableHTML}
                     <td className="text-right">{r.count}</td>
                     <td className="text-right">{r.totalKg.toFixed(1)}</td>
                     <td className="text-right">{r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td>
-                    <td className="text-right font-bold text-[var(--primary)]">{r.totalAmount.toFixed(0)}</td>
-                    <td className={`text-right ${r.unpaid > 0 ? 'text-[var(--danger)] font-semibold' : 'text-[var(--text-muted)]'}`}>{r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td>
+                    <td className="text-right font-bold text-(--primary)">{r.totalAmount.toFixed(0)}</td>
+                    <td className={`text-right ${r.unpaid > 0 ? 'text-(--danger) font-semibold' : 'text-(--text-muted)'}`}>{r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-[var(--border)]">
+                <tr className="border-t-2 border-(--border)">
                   <td className="font-bold">Вкупно</td>
                   <td className="text-right font-bold">{previewData.totalSales}</td>
                   <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
                   <td className="text-right font-bold">{previewData.grandKg > 0 ? (previewData.grandTotal / previewData.grandKg).toFixed(0) : '–'}</td>
-                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
-                  <td className="text-right font-bold text-[var(--danger)]">{(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</td>
+                  <td className="text-right font-bold text-(--success)">{previewData.grandTotal.toFixed(0)}</td>
+                  <td className="text-right font-bold text-(--danger)">{(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
+          {rows.length === 0 && <div className="info-box text-sm text-(--text-muted)">Нема продажби во овој период.</div>}
         </div>
       );
     }
@@ -1163,44 +1163,44 @@ ${tableHTML}
       const rows = previewData.rows || [];
       return (
         <div className="space-y-3">
-          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <p className="text-xs text-(--text-muted)">Период: {fmtDate(from)} — {fmtDate(to)}</p>
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Производи</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{rows.length}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Производи</div>
+              <div className="text-sm font-bold text-(--text-primary)">{rows.length}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно кг</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.grandKg.toFixed(1)}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно кг</div>
+              <div className="text-sm font-bold text-(--text-primary)">{previewData.grandKg.toFixed(1)}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Приход</div>
-              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Приход</div>
+              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
             <table className="table-modern">
               <thead><tr><th>Код</th><th>Производ</th><th className="text-right">Ставки</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i}>
-                    <td className="font-semibold text-[var(--primary)]">{r.code}</td>
+                    <td className="font-semibold text-(--primary)">{r.code}</td>
                     <td>{r.name}</td>
                     <td className="text-right">{r.count}</td>
                     <td className="text-right font-semibold">{r.totalKg.toFixed(1)}</td>
                     <td className="text-right font-bold">{r.totalAmount.toFixed(0)}</td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-[var(--border)]">
+                <tr className="border-t-2 border-(--border)">
                   <td colSpan={2} className="font-bold">Вкупно</td>
                   <td className="text-right font-bold">{rows.reduce((s, r) => s + r.count, 0)}</td>
                   <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
-                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                  <td className="text-right font-bold text-(--success)">{previewData.grandTotal.toFixed(0)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
+          {rows.length === 0 && <div className="info-box text-sm text-(--text-muted)">Нема продажби во овој период.</div>}
         </div>
       );
     }
@@ -1211,26 +1211,26 @@ ${tableHTML}
       const avgMonthly = rows.length > 0 ? previewData.grandTotal / rows.length : 0;
       return (
         <div className="space-y-3">
-          <p className="text-xs text-[var(--text-muted)]">Период: {fmtDate(from)} — {fmtDate(to)}</p>
+          <p className="text-xs text-(--text-muted)">Период: {fmtDate(from)} — {fmtDate(to)}</p>
           <div className="grid grid-cols-2 min-[400px]:grid-cols-4 gap-2">
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{previewData.totalSales}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
+              <div className="text-sm font-bold text-(--text-primary)">{previewData.totalSales}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-[var(--primary)]">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
+              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Месеци</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{rows.length}</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Месеци</div>
+              <div className="text-sm font-bold text-(--text-primary)">{rows.length}</div>
             </div>
-            <div className="rounded-[var(--r-md)] bg-[var(--surface)] p-2.5 text-center">
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Просек/мес</div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">{(avgMonthly / 1000).toFixed(1)}к</div>
+            <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Просек/мес</div>
+              <div className="text-sm font-bold text-(--text-primary)">{(avgMonthly / 1000).toFixed(1)}к</div>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-[var(--r-md)] border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
             <table className="table-modern">
               <thead><tr><th>Месец</th><th className="text-right">Продажби</th><th className="text-right">Количина (кг)</th><th className="text-right">Износ (ден)</th></tr></thead>
               <tbody>
@@ -1239,19 +1239,19 @@ ${tableHTML}
                     <td className="font-medium">{r.label}</td>
                     <td className="text-right">{r.count}</td>
                     <td className="text-right">{r.totalKg.toFixed(1)}</td>
-                    <td className="text-right font-bold text-[var(--primary)]">{r.totalAmount.toFixed(0)}</td>
+                    <td className="text-right font-bold text-(--primary)">{r.totalAmount.toFixed(0)}</td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-[var(--border)]">
+                <tr className="border-t-2 border-(--border)">
                   <td className="font-bold">Вкупно</td>
                   <td className="text-right font-bold">{previewData.totalSales}</td>
                   <td className="text-right font-bold">{previewData.grandKg.toFixed(1)}</td>
-                  <td className="text-right font-bold text-[var(--success)]">{previewData.grandTotal.toFixed(0)}</td>
+                  <td className="text-right font-bold text-(--success)">{previewData.grandTotal.toFixed(0)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="info-box text-sm text-[var(--text-muted)]">Нема продажби во овој период.</div>}
+          {rows.length === 0 && <div className="info-box text-sm text-(--text-muted)">Нема продажби во овој период.</div>}
         </div>
       );
     }
@@ -1284,7 +1284,7 @@ ${tableHTML}
 
       if (data.length === 0) {
         return (
-          <div className="info-box text-sm text-[var(--text-muted)]">
+          <div className="info-box text-sm text-(--text-muted)">
             Нема набавки во овој период.
           </div>
         );
@@ -1295,33 +1295,33 @@ ${tableHTML}
           {sortedGroups.map(({ type, items, totalKg }) => {
             const isOpen = expandedPurchaseGroups.has(type);
             return (
-              <div key={type} className="rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden">
+              <div key={type} className="rounded-(--r-md) border border-(--border) overflow-hidden">
                 {/* Accordion header */}
                 <button
                   onClick={() => togglePurchaseGroup(type)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors text-left"
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-(--surface) hover:bg-(--surface-hover) transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <Package size={14} className="text-[var(--success)] flex-shrink-0" />
-                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate"
+                    <Package size={14} className="text-(--success) flex-shrink-0" />
+                    <span className="text-sm font-semibold text-(--text-primary) truncate"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
                       {type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--success)]">
+                    <span className="text-xs font-semibold text-(--success)">
                       {totalKg.toFixed(1)} kg
                     </span>
                     <span className="pill pill-blue text-[10px]">{items.length}</span>
                     <ChevronDown
                       size={16}
-                      className={`text-[var(--text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                      className={`text-(--text-muted) transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </div>
                 </button>
                 {/* Accordion body */}
                 {isOpen && (
-                  <div className="border-t border-[var(--border)]">
+                  <div className="border-t border-(--border)">
                     <table className="table-modern">
                       <thead><tr>
                         <th>Датум</th>
@@ -1332,10 +1332,10 @@ ${tableHTML}
                         {items.map((d, i) => (
                           <tr key={i}>
                             <td>{fmtDate(d.purchased_at || d.created_at)}</td>
-                            <td className="text-right font-semibold text-[var(--success)]">
+                            <td className="text-right font-semibold text-(--success)">
                               {parseFloat(d.change_kg).toFixed(2)}
                             </td>
-                            <td className="text-[var(--text-muted)]">{d.created_by_name || '–'}</td>
+                            <td className="text-(--text-muted)">{d.created_by_name || '–'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1369,7 +1369,7 @@ ${tableHTML}
         {inventory.length > 0 && (
           <div className="card animate-in">
             <h3 className="section-title text-sm mb-1">Залихи по тип храна</h3>
-            <p className="text-xs text-[var(--text-muted)] mb-4">Преглед на набавено, потрошено и остаток за секој тип храна.</p>
+            <p className="text-xs text-(--text-muted) mb-4">Преглед на набавено, потрошено и остаток за секој тип храна.</p>
             <ResponsiveContainer width="100%" height={Math.max(150, inventory.length * 45 + 30)}>
               <BarChart
                 data={inventory.map(item => ({
@@ -1396,7 +1396,7 @@ ${tableHTML}
         {/* Current stock */}
         <div className="card animate-in">
           <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-            <Package size={15} className="text-[var(--primary)]" />
+            <Package size={15} className="text-(--primary)" />
             Тековни залихи
           </h3>
           {/* Desktop table */}
@@ -1418,10 +1418,10 @@ ${tableHTML}
                   return (
                     <tr key={item.id}>
                       <td className="font-medium">{item.food_type}</td>
-                      <td className="text-right text-[var(--success)] font-medium">{purchased.toFixed(2)}</td>
-                      <td className="text-right text-[var(--danger)] font-medium">{consumed.toFixed(2)}</td>
+                      <td className="text-right text-(--success) font-medium">{purchased.toFixed(2)}</td>
+                      <td className="text-right text-(--danger) font-medium">{consumed.toFixed(2)}</td>
                       <td className="text-right">
-                        <span className={`font-bold ${stock <= 5 ? 'text-[var(--danger)]' : stock <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                        <span className={`font-bold ${stock <= 5 ? 'text-(--danger)' : stock <= 15 ? 'text-(--warning)' : 'text-(--text-primary)'}`}>
                           {stock.toFixed(2)}
                         </span>
                       </td>
@@ -1429,7 +1429,7 @@ ${tableHTML}
                   );
                 })}
                 {inventory.length === 0 && (
-                  <tr><td colSpan={4} className="p-4 text-center text-[var(--text-muted)]">Нема залихи.</td></tr>
+                  <tr><td colSpan={4} className="p-4 text-center text-(--text-muted)">Нема залихи.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1441,21 +1441,21 @@ ${tableHTML}
               const consumed = parseFloat(item.total_consumed_kg || 0);
               const stock = parseFloat(item.quantity_kg);
               return (
-                <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
+                <div key={item.id} className="p-2.5 rounded-(--r-sm) bg-(--bg)">
                   <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-                    <span className={`font-bold ${stock <= 5 ? 'text-[var(--danger)]' : stock <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                    <span className="font-medium text-(--text-secondary)">{item.food_type}</span>
+                    <span className={`font-bold ${stock <= 5 ? 'text-(--danger)' : stock <= 15 ? 'text-(--warning)' : 'text-(--text-primary)'}`}>
                       {stock.toFixed(2)} kg
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-[var(--text-muted)]">
-                    <span><span className="text-[var(--success)]">+{purchased.toFixed(1)}</span>{' / '}<span className="text-[var(--danger)]">-{consumed.toFixed(1)}</span> kg</span>
+                  <div className="flex justify-between text-[10px] text-(--text-muted)">
+                    <span><span className="text-(--success)">+{purchased.toFixed(1)}</span>{' / '}<span className="text-(--danger)">-{consumed.toFixed(1)}</span> kg</span>
                   </div>
                 </div>
               );
             })}
             {inventory.length === 0 && (
-              <p className="text-center text-xs text-[var(--text-muted)] py-4">Нема залихи.</p>
+              <p className="text-center text-xs text-(--text-muted) py-4">Нема залихи.</p>
             )}
           </div>
         </div>
@@ -1464,25 +1464,25 @@ ${tableHTML}
         {inventoryLog.length > 0 && (
           <div className="card animate-in-delay-1">
             <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-              <Clock size={15} className="text-[var(--text-muted)]" />
+              <Clock size={15} className="text-(--text-muted)" />
               Последни промени
             </h3>
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
               {inventoryLog.map(entry => (
-                <div key={entry.id} className="flex items-center justify-between text-xs p-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150">
+                <div key={entry.id} className="flex items-center justify-between text-xs p-2 rounded-(--r-sm) hover:bg-(--bg) transition-colors duration-150">
                   <div className="flex items-center gap-2 min-w-0">
                     {entry.reason === 'purchase' ? (
-                      <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
+                      <ArrowUp size={13} className="text-(--success) flex-shrink-0" />
                     ) : (
-                      <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+                      <ArrowDown size={13} className="text-(--danger) flex-shrink-0" />
                     )}
-                    <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                    <span className="text-(--text-secondary) truncate">{entry.food_type}</span>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className={`font-bold ${entry.reason === 'purchase' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                    <span className={`font-bold ${entry.reason === 'purchase' ? 'text-(--success)' : 'text-(--danger)'}`}>
                       {entry.reason === 'purchase' ? '+' : ''}{parseFloat(entry.change_kg).toFixed(2)} kg
                     </span>
-                    <span className="text-[var(--text-muted)] text-[10px] w-16 text-right">
+                    <span className="text-(--text-muted) text-[10px] w-16 text-right">
                       {fmtDate(entry.date || entry.purchased_at || entry.created_at)}
                     </span>
                   </div>
@@ -1551,11 +1551,11 @@ ${tableHTML}
             {report.needsDates && (
               <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Од</label>
+                  <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Од</label>
                   <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="input-base" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>До</label>
+                  <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>До</label>
                   <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="input-base" />
                 </div>
               </div>
@@ -1563,7 +1563,7 @@ ${tableHTML}
 
             {report.needsPool && (
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Базен</label>
+                <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Базен</label>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => { setPoolNumber(''); setMeasurementDate(''); }}
                     className={poolNumber === '' ? 'chip-active' : 'chip-inactive'}>
@@ -1581,7 +1581,7 @@ ${tableHTML}
 
             {activeReport === 'production' && productTypes.length > 0 && (
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Тип на производ</label>
+                <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Тип на производ</label>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => setProductTypeFilter('')}
                     className={productTypeFilter === '' ? 'chip-active' : 'chip-inactive'}>
@@ -1599,7 +1599,7 @@ ${tableHTML}
 
             {report.needsMeasurementDate && (
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
+                <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => setMeasurementDate('')}
                     className={measurementDate === '' ? 'chip-active' : 'chip-inactive'}>
@@ -1617,7 +1617,7 @@ ${tableHTML}
                   })}
                 </div>
                 {measurementDates.length === 0 && (
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1.5">Нема мерења{poolNumber ? ` за Базен ${poolNumber}` : ''}.</p>
+                  <p className="text-[10px] text-(--text-muted) mt-1.5">Нема мерења{poolNumber ? ` за Базен ${poolNumber}` : ''}.</p>
                 )}
               </div>
             )}
@@ -1702,12 +1702,12 @@ ${tableHTML}
                   }}>
                   <Icon size={18} />
                 </div>
-                <span className="text-sm font-semibold text-[var(--text-primary)]"
+                <span className="text-sm font-semibold text-(--text-primary)"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   {r.label}
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--text-secondary)] ml-[calc(2.5rem+0.625rem)]">{r.desc}</p>
+              <p className="text-[11px] text-(--text-secondary) ml-[calc(2.5rem+0.625rem)]">{r.desc}</p>
             </button>
           );
         })}

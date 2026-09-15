@@ -82,7 +82,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-(--bg)">
       {/* ═══════ DESKTOP SIDEBAR ═══════ */}
       <aside className="sidebar hidden lg:flex">
         <div className="flex items-center justify-between px-2 mb-8">
@@ -189,7 +189,7 @@ export default function Layout() {
         <div className="flex items-center gap-2">
           <button onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Светла тема' : 'Темна тема'}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] transition-all active:scale-95 hover:bg-[var(--primary-muted)]">
+            className="w-8 h-8 rounded-full flex items-center justify-center text-(--text-secondary) transition-all active:scale-95 hover:bg-(--primary-muted)">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <div className="relative" ref={profileRef}>
@@ -201,12 +201,12 @@ export default function Layout() {
             </button>
 
             {showProfile && (
-              <div className="absolute right-0 top-[calc(100%+8px)] w-[calc(100vw-2rem)] min-[400px]:w-56 max-w-[14rem] bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] p-4 animate-slide-down z-50"
+              <div className="absolute right-0 top-[calc(100%+8px)] w-[calc(100vw-2rem)] min-[400px]:w-56 max-w-[14rem] bg-(--surface) rounded-(--r-md) border border-(--border) p-4 animate-slide-down z-50"
                 style={{ boxShadow: 'var(--sh-elevated)' }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold"
+                  <p className="text-[10px] uppercase tracking-wider text-(--text-muted) font-semibold"
                     style={{ fontFamily: 'Sora, sans-serif' }}>Профил</p>
-                  <button onClick={() => setShowProfile(false)} className="text-[var(--text-muted)] p-0.5"
+                  <button onClick={() => setShowProfile(false)} className="text-(--text-muted) p-0.5"
                     aria-label="Затвори профил">
                     <X size={14} />
                   </button>
@@ -217,8 +217,8 @@ export default function Layout() {
                     {user?.full_name?.[0] || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate" style={{ fontFamily: 'Sora, sans-serif' }}>{user?.full_name}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{user?.email}</p>
+                    <p className="text-sm font-semibold text-(--text-primary) truncate" style={{ fontFamily: 'Sora, sans-serif' }}>{user?.full_name}</p>
+                    <p className="text-[11px] text-(--text-muted)">{user?.email}</p>
                   </div>
                 </div>
                 <div className="mb-3">
@@ -226,9 +226,9 @@ export default function Layout() {
                     {isAdmin ? 'Админ' : 'Оператор'}
                   </span>
                 </div>
-                <div className="h-px bg-[var(--border)] my-2" />
+                <div className="h-px bg-(--border) my-2" />
                 <button onClick={logout}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--r-sm)] text-[var(--danger)] text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-(--r-sm) text-(--danger) text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   <LogOut size={16} />
                   Одјави се
@@ -312,21 +312,21 @@ export default function Layout() {
           </button>
 
           {showMore && (
-            <div className="absolute bottom-full right-0 mb-2 w-48 bg-[var(--surface)] rounded-[var(--r-md)] border border-[var(--border)] overflow-hidden animate-slide-down"
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-(--surface) rounded-(--r-md) border border-(--border) overflow-hidden animate-slide-down"
               style={{ boxShadow: 'var(--sh-elevated)' }}>
               <Link to="/reports" onClick={() => setShowMore(false)}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReportsActive ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isReportsActive ? 'text-(--primary) bg-(--primary-muted)' : 'text-(--text-primary) hover:bg-(--surface-elevated)'}`}>
                 <FileBarChart size={18} />
                 Извештаи
               </Link>
               <Link to="/ai-calculator" onClick={() => setShowMore(false)}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-[var(--border)] transition-colors ${location.pathname === '/ai-calculator' ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-(--border) transition-colors ${location.pathname === '/ai-calculator' ? 'text-(--primary) bg-(--primary-muted)' : 'text-(--text-primary) hover:bg-(--surface-elevated)'}`}>
                 <BarChart3 size={18} />
                 Проекции
               </Link>
               {isAdmin && (
                 <Link to="/admin" onClick={() => setShowMore(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-[var(--border)] transition-colors ${isAdminActive ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-elevated)]'}`}>
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border-t border-(--border) transition-colors ${isAdminActive ? 'text-(--primary) bg-(--primary-muted)' : 'text-(--text-primary) hover:bg-(--surface-elevated)'}`}>
                   <Shield size={18} />
                   Админ
                 </Link>

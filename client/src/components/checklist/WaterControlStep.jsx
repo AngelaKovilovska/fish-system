@@ -94,17 +94,17 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
           const Icon = FIELD_ICONS[key] || Droplets;
 
           return (
-            <div key={key} className={`rounded-[var(--r-md)] p-2.5 transition-all duration-150 ${
+            <div key={key} className={`rounded-(--r-md) p-2.5 transition-all duration-150 ${
               outOfRange ? 'bg-[rgba(255,107,107,0.04)] border border-[rgba(255,107,107,0.25)]' :
-              'bg-[var(--surface)]'
+              'bg-(--surface)'
             }`}>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2"
+                <label className="text-[13px] font-semibold text-(--text-primary) flex items-center gap-2"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
-                  <Icon size={14} className={outOfRange ? 'text-[var(--danger)]' : 'text-[var(--primary)]'} />
+                  <Icon size={14} className={outOfRange ? 'text-(--danger)' : 'text-(--primary)'} />
                   {label}
-                  {unit && <span className="text-[var(--text-muted)] font-normal text-xs">({unit})</span>}
-                  {required && <span className="text-[var(--danger)]">*</span>}
+                  {unit && <span className="text-(--text-muted) font-normal text-xs">({unit})</span>}
+                  {required && <span className="text-(--danger)">*</span>}
                 </label>
                 {range && (
                   <span className="pill pill-blue text-[10px]">
@@ -127,7 +127,7 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
                 placeholder={`Внеси ${label.toLowerCase()}`}
               />
               {outOfRange && (
-                <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-[var(--danger)]">
+                <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-(--danger)">
                   <AlertTriangle size={13} />
                   Надвор од норма! ({getNormText(key)})
                 </div>
@@ -137,13 +137,13 @@ export default function WaterControlStep({ data, onChange, norms, requiredFields
         })}
 
         {/* Water exchange - optional, separate from monitored parameters */}
-        <div className="rounded-[var(--r-md)] p-2.5 bg-[var(--surface)] mt-3 border border-dashed border-[var(--border)]">
+        <div className="rounded-(--r-md) p-2.5 bg-(--surface) mt-3 border border-dashed border-(--border)">
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2"
+            <label className="text-[13px] font-semibold text-(--text-primary) flex items-center gap-2"
               style={{ fontFamily: 'Sora, sans-serif' }}>
-              <Waves size={14} className="text-[var(--primary)]" />
+              <Waves size={14} className="text-(--primary)" />
               Замена на вода
-              <span className="text-[var(--text-muted)] font-normal text-xs">(m³)</span>
+              <span className="text-(--text-muted) font-normal text-xs">(m³)</span>
             </label>
             <span className="pill pill-blue text-[10px]">опционално</span>
           </div>

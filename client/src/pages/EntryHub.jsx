@@ -74,8 +74,8 @@ export default function EntryHub() {
           <h1 className="page-title !mb-0">Внес на податоци</h1>
         </div>
         <div className="flex items-center gap-1.5 mt-1 ml-8">
-          <Calendar size={13} className="text-[var(--text-muted)]" />
-          <p className="text-xs text-[var(--text-secondary)] capitalize">{todayFormatted}</p>
+          <Calendar size={13} className="text-(--text-muted)" />
+          <p className="text-xs text-(--text-secondary) capitalize">{todayFormatted}</p>
         </div>
       </div>
 
@@ -94,11 +94,11 @@ export default function EntryHub() {
           }
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-[var(--text-primary)]"
+          <h3 className="text-sm font-bold text-(--text-primary)"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             Дневна чеклиста
           </h3>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+          <p className="text-xs text-(--text-secondary) mt-0.5">
             {checklistDone
               ? 'Завршена — клик за преглед или промена'
               : 'Вода, филтрација, визуелен преглед, активности'
@@ -109,16 +109,16 @@ export default function EntryHub() {
           {checklistDone && (
             <span className="pill pill-success text-[10px]">Готово</span>
           )}
-          <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors" />
+          <ChevronRight size={18} className="text-(--text-muted) group-hover:text-(--primary) transition-colors" />
         </div>
       </Link>
 
       {/* Separator */}
       <div className="flex items-center gap-3 my-4 animate-in-delay-1">
-        <div className="h-px flex-1 bg-[var(--border)]" />
-        <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+        <div className="h-px flex-1 bg-(--border)" />
+        <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider"
           style={{ fontFamily: 'Sora, sans-serif' }}>Оброци</span>
-        <div className="h-px flex-1 bg-[var(--border)]" />
+        <div className="h-px flex-1 bg-(--border)" />
       </div>
 
       {/* Meal cards */}
@@ -144,11 +144,11 @@ export default function EntryHub() {
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]"
+                <h3 className="text-sm font-bold text-(--text-primary)"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   {meal.label}
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                <p className="text-xs text-(--text-secondary) mt-0.5">
                   {isDone
                     ? `Внесено од ${status.fed_by_name || '—'}`
                     : 'Тип на храна и количина по базен'
@@ -159,7 +159,7 @@ export default function EntryHub() {
                 {isDone && (
                   <span className="pill pill-success text-[10px]">Готово</span>
                 )}
-                <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors" />
+                <ChevronRight size={18} className="text-(--text-muted) group-hover:text-(--primary) transition-colors" />
               </div>
             </Link>
           );
@@ -170,10 +170,10 @@ export default function EntryHub() {
       {isAdmin && (
         <>
           <div className="flex items-center gap-3 my-4 animate-in-delay-1">
-            <div className="h-px flex-1 bg-[var(--border)]" />
-            <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+            <div className="h-px flex-1 bg-(--border)" />
+            <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider"
               style={{ fontFamily: 'Sora, sans-serif' }}>Админ</span>
-            <div className="h-px flex-1 bg-[var(--border)]" />
+            <div className="h-px flex-1 bg-(--border)" />
           </div>
 
           <div className="space-y-3">
@@ -184,15 +184,15 @@ export default function EntryHub() {
                 <Scale size={22} style={{ color: '#6366f1' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]"
+                <h3 className="text-sm font-bold text-(--text-primary)"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   Мерења на базени
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                <p className="text-xs text-(--text-secondary) mt-0.5">
                   Број на риби и просечна тежина по базен
                 </p>
               </div>
-              <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+              <ChevronRight size={18} className="text-(--text-muted) group-hover:text-(--primary) transition-colors flex-shrink-0" />
             </Link>
 
             <Link to="/admin/inventory"
@@ -202,15 +202,15 @@ export default function EntryHub() {
                 <Package size={22} style={{ color: '#10b981' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]"
+                <h3 className="text-sm font-bold text-(--text-primary)"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
                   Набавки на храна
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                <p className="text-xs text-(--text-secondary) mt-0.5">
                   Залихи, нови набавки и историја
                 </p>
               </div>
-              <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+              <ChevronRight size={18} className="text-(--text-muted) group-hover:text-(--primary) transition-colors flex-shrink-0" />
             </Link>
           </div>
         </>

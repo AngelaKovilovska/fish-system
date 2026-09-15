@@ -47,12 +47,12 @@ export default function ManageNorms() {
             </button>
             <h1 className="page-title mb-1">Управување со норми</h1>
           </div>
-          <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          <p className="text-xs text-(--text-muted) leading-relaxed">
             Поставете мин/макс вредности. Надвор од норма = аларм.
           </p>
         </div>
         <button onClick={handleSaveAll} disabled={savingAll}
-          className={`btn-primary py-2 px-4 text-sm flex-shrink-0 ${savedAll ? '!bg-[var(--success)] !shadow-none' : ''}`}>
+          className={`btn-primary py-2 px-4 text-sm flex-shrink-0 ${savedAll ? '!bg-(--success) !shadow-none' : ''}`}>
           {savingAll ? (
             <><Loader2 size={14} className="animate-spin" /> Се зачувува...</>
           ) : savedAll ? (
@@ -64,7 +64,7 @@ export default function ManageNorms() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden sm:block bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
+      <div className="hidden sm:block bg-(--surface) rounded-(--r-md) overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
         <table className="table-modern">
           <thead>
             <tr>
@@ -83,7 +83,7 @@ export default function ManageNorms() {
                       {info?.label || norm.parameter_name}
                     </span>
                     {info?.unit && (
-                      <span className="text-[var(--text-muted)] text-xs ml-1">({info.unit})</span>
+                      <span className="text-(--text-muted) text-xs ml-1">({info.unit})</span>
                     )}
                   </td>
                   <td>
@@ -113,13 +113,13 @@ export default function ManageNorms() {
           const info = PARAMETER_LABELS[norm.parameter_name];
           return (
             <div key={norm.id} className="card !p-4">
-              <p className="font-semibold text-sm text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <p className="font-semibold text-sm text-(--text-primary) mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
                 {info?.label || norm.parameter_name}
-                {info?.unit && <span className="text-[var(--text-muted)] font-normal text-xs ml-1">({info.unit})</span>}
+                {info?.unit && <span className="text-(--text-muted) font-normal text-xs ml-1">({info.unit})</span>}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">Минимум</label>
+                  <label className="text-[10px] font-medium text-(--text-muted) mb-1 block">Минимум</label>
                   <input type="number" step="any"
                     value={norm.min_value ?? ''}
                     onChange={(e) => updateLocal(norm.id, 'min_value', e.target.value || null)}
@@ -127,7 +127,7 @@ export default function ManageNorms() {
                     placeholder="--" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">Максимум</label>
+                  <label className="text-[10px] font-medium text-(--text-muted) mb-1 block">Максимум</label>
                   <input type="number" step="any"
                     value={norm.max_value ?? ''}
                     onChange={(e) => updateLocal(norm.id, 'max_value', e.target.value || null)}

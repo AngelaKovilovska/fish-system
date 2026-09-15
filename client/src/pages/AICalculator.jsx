@@ -123,14 +123,14 @@ export default function AICalculator() {
             <BarChart3 size={20} className="text-purple-500" />
             Проекции
           </h1>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+          <p className="text-[11px] text-(--text-muted) mt-0.5">
             Препораки за хранење и предвидување на параметри
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1.5 bg-[var(--surface)] p-1 rounded-[var(--r-md)] border border-[var(--border)] animate-in-delay-1">
+      <div className="flex gap-1.5 bg-(--surface) p-1 rounded-(--r-md) border border-(--border) animate-in-delay-1">
         {[
           { key: 'pools', label: 'Базени', icon: Fish },
           { key: 'calculator', label: 'Калкулатор', icon: Calculator },
@@ -139,10 +139,10 @@ export default function AICalculator() {
         ].map(t => (
           <button key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--r-sm)] text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-(--r-sm) text-xs font-semibold transition-all ${
               tab === t.key
-                ? 'bg-[var(--primary)] text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--primary-muted)]'
+                ? 'bg-(--primary) text-white shadow-sm'
+                : 'text-(--text-secondary) hover:bg-(--primary-muted)'
             }`}
             style={{ fontFamily: 'Sora, sans-serif' }}>
             <t.icon size={14} />
@@ -158,31 +158,31 @@ export default function AICalculator() {
           <div className="card !p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупна дневна потреба</p>
-                <p className="text-2xl font-bold text-[var(--text-primary)] mt-1" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {aiData.summary?.totalDailyFoodKg?.toFixed(2)} <span className="text-sm font-normal text-[var(--text-muted)]">kg</span>
+                <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупна дневна потреба</p>
+                <p className="text-2xl font-bold text-(--text-primary) mt-1" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {aiData.summary?.totalDailyFoodKg?.toFixed(2)} <span className="text-sm font-normal text-(--text-muted)">kg</span>
                 </p>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                <p className="text-xs text-(--text-secondary) mt-0.5">
                   Биомаса: {aiData.summary?.totalBiomassKg?.toFixed(2)} kg · {aiData.summary?.poolCount} базени
                 </p>
               </div>
               {aiData.summary?.temperature != null && (
-                <div className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-[var(--primary-muted)]">
-                  <Thermometer size={18} className="text-[var(--primary)]" />
-                  <span className="text-lg font-bold text-[var(--primary)]">{aiData.summary.temperature}°C</span>
+                <div className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-(--primary-muted)">
+                  <Thermometer size={18} className="text-(--primary)" />
+                  <span className="text-lg font-bold text-(--primary)">{aiData.summary.temperature}°C</span>
                 </div>
               )}
             </div>
 
             {/* Food type needs */}
             {aiData.summary?.foodTypeNeeds?.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-[var(--border)]">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>По тип на храна</p>
+              <div className="mt-4 pt-3 border-t border-(--border)">
+                <p className="text-[10px] text-(--text-muted) uppercase tracking-wider font-semibold mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>По тип на храна</p>
                 <div className="space-y-1.5">
                   {aiData.summary.foodTypeNeeds.map((ft, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <span className="text-xs text-[var(--text-secondary)]">{ft.foodType}</span>
-                      <span className="text-xs font-bold text-[var(--text-primary)]">{ft.dailyNeedKg} kg</span>
+                      <span className="text-xs text-(--text-secondary)">{ft.foodType}</span>
+                      <span className="text-xs font-bold text-(--text-primary)">{ft.dailyNeedKg} kg</span>
                     </div>
                   ))}
                 </div>
@@ -197,11 +197,11 @@ export default function AICalculator() {
                 <div key={poolRec.poolNumber} className="card !p-4 opacity-60">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                      <Fish size={16} className="text-[var(--text-muted)]" />
+                      <Fish size={16} className="text-(--text-muted)" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[var(--text-muted)]" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {poolRec.poolNumber}</p>
-                      <p className="text-[11px] text-[var(--text-muted)]">Нема доволно податоци</p>
+                      <p className="text-sm font-bold text-(--text-muted)" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {poolRec.poolNumber}</p>
+                      <p className="text-[11px] text-(--text-muted)">Нема доволно податоци</p>
                     </div>
                   </div>
                 </div>
@@ -224,8 +224,8 @@ export default function AICalculator() {
                       <span className="text-xs font-bold text-white">{poolRec.poolNumber}</span>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {poolRec.poolNumber}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">
+                      <p className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {poolRec.poolNumber}</p>
+                      <p className="text-[10px] text-(--text-muted)">
                         {poolRec.poolData.fishCount} риби · {poolRec.poolData.avgWeight}g просек · {poolRec.poolData.biomassKg}kg биомаса
                       </p>
                     </div>
@@ -236,15 +236,15 @@ export default function AICalculator() {
                 <div className="px-4 py-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Дневно</p>
-                      <p className="text-xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                        {rec.dailyFoodGr}<span className="text-[10px] font-normal text-[var(--text-muted)]"> g</span>
+                      <p className="text-[10px] text-(--text-muted) uppercase font-semibold">Дневно</p>
+                      <p className="text-xl font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        {rec.dailyFoodGr}<span className="text-[10px] font-normal text-(--text-muted)"> g</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">По оброк ({rec.mealsPerDay}×)</p>
-                      <p className="text-xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                        {rec.perMealGr}<span className="text-[10px] font-normal text-[var(--text-muted)]"> g</span>
+                      <p className="text-[10px] text-(--text-muted) uppercase font-semibold">По оброк ({rec.mealsPerDay}×)</p>
+                      <p className="text-xl font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        {rec.perMealGr}<span className="text-[10px] font-normal text-(--text-muted)"> g</span>
                       </p>
                     </div>
                   </div>
@@ -272,19 +272,19 @@ export default function AICalculator() {
 
                   {/* Actual vs Recommended comparison */}
                   {comp && (
-                    <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <div className="mt-3 pt-3 border-t border-(--border)">
                       <div className="flex items-center gap-2">
                         {comp.status === 'optimal' ? (
-                          <CheckCircle size={14} className="text-[var(--success)]" />
+                          <CheckCircle size={14} className="text-(--success)" />
                         ) : (
-                          <AlertTriangle size={14} className={comp.status.includes('over') ? 'text-[var(--danger)]' : 'text-[var(--warning)]'} />
+                          <AlertTriangle size={14} className={comp.status.includes('over') ? 'text-(--danger)' : 'text-(--warning)'} />
                         )}
-                        <p className="text-xs font-medium text-[var(--text-primary)]">{comp.message}</p>
+                        <p className="text-xs font-medium text-(--text-primary)">{comp.message}</p>
                       </div>
-                      <div className="flex items-center gap-4 mt-1.5 text-[11px] text-[var(--text-muted)]">
+                      <div className="flex items-center gap-4 mt-1.5 text-[11px] text-(--text-muted)">
                         <span>Препорака: {comp.recommendedGr}g</span>
                         <span>Реално денес: {comp.actualGr}g</span>
-                        <span className={`font-medium ${comp.differencePercent > 0 ? 'text-[var(--danger)]' : comp.differencePercent < 0 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                        <span className={`font-medium ${comp.differencePercent > 0 ? 'text-(--danger)' : comp.differencePercent < 0 ? 'text-(--warning)' : 'text-(--success)'}`}>
                           {comp.differencePercent > 0 ? '+' : ''}{comp.differencePercent}%
                         </span>
                       </div>
@@ -293,9 +293,9 @@ export default function AICalculator() {
 
                   {/* Warnings */}
                   {(warn?.foodTypeWarning || warn?.transitionNote || warn?.criticalWarning) && (
-                    <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-1.5">
+                    <div className="mt-3 pt-3 border-t border-(--border) space-y-1.5">
                       {warn.criticalWarning && (
-                        <p className="text-[11px] text-[var(--danger)] font-medium flex items-center gap-1.5">
+                        <p className="text-[11px] text-(--danger) font-medium flex items-center gap-1.5">
                           <AlertTriangle size={12} /> {warn.criticalWarning}
                         </p>
                       )}
@@ -322,13 +322,13 @@ export default function AICalculator() {
       {tab === 'calculator' && (
         <div className="space-y-4 animate-in-delay-1">
           <div className="card !p-5">
-            <p className="text-sm font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <p className="text-sm font-semibold text-(--text-primary) mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
               Рачен калкулатор
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block">Број на риби</label>
+                <label className="text-[11px] font-medium text-(--text-secondary) mb-1 block">Број на риби</label>
                 <input type="number" min="1"
                   value={calcInputs.fishCount}
                   onChange={e => setCalcInputs(p => ({ ...p, fishCount: e.target.value }))}
@@ -338,7 +338,7 @@ export default function AICalculator() {
               </div>
 
               <div>
-                <label className="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block">Просечна тежина (грами)</label>
+                <label className="text-[11px] font-medium text-(--text-secondary) mb-1 block">Просечна тежина (грами)</label>
                 <input type="number" min="0.1" step="0.1"
                   value={calcInputs.avgWeight}
                   onChange={e => setCalcInputs(p => ({ ...p, avgWeight: e.target.value }))}
@@ -348,7 +348,7 @@ export default function AICalculator() {
               </div>
 
               <div>
-                <label className="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block">Температура на вода °C (опционално)</label>
+                <label className="text-[11px] font-medium text-(--text-secondary) mb-1 block">Температура на вода °C (опционално)</label>
                 <input type="number" min="0" max="45" step="0.1"
                   value={calcInputs.temperature}
                   onChange={e => setCalcInputs(p => ({ ...p, temperature: e.target.value }))}
@@ -370,7 +370,7 @@ export default function AICalculator() {
           {/* Calculator Result */}
           {calcResult && calcResult.hasData && (
             <div className="card !p-5 animate-in">
-              <p className="text-sm font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <p className="text-sm font-semibold text-(--text-primary) mb-4 flex items-center gap-2" style={{ fontFamily: 'Sora, sans-serif' }}>
                 <Brain size={16} className="text-purple-500" />
                 Резултат
               </p>
@@ -393,35 +393,35 @@ export default function AICalculator() {
               </div>
 
               <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                  <span className="text-[var(--text-muted)]">Тип на храна</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{calcResult.recommendation.foodType}</span>
+                <div className="flex justify-between py-1.5 border-b border-(--border)">
+                  <span className="text-(--text-muted)">Тип на храна</span>
+                  <span className="font-semibold text-(--text-primary)">{calcResult.recommendation.foodType}</span>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                  <span className="text-[var(--text-muted)]">Големина на пелет</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{calcResult.recommendation.feedSizeMm} mm</span>
+                <div className="flex justify-between py-1.5 border-b border-(--border)">
+                  <span className="text-(--text-muted)">Големина на пелет</span>
+                  <span className="font-semibold text-(--text-primary)">{calcResult.recommendation.feedSizeMm} mm</span>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                  <span className="text-[var(--text-muted)]">Стапка на хранење</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{calcResult.recommendation.feedRatePercent}% BW/ден</span>
+                <div className="flex justify-between py-1.5 border-b border-(--border)">
+                  <span className="text-(--text-muted)">Стапка на хранење</span>
+                  <span className="font-semibold text-(--text-primary)">{calcResult.recommendation.feedRatePercent}% BW/ден</span>
                 </div>
                 {calcResult.recommendation.baseFeedRatePercent !== calcResult.recommendation.feedRatePercent && (
-                  <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                    <span className="text-[var(--text-muted)]">Базна стапка (без корекција)</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{calcResult.recommendation.baseFeedRatePercent}% BW/ден</span>
+                  <div className="flex justify-between py-1.5 border-b border-(--border)">
+                    <span className="text-(--text-muted)">Базна стапка (без корекција)</span>
+                    <span className="font-semibold text-(--text-primary)">{calcResult.recommendation.baseFeedRatePercent}% BW/ден</span>
                   </div>
                 )}
-                <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                  <span className="text-[var(--text-muted)]">Биомаса</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{calcResult.poolData.biomassKg} kg</span>
+                <div className="flex justify-between py-1.5 border-b border-(--border)">
+                  <span className="text-(--text-muted)">Биомаса</span>
+                  <span className="font-semibold text-(--text-primary)">{calcResult.poolData.biomassKg} kg</span>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                  <span className="text-[var(--text-muted)]">Оброци дневно</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{calcResult.recommendation.mealsPerDay}</span>
+                <div className="flex justify-between py-1.5 border-b border-(--border)">
+                  <span className="text-(--text-muted)">Оброци дневно</span>
+                  <span className="font-semibold text-(--text-primary)">{calcResult.recommendation.mealsPerDay}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
-                  <span className="text-[var(--text-muted)]">Температура</span>
-                  <span className="font-semibold text-[var(--text-primary)]">
+                  <span className="text-(--text-muted)">Температура</span>
+                  <span className="font-semibold text-(--text-primary)">
                     {calcResult.temperatureAdjustment.note}
                     {calcResult.temperatureAdjustment.factor < 1 && ` (×${calcResult.temperatureAdjustment.factor})`}
                   </span>
@@ -430,9 +430,9 @@ export default function AICalculator() {
 
               {/* Warnings */}
               {(calcResult.warnings?.criticalWarning || calcResult.warnings?.transitionNote) && (
-                <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-1.5">
+                <div className="mt-4 pt-3 border-t border-(--border) space-y-1.5">
                   {calcResult.warnings.criticalWarning && (
-                    <p className="text-[11px] text-[var(--danger)] font-medium flex items-center gap-1.5">
+                    <p className="text-[11px] text-(--danger) font-medium flex items-center gap-1.5">
                       <AlertTriangle size={12} /> {calcResult.warnings.criticalWarning}
                     </p>
                   )}
@@ -446,9 +446,9 @@ export default function AICalculator() {
 
               {/* Feed product info */}
               {calcResult.feedProductInfo && (
-                <div className="mt-4 pt-3 border-t border-[var(--border)]">
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase font-semibold mb-1.5">За храната</p>
-                  <p className="text-[11px] text-[var(--text-secondary)]">{calcResult.feedProductInfo.description}</p>
+                <div className="mt-4 pt-3 border-t border-(--border)">
+                  <p className="text-[10px] text-(--text-muted) uppercase font-semibold mb-1.5">За храната</p>
+                  <p className="text-[11px] text-(--text-secondary)">{calcResult.feedProductInfo.description}</p>
                 </div>
               )}
             </div>
@@ -456,7 +456,7 @@ export default function AICalculator() {
 
           {calcResult && !calcResult.hasData && (
             <div className="card !p-5 text-center">
-              <p className="text-sm text-[var(--text-muted)]">{calcResult.message || 'Нема доволно податоци'}</p>
+              <p className="text-sm text-(--text-muted)">{calcResult.message || 'Нема доволно податоци'}</p>
             </div>
           )}
         </div>
@@ -468,17 +468,17 @@ export default function AICalculator() {
           {predictionLoading && (
             <div className="card !p-5 text-center">
               <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
-              <p className="text-xs text-[var(--text-muted)]">Анализирам водни параметри...</p>
+              <p className="text-xs text-(--text-muted)">Анализирам водни параметри...</p>
             </div>
           )}
 
           {predictionError && !predictionLoading && (
             <div className="card !p-5 text-center">
-              <AlertTriangle size={32} className="mx-auto text-[var(--danger)] mb-2" />
-              <p className="text-sm text-[var(--text-primary)] mb-1">Грешка при анализа</p>
-              <p className="text-[11px] text-[var(--text-muted)] mb-3">{predictionError}</p>
+              <AlertTriangle size={32} className="mx-auto text-(--danger) mb-2" />
+              <p className="text-sm text-(--text-primary) mb-1">Грешка при анализа</p>
+              <p className="text-[11px] text-(--text-muted) mb-3">{predictionError}</p>
               <button onClick={() => { setWaterPrediction(null); setPredictionError(null); }}
-                className="text-xs font-semibold text-[var(--primary)] hover:underline">
+                className="text-xs font-semibold text-(--primary) hover:underline">
                 Обиди се повторно
               </button>
             </div>
@@ -486,8 +486,8 @@ export default function AICalculator() {
 
           {waterPrediction && !predictionLoading && !waterPrediction.hasData && (
             <div className="card !p-5 text-center">
-              <Droplets size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-              <p className="text-sm text-[var(--text-muted)]">{waterPrediction.message || 'Нема податоци'}</p>
+              <Droplets size={32} className="mx-auto text-(--text-muted) mb-2" />
+              <p className="text-sm text-(--text-muted)">{waterPrediction.message || 'Нема податоци'}</p>
             </div>
           )}
 
@@ -498,11 +498,11 @@ export default function AICalculator() {
                 {waterPrediction.isStable ? (
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50 dark:bg-green-900/20">
-                      <CheckCircle size={20} className="text-[var(--success)]" />
+                      <CheckCircle size={20} className="text-(--success)" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Сите параметри се стабилни</p>
-                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                      <p className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Сите параметри се стабилни</p>
+                      <p className="text-[11px] text-(--text-muted) mt-0.5">
                         {waterPrediction.summary.analyzedParameters} параметри · {waterPrediction.summary.daysOfData} дена податоци · {formatDateMK(waterPrediction.date)}
                       </p>
                     </div>
@@ -513,11 +513,11 @@ export default function AICalculator() {
                       <AlertTriangle size={20} className="text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Детектирани проблеми</p>
-                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                        {waterPrediction.summary.alreadyExceeded > 0 && <span className="text-[var(--danger)] font-medium">{waterPrediction.summary.alreadyExceeded} надвор од норма</span>}
+                      <p className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Детектирани проблеми</p>
+                      <p className="text-[11px] text-(--text-muted) mt-0.5">
+                        {waterPrediction.summary.alreadyExceeded > 0 && <span className="text-(--danger) font-medium">{waterPrediction.summary.alreadyExceeded} надвор од норма</span>}
                         {waterPrediction.summary.alreadyExceeded > 0 && waterPrediction.summary.trendWarnings > 0 && ' · '}
-                        {waterPrediction.summary.trendWarnings > 0 && <span className="text-[var(--warning)] font-medium">{waterPrediction.summary.trendWarnings} тренд предупредувања</span>}
+                        {waterPrediction.summary.trendWarnings > 0 && <span className="text-(--warning) font-medium">{waterPrediction.summary.trendWarnings} тренд предупредувања</span>}
                         {waterPrediction.summary.causalChainCount > 0 && <span className="text-purple-500 font-medium"> · {waterPrediction.summary.causalChainCount} каузални ланци</span>}
                       </p>
                     </div>
@@ -533,27 +533,27 @@ export default function AICalculator() {
                 }}>
                   <div className="flex items-center gap-2 mb-2">
                     <Activity size={14} className="text-purple-500" />
-                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                       NH₃ Калкулатор (Emerson et al., 1975)
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div>
-                      <p className="text-[10px] text-[var(--text-muted)]">Измерен NH₄⁺</p>
-                      <p className="text-sm font-bold text-[var(--text-primary)]">{waterPrediction.nh3.tan} mg/L</p>
+                      <p className="text-[10px] text-(--text-muted)">Измерен NH₄⁺</p>
+                      <p className="text-sm font-bold text-(--text-primary)">{waterPrediction.nh3.tan} mg/L</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-[var(--text-muted)]">Токсичен NH₃</p>
-                      <p className={`text-sm font-bold ${waterPrediction.nh3.isSafe ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      <p className="text-[10px] text-(--text-muted)">Токсичен NH₃</p>
+                      <p className={`text-sm font-bold ${waterPrediction.nh3.isSafe ? 'text-(--success)' : 'text-(--danger)'}`}>
                         {waterPrediction.nh3.nh3} mg/L
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-[var(--text-muted)]">NH₃ фракција</p>
-                      <p className="text-sm font-bold text-[var(--text-primary)]">{(waterPrediction.nh3.fraction * 100).toFixed(2)}%</p>
+                      <p className="text-[10px] text-(--text-muted)">NH₃ фракција</p>
+                      <p className="text-sm font-bold text-(--text-primary)">{(waterPrediction.nh3.fraction * 100).toFixed(2)}%</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">
+                  <p className="text-[10px] text-(--text-muted) mt-2 text-center">
                     При pH {waterPrediction.nh3.ph} и {waterPrediction.nh3.temperature}°C · Безбедна граница: {waterPrediction.nh3.safeLimit} mg/L
                   </p>
                 </div>
@@ -621,15 +621,15 @@ export default function AICalculator() {
                 return (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <CheckCircle size={13} className="text-[var(--success)]" />
-                      <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      <CheckCircle size={13} className="text-(--success)" />
+                      <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                         Примарна предикција — Линеарна регресија
                       </p>
                     </div>
 
                     {/* Prediction table */}
                     <div className="card !p-0 overflow-hidden">
-                      <div className="grid grid-cols-4 gap-0 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]"
+                      <div className="grid grid-cols-4 gap-0 px-3 py-2 text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider border-b border-(--border)"
                         style={{ fontFamily: 'Sora, sans-serif', background: 'var(--surface)' }}>
                         <span>Параметар</span>
                         <span className="text-right">Сега</span>
@@ -640,22 +640,22 @@ export default function AICalculator() {
                       {predictions.map((p, i) => {
                         const TIcon = p.direction === 'rising' ? TrendingUp
                           : p.direction === 'falling' ? TrendingDown : Minus;
-                        const trendColor = p.severity === 'critical' ? 'text-[var(--danger)]'
-                          : p.severity === 'recovering' ? 'text-[var(--success)]'
-                          : p.severity === 'warning' || p.severity === 'caution' ? 'text-[var(--warning)]'
-                          : 'text-[var(--text-muted)]';
+                        const trendColor = p.severity === 'critical' ? 'text-(--danger)'
+                          : p.severity === 'recovering' ? 'text-(--success)'
+                          : p.severity === 'warning' || p.severity === 'caution' ? 'text-(--warning)'
+                          : 'text-(--text-muted)';
 
                         const valColor = (val) => {
-                          if (!p.norm) return 'text-[var(--text-primary)]';
+                          if (!p.norm) return 'text-(--text-primary)';
                           const out = (p.norm.max !== null && val > p.norm.max)
                             || (p.norm.min !== null && val < p.norm.min);
-                          return out ? 'text-[var(--danger)] font-bold' : 'text-[var(--text-primary)]';
+                          return out ? 'text-(--danger) font-bold' : 'text-(--text-primary)';
                         };
 
                         return (
                           <div key={p.parameter}
                             className={`grid grid-cols-4 gap-0 px-3 py-2.5 items-center ${
-                              i < predictions.length - 1 ? 'border-b border-[var(--border)]' : ''
+                              i < predictions.length - 1 ? 'border-b border-(--border)' : ''
                             }`}
                             style={{
                               background: p.severity === 'critical' ? 'rgba(239,68,68,0.04)'
@@ -665,10 +665,10 @@ export default function AICalculator() {
                             }}>
                             <div className="flex items-center gap-1.5 min-w-0">
                               <TIcon size={12} className={trendColor} />
-                              <span className="text-xs font-medium text-[var(--text-primary)] truncate">{p.label}</span>
+                              <span className="text-xs font-medium text-(--text-primary) truncate">{p.label}</span>
                               {/* ⚠ badge removed — LR fit is valid for trend monitoring */}
                             </div>
-                            <span className={`text-xs text-right font-semibold ${p.isCurrentlyOut ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                            <span className={`text-xs text-right font-semibold ${p.isCurrentlyOut ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
                               {p.currentValue}{p.unit}
                             </span>
                             <span className={`text-xs text-right ${valColor(p.pred3)}`}>
@@ -689,9 +689,9 @@ export default function AICalculator() {
                           borderLeft: `3px solid ${p.crossing.daysUntil <= 2 ? 'var(--danger)' : 'var(--warning)'}`,
                           background: p.crossing.daysUntil <= 2 ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)',
                         }}>
-                        <Clock size={13} className={`${p.crossing.daysUntil <= 2 ? 'text-[var(--danger)]' : 'text-[var(--warning)]'} mt-0.5 flex-shrink-0`} />
-                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                          <span className="font-semibold text-[var(--text-primary)]">{p.label}</span>
+                        <Clock size={13} className={`${p.crossing.daysUntil <= 2 ? 'text-(--danger)' : 'text-(--warning)'} mt-0.5 flex-shrink-0`} />
+                        <p className="text-[11px] text-(--text-secondary) leading-relaxed">
+                          <span className="font-semibold text-(--text-primary)">{p.label}</span>
                           {' '}{p.crossing.direction === 'high' ? 'ќе ја надмине' : 'ќе падне под'} нормата ({p.crossing.boundaryValue}{p.unit}) за <span className="font-bold">{p.crossing.daysUntil} ден{p.crossing.daysUntil > 1 ? 'а' : ''}</span>
                         </p>
                       </div>
@@ -707,17 +707,17 @@ export default function AICalculator() {
                             background: isWorse ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)',
                           }}>
                           {isWorse
-                            ? <TrendingUp size={13} className="text-[var(--danger)] mt-0.5 flex-shrink-0" />
-                            : <TrendingDown size={13} className="text-[var(--success)] mt-0.5 flex-shrink-0" />}
-                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                            <span className="font-semibold text-[var(--text-primary)]">{p.label}</span> е надвор од норма и {isWorse ? 'продолжува да се влошува' : 'покажува знаци на подобрување'}.
-                            {' '}Моментално: <span className="font-semibold">{p.currentValue}{p.unit}</span> → за 3 дена: <span className={`font-semibold ${isWorse ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>{p.pred3}{p.unit}</span>
+                            ? <TrendingUp size={13} className="text-(--danger) mt-0.5 flex-shrink-0" />
+                            : <TrendingDown size={13} className="text-(--success) mt-0.5 flex-shrink-0" />}
+                          <p className="text-[11px] text-(--text-secondary) leading-relaxed">
+                            <span className="font-semibold text-(--text-primary)">{p.label}</span> е надвор од норма и {isWorse ? 'продолжува да се влошува' : 'покажува знаци на подобрување'}.
+                            {' '}Моментално: <span className="font-semibold">{p.currentValue}{p.unit}</span> → за 3 дена: <span className={`font-semibold ${isWorse ? 'text-(--danger)' : 'text-(--success)'}`}>{p.pred3}{p.unit}</span>
                           </p>
                         </div>
                       );
                     })}
 
-                    <p className="text-[9px] text-[var(--text-muted)] italic">
+                    <p className="text-[9px] text-(--text-muted) italic">
                       * Линеарна регресија · последни {predictions[0]?.daysAnalyzed || '?'} дена · R² = {predictions[0]?.r2 || '?'}
                     </p>
                   </div>
@@ -727,15 +727,15 @@ export default function AICalculator() {
               {/* Causal Chains */}
               {waterPrediction.causalChains?.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                     Каузални ланци
                   </p>
                   {waterPrediction.causalChains.map((c, i) => (
                     <div key={i} className="card !p-3"
                       style={{ borderLeft: `3px solid ${c.severity === 'critical' ? 'var(--danger)' : '#8b5cf6'}` }}>
-                      <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">{c.title}</p>
-                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{c.message}</p>
-                      <div className="flex items-center justify-between mt-1.5 text-[9px] text-[var(--text-muted)]">
+                      <p className="text-xs font-semibold text-(--text-primary) mb-1">{c.title}</p>
+                      <p className="text-[11px] text-(--text-secondary) leading-relaxed">{c.message}</p>
+                      <div className="flex items-center justify-between mt-1.5 text-[9px] text-(--text-muted)">
                         <span>Временски рамки: {c.timeframe}</span>
                         <span>{c.source}</span>
                       </div>
@@ -755,7 +755,7 @@ export default function AICalculator() {
 
                 return (
                   <div className="space-y-2">
-                    <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                       Што да направите
                     </p>
                     {waterPrediction.recommendations.map((r, i) => {
@@ -771,18 +771,18 @@ export default function AICalculator() {
                           {/* Collapsed: summary row — click to expand */}
                           <button
                             onClick={() => setExpandedRec(isExpanded ? null : i)}
-                            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--surface-hover)] transition-colors"
+                            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-(--surface-hover) transition-colors"
                           >
                             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: uc.dot }} />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{r.summary || r.title}</p>
+                              <p className="text-[13px] font-semibold text-(--text-primary) truncate">{r.summary || r.title}</p>
                             </div>
-                            <ChevronDown size={16} className={`text-[var(--text-muted)] flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={16} className={`text-(--text-muted) flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                           </button>
 
                           {/* Expanded: detailed steps */}
                           {isExpanded && (
-                            <div className="border-t border-[var(--border)]">
+                            <div className="border-t border-(--border)">
                               {/* Title */}
                               <div className="px-4 pt-3 pb-1 flex items-center gap-2">
                                 {uc.label && (
@@ -790,7 +790,7 @@ export default function AICalculator() {
                                     {uc.label}
                                   </span>
                                 )}
-                                <p className="text-[12px] font-bold text-[var(--text-primary)]">{r.title}</p>
+                                <p className="text-[12px] font-bold text-(--text-primary)">{r.title}</p>
                               </div>
 
                               {/* Steps */}
@@ -801,14 +801,14 @@ export default function AICalculator() {
                                       style={{ background: `${uc.dot}22`, color: uc.dot, border: `1.5px solid ${uc.dot}` }}>
                                       {si + 1}
                                     </span>
-                                    <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{step}</p>
+                                    <p className="text-[12px] text-(--text-secondary) leading-relaxed">{step}</p>
                                   </div>
                                 ))}
                               </div>
 
                               {/* Source */}
-                              <div className="px-4 py-2 border-t border-[var(--border)]">
-                                <p className="text-[9px] text-[var(--text-muted)] opacity-60">Извор: {r.source}</p>
+                              <div className="px-4 py-2 border-t border-(--border)">
+                                <p className="text-[9px] text-(--text-muted) opacity-60">Извор: {r.source}</p>
                               </div>
                             </div>
                           )}
@@ -822,7 +822,7 @@ export default function AICalculator() {
 
               {/* Parameter details */}
               <div className="space-y-2">
-                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                   Детална анализа
                 </p>
                 {Object.values(waterPrediction.parameters || {}).filter(p => !p.noData).map(param => {
@@ -839,19 +839,19 @@ export default function AICalculator() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor }} />
-                          <span className="text-xs font-semibold text-[var(--text-primary)]">{param.label}</span>
+                          <span className="text-xs font-semibold text-(--text-primary)">{param.label}</span>
                           {param.spike && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${param.spike.severity === 'critical' ? 'bg-red-50 dark:bg-red-900/20 text-[var(--danger)]' : 'bg-amber-50 dark:bg-amber-900/20 text-[var(--warning)]'}`}>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${param.spike.severity === 'critical' ? 'bg-red-50 dark:bg-red-900/20 text-(--danger)' : 'bg-amber-50 dark:bg-amber-900/20 text-(--warning)'}`}>
                               Z:{param.spike.zScore}
                             </span>
                           )}
                           {trend?.crossing?.daysUntil > 0 && !trend.crossing.alreadyExceeded && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-amber-50 dark:bg-amber-900/20 text-[var(--warning)]">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-amber-50 dark:bg-amber-900/20 text-(--warning)">
                               надвор за {trend.crossing.daysUntil}д
                             </span>
                           )}
                           {trend?.crossing?.alreadyExceeded && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-red-50 dark:bg-red-900/20 text-[var(--danger)]">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold bg-red-50 dark:bg-red-900/20 text-(--danger)">
                               надвор од норма
                             </span>
                           )}
@@ -861,15 +861,15 @@ export default function AICalculator() {
                             <TrendIcon size={12} className={
                               trend.direction === 'rising' ? 'text-red-400'
                               : trend.direction === 'falling' ? 'text-blue-400'
-                              : 'text-[var(--text-muted)]'
+                              : 'text-(--text-muted)'
                             } />
                           )}
-                          <span className={`text-sm font-bold ${isOutOfRange ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                          <span className={`text-sm font-bold ${isOutOfRange ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
                             {param.currentValue}{param.unit}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-1.5 text-[10px] text-[var(--text-muted)]">
+                      <div className="flex items-center justify-between mt-1.5 text-[10px] text-(--text-muted)">
                         <span>{norm ? `Норма: ${norm.min ?? '–'} – ${norm.max ?? '–'}${param.unit}` : 'Нема норма'}</span>
                         {trend?.isSignificant && (
                           <span>{trend.slope > 0 ? '+' : ''}{trend.slope}/ден (R²={trend.r2})</span>
@@ -895,7 +895,7 @@ export default function AICalculator() {
             <div className="flex gap-3">
               {/* Pool selector */}
               <div className="flex-1">
-                <label className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Базен</label>
+                <label className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Базен</label>
                 <select
                   value={growthPool}
                   onChange={e => { setGrowthPool(parseInt(e.target.value)); setGrowthFrom(''); }}
@@ -909,7 +909,7 @@ export default function AICalculator() {
 
               {/* Measurement date filter */}
               <div className="flex-1">
-                <label className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Од мерење</label>
+                <label className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider mb-1.5 block" style={{ fontFamily: 'Sora, sans-serif' }}>Од мерење</label>
                 <select
                   value={growthFrom}
                   onChange={e => setGrowthFrom(e.target.value)}
@@ -928,7 +928,7 @@ export default function AICalculator() {
 
           {/* Empty period note */}
           {!growthLoading && growthData?.emptyPeriod && (
-            <p className="text-[11px] text-[var(--text-muted)] -mt-1 mb-2 px-1">
+            <p className="text-[11px] text-(--text-muted) -mt-1 mb-2 px-1">
               <Info size={12} className="inline -mt-0.5 mr-1 opacity-60" />
               Базенот бил празен на {new Date(growthData.emptyPeriod.from).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
@@ -938,15 +938,15 @@ export default function AICalculator() {
           {growthLoading && (
             <div className="card !p-5 text-center">
               <div className="wave-loader mx-auto mb-2"><span /><span /><span /><span /></div>
-              <p className="text-xs text-[var(--text-muted)]">Вчитувам податоци за раст...</p>
+              <p className="text-xs text-(--text-muted)">Вчитувам податоци за раст...</p>
             </div>
           )}
 
           {/* No data */}
           {!growthLoading && growthData && !growthData.hasData && (
             <div className="card !p-5 text-center">
-              <Sprout size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-              <p className="text-sm text-[var(--text-muted)]">{growthData.message || 'Нема мерења за овој базен'}</p>
+              <Sprout size={32} className="mx-auto text-(--text-muted) mb-2" />
+              <p className="text-sm text-(--text-muted)">{growthData.message || 'Нема мерења за овој базен'}</p>
             </div>
           )}
 
@@ -957,27 +957,27 @@ export default function AICalculator() {
               <div className="card !p-3">
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div>
-                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Моментална</p>
-                    <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                      {growthData.stats.currentWeight}<span className="text-[9px] font-normal text-[var(--text-muted)]">g</span>
+                    <p className="text-[9px] text-(--text-muted) uppercase font-semibold">Моментална</p>
+                    <p className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.currentWeight}<span className="text-[9px] font-normal text-(--text-muted)">g</span>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Coppens</p>
-                    <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                      {growthData.stats.coppensExpected}<span className="text-[9px] font-normal text-[var(--text-muted)]">g</span>
+                    <p className="text-[9px] text-(--text-muted) uppercase font-semibold">Coppens</p>
+                    <p className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      {growthData.stats.coppensExpected}<span className="text-[9px] font-normal text-(--text-muted)">g</span>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">Отстапува</p>
-                    <p className={`text-sm font-bold ${growthData.stats.deviationPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`} style={{ fontFamily: 'Sora, sans-serif' }}>
+                    <p className="text-[9px] text-(--text-muted) uppercase font-semibold">Отстапува</p>
+                    <p className={`text-sm font-bold ${growthData.stats.deviationPercent >= 0 ? 'text-(--success)' : 'text-(--warning)'}`} style={{ fontFamily: 'Sora, sans-serif' }}>
                       {growthData.stats.deviationPercent > 0 ? '+' : ''}{growthData.stats.deviationPercent}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-[9px] text-[var(--text-muted)] uppercase font-semibold">SGR</p>
+                    <p className="text-[9px] text-(--text-muted) uppercase font-semibold">SGR</p>
                     <p className="text-sm font-bold text-purple-600 dark:text-purple-400" style={{ fontFamily: 'Sora, sans-serif' }}>
-                      {growthData.stats.avgSGR}<span className="text-[9px] font-normal text-[var(--text-muted)]">%/д</span>
+                      {growthData.stats.avgSGR}<span className="text-[9px] font-normal text-(--text-muted)">%/д</span>
                     </p>
                   </div>
                 </div>
@@ -985,7 +985,7 @@ export default function AICalculator() {
 
               {/* Chart */}
               <div className="card !p-3">
-                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+                <p className="text-[10px] text-(--text-muted) uppercase tracking-wider font-semibold mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
                   Крива на раст — Базен {growthPool}
                   <span className="normal-case tracking-normal font-normal ml-1.5">
                     ({growthData.stats.daysTracked} дена · {growthData.stats.measurementCount} мерења)
@@ -1068,21 +1068,21 @@ export default function AICalculator() {
                 <div className="flex items-center justify-center gap-4 mt-2 text-[10px]">
                   <span className="flex items-center gap-1.5">
                     <span className="w-3 h-0.5 rounded-full bg-[#22c55e] inline-block" style={{ height: 3 }} />
-                    <span className="text-[var(--text-secondary)]">Измерена тежина</span>
+                    <span className="text-(--text-secondary)">Измерена тежина</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-3 h-0.5 rounded-full bg-[#3b82f6] inline-block" style={{ height: 2 }} />
-                    <span className="text-[var(--text-secondary)]">SGR проекција</span>
+                    <span className="text-(--text-secondary)">SGR проекција</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-3 inline-block border-t-2 border-dashed border-[#f59e0b]" />
-                    <span className="text-[var(--text-secondary)]">Coppens идеална</span>
+                    <span className="text-(--text-secondary)">Coppens идеална</span>
                   </span>
                 </div>
               </div>
 
               {/* Info note */}
-              <div className="text-[9px] text-[var(--text-muted)] italic px-1">
+              <div className="text-[9px] text-(--text-muted) italic px-1">
                 SGR = Specific Growth Rate — дневна стапка на раст пресметана од мерењата и внесената храна.
                 Coppens кривата е оптималниот раст при 26-28°C (Alltech 2025-2026).
               </div>
@@ -1093,7 +1093,7 @@ export default function AICalculator() {
 
       {/* Footer note */}
       <div className="text-center py-4">
-        <p className="text-[10px] text-[var(--text-muted)]">
+        <p className="text-[10px] text-(--text-muted)">
           * Храна: Coppens 2025-2026. Вода: Линеарна регресија.
         </p>
       </div>

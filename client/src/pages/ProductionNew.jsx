@@ -268,7 +268,7 @@ export default function ProductionNew() {
           <h1 className="page-title !mb-0">Производство</h1>
           <div className="flex-1" />
           <button onClick={() => { setShowSettings(!showSettings); setShowForm(false); }}
-            className="btn-ghost p-2 text-[var(--text-secondary)]"><Settings size={18} /></button>
+            className="btn-ghost p-2 text-(--text-secondary)"><Settings size={18} /></button>
           {!showForm && !showSettings && (
             <button onClick={startNew} className="btn-primary text-sm flex items-center gap-1.5">
               <Plus size={16} /> Нова серија
@@ -276,8 +276,8 @@ export default function ProductionNew() {
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-1 ml-8">
-          <Factory size={13} className="text-[var(--text-muted)]" />
-          <p className="text-xs text-[var(--text-secondary)]">Серии и обработка на риба</p>
+          <Factory size={13} className="text-(--text-muted)" />
+          <p className="text-xs text-(--text-secondary)">Серии и обработка на риба</p>
         </div>
       </div>
 
@@ -289,37 +289,37 @@ export default function ProductionNew() {
       {showSettings && !showForm && (
         <div className="card mb-5 animate-in">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Типови производи и цени</h3>
+            <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Типови производи и цени</h3>
             <button onClick={() => setShowSettings(false)} className="btn-ghost p-1.5"><X size={16} /></button>
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] mb-4">Промени ја цената или додај нов тип на производ</p>
+          <p className="text-[11px] text-(--text-muted) mb-4">Промени ја цената или додај нов тип на производ</p>
 
           {/* Existing product types */}
           <div className="space-y-2.5 mb-5">
             {productTypes.map((t, idx) => (
-              <div key={t.id} className="bg-[var(--surface-elevated)] rounded-[var(--r-sm)] p-3 border border-[var(--border)]">
+              <div key={t.id} className="bg-(--surface-elevated) rounded-(--r-sm) p-3 border border-(--border)">
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0"
                     style={{ background: ptColor(idx).light, color: ptColor(idx).bg }}>{t.code}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{t.name}</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">Код: {t.code}</p>
+                    <p className="text-xs font-semibold text-(--text-primary) truncate">{t.name}</p>
+                    <p className="text-[10px] text-(--text-muted)">Код: {t.code}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена (ден/кг)</label>
+                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Цена (ден/кг)</label>
                     <input type="number" step="0.01" min="0" value={editPrices[t.id] ?? ''}
                       onChange={e => setEditPrices({ ...editPrices, [t.id]: e.target.value })}
                       className="input-base w-full text-sm" placeholder="Внеси цена" />
                   </div>
                   <div className="flex gap-1 mt-4">
                     <button onClick={() => handleSavePrice(t.id)}
-                      className="btn-ghost text-[10px] text-[var(--primary)] flex items-center gap-1 px-2 py-1.5">
+                      className="btn-ghost text-[10px] text-(--primary) flex items-center gap-1 px-2 py-1.5">
                       <Save size={12} /> Зачувај
                     </button>
                     <button onClick={() => handleDeleteType(t.id)}
-                      className="btn-ghost text-[10px] text-[var(--danger)] flex items-center gap-1 px-2 py-1.5">
+                      className="btn-ghost text-[10px] text-(--danger) flex items-center gap-1 px-2 py-1.5">
                       <Trash2 size={12} /> Тргни
                     </button>
                   </div>
@@ -329,25 +329,25 @@ export default function ProductionNew() {
           </div>
 
           {/* Add new product type */}
-          <div className="pt-4 border-t border-[var(--border)]">
-            <p className="text-[11px] font-semibold text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+          <div className="pt-4 border-t border-(--border)">
+            <p className="text-[11px] font-semibold text-(--text-primary) mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
               <Plus size={12} className="inline -mt-0.5 mr-1" />Додај нов производ
             </p>
             <form onSubmit={handleAddType} className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Код (кратенка)</label>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Код (кратенка)</label>
                   <input type="text" value={newType.code} onChange={e => setNewType({ ...newType, code: e.target.value })}
                     className="input-base w-full text-sm" placeholder="пр. ДР" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена (ден/кг)</label>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Цена (ден/кг)</label>
                   <input type="number" step="0.01" value={newType.price_per_unit} onChange={e => setNewType({ ...newType, price_per_unit: e.target.value })}
                     className="input-base w-full text-sm" placeholder="0.00" />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Целосно име</label>
+                <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Целосно име</label>
                 <input type="text" value={newType.name} onChange={e => setNewType({ ...newType, name: e.target.value })}
                   className="input-base w-full text-sm" placeholder="пр. Димена риба" />
               </div>
@@ -371,13 +371,13 @@ export default function ProductionNew() {
               <div key={s.n} className="flex items-center flex-1">
                 <button onClick={() => { if (s.n < step || editingId) setStep(s.n); }} disabled={!editingId && s.n > step} className="flex items-center gap-1.5 w-full">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 transition-all ${
-                    s.n < step || (editingId && s.n !== step) ? 'bg-[var(--primary)] text-white'
-                    : s.n === step ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]'
-                    : 'bg-[var(--surface-elevated)] text-[var(--text-muted)] border border-[var(--border)]'
+                    s.n < step || (editingId && s.n !== step) ? 'bg-(--primary) text-white'
+                    : s.n === step ? 'bg-(--primary) text-white ring-2 ring-(--primary) ring-offset-2 ring-offset-(--bg)'
+                    : 'bg-(--surface-elevated) text-(--text-muted) border border-(--border)'
                   }`}>{s.n < step || (editingId && s.n !== step) ? <Check size={14} /> : s.n}</div>
-                  <span className={`text-[11px] font-medium hidden min-[400px]:inline ${s.n <= step || editingId ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
+                  <span className={`text-[11px] font-medium hidden min-[400px]:inline ${s.n <= step || editingId ? 'text-(--text-primary)' : 'text-(--text-muted)'}`}>{s.label}</span>
                 </button>
-                {idx < STEPS.length - 1 && <div className={`h-px flex-1 mx-1 ${s.n < step || editingId ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`} />}
+                {idx < STEPS.length - 1 && <div className={`h-px flex-1 mx-1 ${s.n < step || editingId ? 'bg-(--primary)' : 'bg-(--border)'}`} />}
               </div>
             ))}
           </div>
@@ -385,18 +385,18 @@ export default function ProductionNew() {
           {/* date — always visible */}
           <div className="card !py-3">
             <div className="flex items-center gap-3">
-              <Calendar size={18} className="text-[var(--primary)] flex-shrink-0" />
-              <span className="text-xs font-medium text-[var(--text-secondary)]">Датум:</span>
+              <Calendar size={18} className="text-(--primary) flex-shrink-0" />
+              <span className="text-xs font-medium text-(--text-secondary)">Датум:</span>
               <input type="date" value={form.production_date} onChange={e => setForm({ ...form, production_date: e.target.value })}
                 className="input-base text-sm flex-1" style={{ maxWidth: 180 }} />
-              <span className="text-xs text-[var(--text-muted)] hidden min-[400px]:inline">{fmtDate(form.production_date)}</span>
+              <span className="text-xs text-(--text-muted) hidden min-[400px]:inline">{fmtDate(form.production_date)}</span>
             </div>
           </div>
 
           {/* ── STEP 1: Pool ── */}
           {step === 1 && (
             <div className="animate-in">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <h3 className="text-sm font-bold text-(--text-primary) mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Од кој базен се вадат рибите?
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -405,18 +405,18 @@ export default function ProductionNew() {
                   const sel = form.source_pool === String(n);
                   return (
                     <button key={n} onClick={() => setForm({ ...form, source_pool: String(n) })}
-                      className={`card !py-4 text-left transition-all ${sel ? 'ring-2 ring-[var(--primary)] bg-[var(--primary-muted)]' : 'card-hover'}`}>
+                      className={`card !py-4 text-left transition-all ${sel ? 'ring-2 ring-(--primary) bg-(--primary-muted)' : 'card-hover'}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${sel ? 'bg-[var(--primary)] text-white' : ''}`}
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${sel ? 'bg-(--primary) text-white' : ''}`}
                           style={sel ? {} : { background: 'rgba(59,130,246,0.08)', color: 'var(--primary)' }}>{n}</div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {n}</p>
-                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                          <p className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Базен {n}</p>
+                          <p className="text-[11px] text-(--text-secondary) mt-0.5">
                             {inf.fishCount > 0 ? `${inf.fishCount} риби · ${inf.totalMass.toFixed(0)} кг` : 'Нема податоци'}
                           </p>
                         </div>
                       </div>
-                      {sel && <div className="mt-2 flex justify-end"><Check size={18} className="text-[var(--primary)]" /></div>}
+                      {sel && <div className="mt-2 flex justify-end"><Check size={18} className="text-(--primary)" /></div>}
                     </button>
                   );
                 })}
@@ -434,23 +434,23 @@ export default function ProductionNew() {
               {pi && (
                 <div className="rounded-2xl p-4 mb-4 flex gap-4" style={{ background: 'var(--primary-muted)', border: '1px solid rgba(59,130,246,0.15)' }}>
                   <div className="text-center flex-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Базен</p>
-                    <p className="text-lg font-bold text-[var(--primary)]">{form.source_pool}</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1">Базен</p>
+                    <p className="text-lg font-bold text-(--primary)">{form.source_pool}</p>
                   </div>
-                  <div className="w-px bg-[var(--border)]" />
+                  <div className="w-px bg-(--border)" />
                   <div className="text-center flex-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Риби</p>
-                    <p className="text-lg font-bold text-[var(--primary)]">{pi.fishCount}</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1">Риби</p>
+                    <p className="text-lg font-bold text-(--primary)">{pi.fishCount}</p>
                   </div>
-                  <div className="w-px bg-[var(--border)]" />
+                  <div className="w-px bg-(--border)" />
                   <div className="text-center flex-1">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Маса</p>
-                    <p className="text-lg font-bold text-[var(--primary)]">{pi.totalMass.toFixed(0)} кг</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1">Маса</p>
+                    <p className="text-lg font-bold text-(--primary)">{pi.totalMass.toFixed(0)} кг</p>
                   </div>
                 </div>
               )}
 
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <h3 className="text-sm font-bold text-(--text-primary) mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Колку риби се извадени?
               </h3>
 
@@ -461,14 +461,14 @@ export default function ProductionNew() {
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)' }}>
                       <Fish size={16} style={{ color: '#3b82f6' }} />
                     </div>
-                    <span className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wide">Број на извадени риби</span>
+                    <span className="text-xs font-semibold text-(--text-primary) uppercase tracking-wide">Број на извадени риби</span>
                   </div>
                   <input type="number" min="0" value={form.fish_count}
                     onChange={e => setForm({ ...form, fish_count: e.target.value })}
                     className="input-base text-2xl font-bold text-center py-4 tracking-wide" placeholder="0" autoFocus
                     style={{ letterSpacing: '0.05em' }} />
                   {pi && pi.fishCount > 0 && form.fish_count && (
-                    <p className="text-[11px] text-[var(--text-muted)] mt-2 text-center">
+                    <p className="text-[11px] text-(--text-muted) mt-2 text-center">
                       Остануваат <strong>{pi.fishCount - parseInt(form.fish_count || 0)}</strong> во базенот
                     </p>
                   )}
@@ -480,14 +480,14 @@ export default function ProductionNew() {
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.1)' }}>
                       <Package size={16} style={{ color: '#8b5cf6' }} />
                     </div>
-                    <span className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wide">Вкупна жива тежина (кг)</span>
+                    <span className="text-xs font-semibold text-(--text-primary) uppercase tracking-wide">Вкупна жива тежина (кг)</span>
                   </div>
                   <input type="number" step="0.01" min="0" value={form.total_weight_kg}
                     onChange={e => setForm({ ...form, total_weight_kg: e.target.value })}
                     className="input-base text-2xl font-bold text-center py-4 tracking-wide" placeholder="0.00"
                     style={{ letterSpacing: '0.05em' }} />
                   {form.fish_count > 0 && form.total_weight_kg > 0 && (
-                    <p className="text-[11px] text-[var(--text-muted)] mt-2 text-center">
+                    <p className="text-[11px] text-(--text-muted) mt-2 text-center">
                       Просек: <strong>{(parseFloat(form.total_weight_kg) / parseInt(form.fish_count)).toFixed(2)}</strong> кг/риба
                     </p>
                   )}
@@ -504,10 +504,10 @@ export default function ProductionNew() {
           {/* ── STEP 3: Products ── */}
           {step === 3 && (
             <div className="animate-in">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <h3 className="text-sm font-bold text-(--text-primary) mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Производи од обработката
               </h3>
-              <p className="text-xs text-[var(--text-secondary)] mb-4">Внесете кг за секој тип</p>
+              <p className="text-xs text-(--text-secondary) mb-4">Внесете кг за секој тип</p>
 
               <div className="space-y-3">
                 {items.map((item, idx) => {
@@ -524,15 +524,15 @@ export default function ProductionNew() {
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold flex-shrink-0"
                           style={{ background: c.light, color: c.bg }}>{pt.code}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[var(--text-primary)]">{pt.name}</p>
-                          {val > 0 && <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{pct.toFixed(0)}% од вкупно</p>}
+                          <p className="text-sm font-medium text-(--text-primary)">{pt.name}</p>
+                          {val > 0 && <p className="text-[10px] text-(--text-muted) mt-0.5">{pct.toFixed(0)}% од вкупно</p>}
                         </div>
                         <div className="w-24 flex-shrink-0">
                           <input type="number" step="0.01" min="0" value={item.quantity_kg}
                             onChange={e => { const u = [...items]; u[idx] = { ...u[idx], quantity_kg: e.target.value }; setItems(u); }}
                             className="input-base text-base font-semibold text-right py-2" placeholder="0" />
                         </div>
-                        <span className="text-xs text-[var(--text-muted)] flex-shrink-0">кг</span>
+                        <span className="text-xs text-(--text-muted) flex-shrink-0">кг</span>
                       </div>
                     </div>
                   );
@@ -542,12 +542,12 @@ export default function ProductionNew() {
               {totalProcessed > 0 && (
                 <div className="rounded-2xl p-4 mt-4 flex items-center justify-between" style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border)' }}>
                   <div>
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Вкупно обработено</p>
-                    <p className="text-lg font-bold text-[var(--text-primary)]">{totalProcessed.toFixed(2)} кг</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide">Вкупно обработено</p>
+                    <p className="text-lg font-bold text-(--text-primary)">{totalProcessed.toFixed(2)} кг</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Рандман</p>
-                    <p className={`text-lg font-bold ${totalProcessed > rawWeight ? 'text-[var(--danger)]' : 'text-[var(--primary)]'}`}>{yieldPct}%</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide">Рандман</p>
+                    <p className={`text-lg font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--primary)'}`}>{yieldPct}%</p>
                   </div>
                 </div>
               )}
@@ -562,15 +562,15 @@ export default function ProductionNew() {
           {/* ── STEP 4: Review ── */}
           {step === 4 && (
             <div className="animate-in">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <h3 className="text-sm font-bold text-(--text-primary) mb-4" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Преглед пред зачувување
               </h3>
 
               <div className="card !py-5 mb-4" style={{ background: 'var(--surface-elevated)' }}>
                 {/* header */}
-                <div className="text-center mb-4 pb-4 border-b border-[var(--border)]">
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1">Производствена серија</p>
-                  <p className="text-base font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                <div className="text-center mb-4 pb-4 border-b border-(--border)">
+                  <p className="text-[10px] text-(--text-muted) uppercase tracking-wider mb-1">Производствена серија</p>
+                  <p className="text-base font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                     Базен {form.source_pool} · {fmtDate(form.production_date)}
                   </p>
                 </div>
@@ -578,21 +578,21 @@ export default function ProductionNew() {
                 {/* stats row */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Риби</p>
-                    <p className="text-xl font-bold text-[var(--text-primary)]">{form.fish_count}</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase">Риби</p>
+                    <p className="text-xl font-bold text-(--text-primary)">{form.fish_count}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Жива тежина</p>
-                    <p className="text-xl font-bold text-[var(--text-primary)]">{parseFloat(form.total_weight_kg).toFixed(1)}<span className="text-sm"> кг</span></p>
+                    <p className="text-[10px] text-(--text-muted) uppercase">Жива тежина</p>
+                    <p className="text-xl font-bold text-(--text-primary)">{parseFloat(form.total_weight_kg).toFixed(1)}<span className="text-sm"> кг</span></p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Рандман</p>
-                    <p className={`text-xl font-bold ${totalProcessed > rawWeight ? 'text-[var(--danger)]' : 'text-[var(--primary)]'}`}>{yieldPct}%</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase">Рандман</p>
+                    <p className={`text-xl font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--primary)'}`}>{yieldPct}%</p>
                   </div>
                 </div>
 
                 {/* products */}
-                <div className="border-t border-[var(--border)] pt-3 space-y-2">
+                <div className="border-t border-(--border) pt-3 space-y-2">
                   {items.filter(i => parseFloat(i.quantity_kg) > 0).map((item, idx) => {
                     const pt = productTypes.find(t => t.id === item.product_type_id);
                     const ci = productTypes.indexOf(pt);
@@ -600,21 +600,21 @@ export default function ProductionNew() {
                     return (
                       <div key={item.product_type_id} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.bg }} />
-                        <span className="text-sm text-[var(--text-secondary)] flex-1">{pt?.code} — {pt?.name}</span>
-                        <span className="text-sm font-bold text-[var(--text-primary)]">{parseFloat(item.quantity_kg).toFixed(2)} кг</span>
+                        <span className="text-sm text-(--text-secondary) flex-1">{pt?.code} — {pt?.name}</span>
+                        <span className="text-sm font-bold text-(--text-primary)">{parseFloat(item.quantity_kg).toFixed(2)} кг</span>
                       </div>
                     );
                   })}
-                  <div className="flex items-center gap-2 pt-2 border-t border-dashed border-[var(--border)]">
-                    <span className="text-sm font-bold text-[var(--text-primary)] flex-1">Вкупно обработено</span>
-                    <span className="text-sm font-bold text-[var(--primary)]">{totalProcessed.toFixed(2)} кг</span>
+                  <div className="flex items-center gap-2 pt-2 border-t border-dashed border-(--border)">
+                    <span className="text-sm font-bold text-(--text-primary) flex-1">Вкупно обработено</span>
+                    <span className="text-sm font-bold text-(--primary)">{totalProcessed.toFixed(2)} кг</span>
                   </div>
                 </div>
               </div>
 
               {/* notes */}
               <div className="card !py-3 mb-4">
-                <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Забелешки (опционално)</label>
+                <label className="block text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-2">Забелешки (опционално)</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
                   className="input-base text-sm" rows="2" placeholder="Дополнителни информации..." />
               </div>
@@ -640,10 +640,10 @@ export default function ProductionNew() {
           {batches.length === 0 ? (
             <div className="card text-center py-14 animate-in">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--primary-muted)' }}>
-                <Factory size={28} className="text-[var(--primary)]" />
+                <Factory size={28} className="text-(--primary)" />
               </div>
-              <p className="text-sm font-medium text-[var(--text-secondary)]">Нема зачувани серии</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1 mb-4">Кликнете „Нова серија" за да започнете</p>
+              <p className="text-sm font-medium text-(--text-secondary)">Нема зачувани серии</p>
+              <p className="text-xs text-(--text-muted) mt-1 mb-4">Кликнете „Нова серија" за да започнете</p>
               <button onClick={startNew} className="btn-primary text-sm mx-auto flex items-center gap-1.5"><Plus size={16} /> Нова серија</button>
             </div>
           ) : (
@@ -652,27 +652,27 @@ export default function ProductionNew() {
               {/* stats bar */}
               <div className="rounded-2xl p-3 flex gap-4" style={{ background: 'var(--primary-muted)', border: '1px solid rgba(59,130,246,0.12)' }}>
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase">Серии</p>
-                  <p className="text-lg font-bold text-[var(--primary)]">{totalBatches}</p>
+                  <p className="text-[10px] text-(--text-muted) uppercase">Серии</p>
+                  <p className="text-lg font-bold text-(--primary)">{totalBatches}</p>
                 </div>
-                <div className="w-px bg-[var(--border)]" />
+                <div className="w-px bg-(--border)" />
                 <div className="text-center flex-1">
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase">Вкупно обработено</p>
-                  <p className="text-lg font-bold text-[var(--primary)]">{totalKgAll.toFixed(0)} кг</p>
+                  <p className="text-[10px] text-(--text-muted) uppercase">Вкупно обработено</p>
+                  <p className="text-lg font-bold text-(--primary)">{totalKgAll.toFixed(0)} кг</p>
                 </div>
               </div>
 
               {/* search + filter toggle */}
               <div className="flex gap-2">
                 <div className="flex-1 min-w-0 relative">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted) pointer-events-none" />
                   <input type="text" value={searchQ} onChange={e => setSearchQ(e.target.value)}
                     className="input-base text-sm w-full" style={{ paddingLeft: '2.25rem' }} placeholder="Пребарај LOT..." />
                 </div>
                 <button onClick={() => setShowFilters(!showFilters)}
-                  className={`btn-ghost px-3 flex items-center gap-1.5 text-sm ${hasActiveFilters ? 'text-[var(--primary)] bg-[var(--primary-muted)]' : ''}`}>
+                  className={`btn-ghost px-3 flex items-center gap-1.5 text-sm ${hasActiveFilters ? 'text-(--primary) bg-(--primary-muted)' : ''}`}>
                   <Filter size={15} /> Филтер
-                  {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-[var(--primary)]" />}
+                  {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-(--primary)" />}
                 </button>
               </div>
 
@@ -681,26 +681,26 @@ export default function ProductionNew() {
                 <div className="card !py-3 space-y-3 animate-in">
                   {/* pool chips */}
                   <div>
-                    <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Базен</p>
+                    <p className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-2">Базен</p>
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => setFilterPool('')}
-                        className={`text-xs px-3 py-1 rounded-full transition-all ${!filterPool ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>Сите</button>
+                        className={`text-xs px-3 py-1 rounded-full transition-all ${!filterPool ? 'bg-(--primary) text-white' : 'bg-(--surface-elevated) text-(--text-secondary) border border-(--border)'}`}>Сите</button>
                       {[1,2,3,4,5,6,7,8].map(n => (
                         <button key={n} onClick={() => setFilterPool(filterPool === String(n) ? '' : String(n))}
-                          className={`text-xs px-3 py-1 rounded-full transition-all ${filterPool === String(n) ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>{n}</button>
+                          className={`text-xs px-3 py-1 rounded-full transition-all ${filterPool === String(n) ? 'bg-(--primary) text-white' : 'bg-(--surface-elevated) text-(--text-secondary) border border-(--border)'}`}>{n}</button>
                       ))}
                     </div>
                   </div>
 
                   {/* product filter */}
                   <div>
-                    <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Производ</p>
+                    <p className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-2">Производ</p>
                     <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => setFilterProduct('')}
-                        className={`text-xs px-3 py-1 rounded-full transition-all ${!filterProduct ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>Сите</button>
+                        className={`text-xs px-3 py-1 rounded-full transition-all ${!filterProduct ? 'bg-(--primary) text-white' : 'bg-(--surface-elevated) text-(--text-secondary) border border-(--border)'}`}>Сите</button>
                       {productTypes.map((pt, idx) => (
                         <button key={pt.id} onClick={() => setFilterProduct(filterProduct === String(pt.id) ? '' : String(pt.id))}
-                          className={`text-xs px-3 py-1 rounded-full transition-all ${filterProduct === String(pt.id) ? 'text-white' : 'text-[var(--text-secondary)] border border-[var(--border)]'}`}
+                          className={`text-xs px-3 py-1 rounded-full transition-all ${filterProduct === String(pt.id) ? 'text-white' : 'text-(--text-secondary) border border-(--border)'}`}
                           style={filterProduct === String(pt.id) ? { background: ptColor(idx).bg } : { background: 'var(--surface-elevated)' }}>{pt.code}</button>
                       ))}
                     </div>
@@ -708,41 +708,41 @@ export default function ProductionNew() {
 
                   {/* date range */}
                   <div>
-                    <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Период</p>
+                    <p className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-2">Период</p>
                     <div className="flex gap-2 items-center">
                       <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="input-base text-xs flex-1 py-1.5" />
-                      <span className="text-xs text-[var(--text-muted)]">—</span>
+                      <span className="text-xs text-(--text-muted)">—</span>
                       <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="input-base text-xs flex-1 py-1.5" />
                     </div>
                   </div>
 
                   {hasActiveFilters && (
                     <button onClick={() => { setSearchQ(''); setFilterPool(''); setFilterProduct(''); setFilterFrom(''); setFilterTo(''); }}
-                      className="btn-ghost text-xs text-[var(--danger)] flex items-center gap-1"><X size={13} /> Исчисти филтри</button>
+                      className="btn-ghost text-xs text-(--danger) flex items-center gap-1"><X size={13} /> Исчисти филтри</button>
                   )}
                 </div>
               )}
 
               {/* results count */}
               {hasActiveFilters && (
-                <p className="text-xs text-[var(--text-muted)]">{filtered.length} од {batches.length} серии</p>
+                <p className="text-xs text-(--text-muted)">{filtered.length} од {batches.length} серии</p>
               )}
 
               {/* grouped list */}
               {filtered.length === 0 ? (
                 <div className="card text-center py-8">
-                  <Search size={24} className="mx-auto mb-2 text-[var(--text-muted)]" />
-                  <p className="text-sm text-[var(--text-secondary)]">Нема резултати</p>
+                  <Search size={24} className="mx-auto mb-2 text-(--text-muted)" />
+                  <p className="text-sm text-(--text-secondary)">Нема резултати</p>
                 </div>
               ) : (
                 GROUP_ORDER.filter(g => grouped[g]?.length > 0).map(group => (
                   <div key={group}>
                     {/* group header */}
                     <div className="flex items-center gap-3 my-3">
-                      <div className="h-px flex-1 bg-[var(--border)]" />
-                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>{group}</span>
-                      <span className="text-[10px] text-[var(--text-muted)]">{grouped[group].length}</span>
-                      <div className="h-px flex-1 bg-[var(--border)]" />
+                      <div className="h-px flex-1 bg-(--border)" />
+                      <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>{group}</span>
+                      <span className="text-[10px] text-(--text-muted)">{grouped[group].length}</span>
+                      <div className="h-px flex-1 bg-(--border)" />
                     </div>
 
                     <div className="space-y-2">
@@ -761,10 +761,10 @@ export default function ProductionNew() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-baseline gap-2">
-                                  <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{batch.lot_number}</h3>
-                                  <span className="text-[10px] text-[var(--text-muted)]">{fmtDateShort(bDate)}</span>
+                                  <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>{batch.lot_number}</h3>
+                                  <span className="text-[10px] text-(--text-muted)">{fmtDateShort(bDate)}</span>
                                 </div>
-                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                                <p className="text-xs text-(--text-secondary) mt-0.5">
                                   Базен {batch.source_pool} · {batch.fish_count} риби · {parseFloat(batch.total_weight_kg || 0).toFixed(0)} кг
                                 </p>
                                 {bi.length > 0 && (
@@ -783,30 +783,30 @@ export default function ProductionNew() {
                                 )}
                               </div>
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                <span className="text-sm font-bold text-[var(--primary)]">{tkg.toFixed(1)} кг</span>
-                                {isExp ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
+                                <span className="text-sm font-bold text-(--primary)">{tkg.toFixed(1)} кг</span>
+                                {isExp ? <ChevronUp size={14} className="text-(--text-muted)" /> : <ChevronDown size={14} className="text-(--text-muted)" />}
                               </div>
                             </div>
 
                             {isExp && (
-                              <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                              <div className="mt-3 pt-3 border-t border-(--border)">
                                 <div className="grid grid-cols-3 gap-2 mb-3">
                                   <div className="text-center">
-                                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Жива тежина</p>
-                                    <p className="text-sm font-bold text-[var(--text-primary)]">{parseFloat(batch.total_weight_kg || 0).toFixed(1)} кг</p>
+                                    <p className="text-[10px] text-(--text-muted) uppercase">Жива тежина</p>
+                                    <p className="text-sm font-bold text-(--text-primary)">{parseFloat(batch.total_weight_kg || 0).toFixed(1)} кг</p>
                                   </div>
                                   <div className="text-center">
-                                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Обработено</p>
-                                    <p className="text-sm font-bold text-[var(--primary)]">{tkg.toFixed(1)} кг</p>
+                                    <p className="text-[10px] text-(--text-muted) uppercase">Обработено</p>
+                                    <p className="text-sm font-bold text-(--primary)">{tkg.toFixed(1)} кг</p>
                                   </div>
                                   <div className="text-center">
-                                    <p className="text-[10px] text-[var(--text-muted)] uppercase">Рандман</p>
+                                    <p className="text-[10px] text-(--text-muted) uppercase">Рандман</p>
                                     <p className="text-sm font-bold">{parseFloat(batch.total_weight_kg) > 0 ? ((tkg / parseFloat(batch.total_weight_kg)) * 100).toFixed(1) : 0}%</p>
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
                                   <button onClick={() => startEdit(batch)} className="btn-ghost text-xs flex items-center gap-1"><Pencil size={13} /> Измени</button>
-                                  <button onClick={() => handleDelete(batch.id)} className="btn-ghost text-xs text-[var(--danger)] ml-auto flex items-center gap-1"><Trash2 size={13} /> Избриши</button>
+                                  <button onClick={() => handleDelete(batch.id)} className="btn-ghost text-xs text-(--danger) ml-auto flex items-center gap-1"><Trash2 size={13} /> Избриши</button>
                                 </div>
                               </div>
                             )}

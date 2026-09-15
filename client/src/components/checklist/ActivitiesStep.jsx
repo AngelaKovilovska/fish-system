@@ -20,9 +20,9 @@ export default function ActivitiesStep({ data, onChange }) {
 
       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+          <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
             style={{ fontFamily: 'Sora, sans-serif' }}>
-            <Calendar size={12} className="text-[var(--primary)]" />
+            <Calendar size={12} className="text-(--primary)" />
             Сортирање
           </label>
           <input type="date" value={data.sorting_date || ''}
@@ -30,9 +30,9 @@ export default function ActivitiesStep({ data, onChange }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+          <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
             style={{ fontFamily: 'Sora, sans-serif' }}>
-            <Calendar size={12} className="text-[var(--primary)]" />
+            <Calendar size={12} className="text-(--primary)" />
             Контрола тежина
           </label>
           <input type="date" value={data.weight_control_date || ''}
@@ -41,9 +41,9 @@ export default function ActivitiesStep({ data, onChange }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+        <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
           style={{ fontFamily: 'Sora, sans-serif' }}>
-          <FileText size={12} className="text-[var(--primary)]" />
+          <FileText size={12} className="text-(--primary)" />
           Разно (1)
         </label>
         <textarea value={data.misc_1 || ''} onChange={(e) => handleChange('misc_1', e.target.value)}
@@ -51,9 +51,9 @@ export default function ActivitiesStep({ data, onChange }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+        <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
           style={{ fontFamily: 'Sora, sans-serif' }}>
-          <FileText size={12} className="text-[var(--primary)]" />
+          <FileText size={12} className="text-(--primary)" />
           Разно (2)
         </label>
         <textarea value={data.misc_2 || ''} onChange={(e) => handleChange('misc_2', e.target.value)}

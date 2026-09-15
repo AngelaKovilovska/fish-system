@@ -41,7 +41,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-[var(--text-muted)]">Се вчитува...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-(--text-muted)">Се вчитува...</div>;
   }
 
   if (!user) return <Navigate to="/login" />;
@@ -54,7 +54,7 @@ function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-[var(--text-muted)]">Се вчитува...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-(--text-muted)">Се вчитува...</div>;
   }
 
   return (

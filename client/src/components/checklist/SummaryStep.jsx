@@ -57,23 +57,23 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
   // Section header component
   const SectionHeader = ({ icon: Icon, title, badge, badgeColor, stepIndex }) => (
     <button type="button" onClick={() => onGoToStep(stepIndex)}
-      className="w-full flex items-center justify-between py-2.5 px-3 rounded-[var(--r-md)] hover:bg-[var(--surface)] transition-colors group">
+      className="w-full flex items-center justify-between py-2.5 px-3 rounded-(--r-md) hover:bg-(--surface) transition-colors group">
       <div className="flex items-center gap-2">
-        <Icon size={15} className="text-[var(--primary)]" />
-        <span className="text-[13px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+        <Icon size={15} className="text-(--primary)" />
+        <span className="text-[13px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
           {title}
         </span>
         {badge !== undefined && (
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-            badgeColor === 'red' ? 'bg-[rgba(239,68,68,0.1)] text-[var(--danger)]' :
-            badgeColor === 'green' ? 'bg-[rgba(34,197,94,0.1)] text-[var(--success)]' :
-            'bg-[rgba(37,99,235,0.1)] text-[var(--primary)]'
+            badgeColor === 'red' ? 'bg-[rgba(239,68,68,0.1)] text-(--danger)' :
+            badgeColor === 'green' ? 'bg-[rgba(34,197,94,0.1)] text-(--success)' :
+            'bg-[rgba(37,99,235,0.1)] text-(--primary)'
           }`}>
             {badge}
           </span>
         )}
       </div>
-      <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--primary)] transition-colors" />
+      <ChevronRight size={14} className="text-(--text-muted) group-hover:text-(--primary) transition-colors" />
     </button>
   );
 
@@ -91,7 +91,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
       </div>
 
       {/* ── 1. Water ── */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--border)] overflow-hidden">
+      <div className="rounded-(--r-lg) border border-(--border) overflow-hidden">
         <SectionHeader
           icon={Droplets} title="Контрола на вода" stepIndex={0}
           badge={waterOutOfRange > 0 ? `${waterOutOfRange} надвор од норма` : 'Сè во норма'}
@@ -101,8 +101,8 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             {waterEntries.map(e => (
               <div key={e.key} className="flex items-center justify-between text-xs">
-                <span className="text-[var(--text-secondary)] truncate">{e.label}</span>
-                <span className={`font-semibold tabular-nums ${e.outOfRange ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                <span className="text-(--text-secondary) truncate">{e.label}</span>
+                <span className={`font-semibold tabular-nums ${e.outOfRange ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
                   {e.value}{e.unit ? ` ${e.unit}` : ''}
                   {e.outOfRange && <AlertTriangle size={10} className="inline ml-1 mb-0.5" />}
                 </span>
@@ -110,7 +110,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
             ))}
           </div>
           {waterExchange && (
-            <div className="mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--text-secondary)]">
+            <div className="mt-2 pt-2 border-t border-(--border) text-xs text-(--text-secondary)">
               Замена на вода: <strong>{waterExchange} m³</strong>
             </div>
           )}
@@ -118,7 +118,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
       </div>
 
       {/* ── 2. Filtration ── */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--border)] overflow-hidden">
+      <div className="rounded-(--r-lg) border border-(--border) overflow-hidden">
         <SectionHeader
           icon={Filter} title="Филтрација" stepIndex={1}
           badge={filtrationIssues > 0 ? `${filtrationIssues} проблем(и)` : 'Сè ОК'}
@@ -127,16 +127,16 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
         <div className="px-3 pb-3 space-y-1">
           {filtrationEntries.map(e => (
             <div key={e.key} className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)] truncate pr-2" style={{ maxWidth: '75%' }}>
+              <span className="text-(--text-secondary) truncate pr-2" style={{ maxWidth: '75%' }}>
                 {e.label}
               </span>
               {e.isFoam ? (
-                <span className={`font-semibold ${e.isBad ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>
+                <span className={`font-semibold ${e.isBad ? 'text-(--danger)' : 'text-(--success)'}`}>
                   {e.isBad ? 'ИМА ПЕНА' : e.isOk ? 'Нема' : '—'}
                 </span>
               ) : (
                 <span className={`font-semibold flex items-center gap-1 ${
-                  e.isOk ? 'text-[var(--success)]' : e.isBad ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'
+                  e.isOk ? 'text-(--success)' : e.isBad ? 'text-(--danger)' : 'text-(--text-muted)'
                 }`}>
                   {e.isOk ? <><CheckCircle size={11} /> ОК</> :
                    e.isBad ? <><XCircle size={11} /> Не е ОК</> : '—'}
@@ -145,7 +145,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
             </div>
           ))}
           {filtration_checks.notes && (
-            <div className="mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--text-secondary)]">
+            <div className="mt-2 pt-2 border-t border-(--border) text-xs text-(--text-secondary)">
               Забелешка: <em>{filtration_checks.notes}</em>
             </div>
           )}
@@ -153,7 +153,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
       </div>
 
       {/* ── 3. Fish visual ── */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--border)] overflow-hidden">
+      <div className="rounded-(--r-lg) border border-(--border) overflow-hidden">
         <SectionHeader
           icon={Eye} title="Визуелна контрола" stepIndex={2}
           badge={fishIssues > 0 ? `${fishIssues} проблем(и)` : 'Сè ОК'}
@@ -162,9 +162,9 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
         <div className="px-3 pb-3 space-y-1">
           {fishEntries.map(e => (
             <div key={e.key} className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)]">{e.label}</span>
+              <span className="text-(--text-secondary)">{e.label}</span>
               <span className={`font-semibold flex items-center gap-1 ${
-                e.isOk ? 'text-[var(--success)]' : e.isBad ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'
+                e.isOk ? 'text-(--success)' : e.isBad ? 'text-(--danger)' : 'text-(--text-muted)'
               }`}>
                 {e.isOk ? <><CheckCircle size={11} /> ОК</> :
                  e.isBad ? <><XCircle size={11} /> Не е ОК</> : '—'}
@@ -172,7 +172,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
             </div>
           ))}
           {fish_visual.notes && (
-            <div className="mt-2 pt-2 border-t border-[var(--border)] text-xs text-[var(--text-secondary)]">
+            <div className="mt-2 pt-2 border-t border-(--border) text-xs text-(--text-secondary)">
               Забелешка: <em>{fish_visual.notes}</em>
             </div>
           )}
@@ -180,7 +180,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
       </div>
 
       {/* ── 4. Pools ── */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--border)] overflow-hidden">
+      <div className="rounded-(--r-lg) border border-(--border) overflow-hidden">
         <SectionHeader
           icon={Fish} title="Базени" stepIndex={3}
           badge={totalDead > 0 ? `${totalDead} угинати` : totalSold > 0 ? `${totalSold} продадени` : `${poolEntries.length} активни`}
@@ -190,21 +190,21 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
           <div className="space-y-1.5">
             {poolEntries.map(p => (
               <div key={p.num} className="flex items-center justify-between text-xs">
-                <span className="text-[var(--text-secondary)] font-medium">
-                  Б{p.num} <span className="text-[var(--text-muted)]">({p.fishCount} риби)</span>
+                <span className="text-(--text-secondary) font-medium">
+                  Б{p.num} <span className="text-(--text-muted)">({p.fishCount} риби)</span>
                 </span>
                 <div className="flex items-center gap-3">
                   {p.weight && (
-                    <span className="text-[var(--text-primary)] tabular-nums">{p.weight}g</span>
+                    <span className="text-(--text-primary) tabular-nums">{p.weight}g</span>
                   )}
                   {p.sold > 0 && (
                     <span className="text-amber-600 tabular-nums">-{p.sold} прод.</span>
                   )}
                   {p.dead > 0 && (
-                    <span className="text-[var(--danger)] tabular-nums">-{p.dead} угин.</span>
+                    <span className="text-(--danger) tabular-nums">-{p.dead} угин.</span>
                   )}
                   {!p.hasChanges && (
-                    <span className="text-[var(--text-muted)]">без промени</span>
+                    <span className="text-(--text-muted)">без промени</span>
                   )}
                 </div>
               </div>
@@ -215,7 +215,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
 
       {/* Overall status */}
       {(waterOutOfRange > 0 || filtrationIssues > 0 || fishIssues > 0 || totalDead > 0) && (
-        <div className="rounded-[var(--r-lg)] p-3 text-xs font-medium flex items-start gap-2"
+        <div className="rounded-(--r-lg) p-3 text-xs font-medium flex items-start gap-2"
           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
           <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="text-amber-700">

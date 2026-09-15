@@ -214,7 +214,7 @@ export default function ManageFoodInventory() {
           </button>
           <h1 className="page-title mb-1">Залихи на храна</h1>
         </div>
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+        <p className="text-xs text-(--text-muted) leading-relaxed">
           Следете ги залихите. При секоја чек-листа потрошената храна автоматски се одзема.
         </p>
       </div>
@@ -222,7 +222,7 @@ export default function ManageFoodInventory() {
       {/* Current stock table with breakdown */}
       <div className="card mb-4 animate-in">
         <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-          <Package size={15} className="text-[var(--primary)]" />
+          <Package size={15} className="text-(--primary)" />
           Тековни залихи
         </h3>
         <div className="hidden lg:block">
@@ -247,21 +247,21 @@ export default function ManageFoodInventory() {
                 return (
                   <tr key={item.id}>
                     <td className="font-medium">{item.food_type}</td>
-                    <td className="text-right text-[var(--success)]">{purchased.toFixed(2)}</td>
-                    <td className="text-right text-[var(--danger)]">{consumed.toFixed(2)}</td>
+                    <td className="text-right text-(--success)">{purchased.toFixed(2)}</td>
+                    <td className="text-right text-(--danger)">{consumed.toFixed(2)}</td>
                     <td className="text-right">
-                      <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                      <span className={`font-bold ${stockKg <= 5 ? 'text-(--danger)' : stockKg <= 15 ? 'text-(--warning)' : 'text-(--text-primary)'}`}>
                         {stockKg.toFixed(2)} kg
                       </span>
                     </td>
                     <td className="text-right">
                       {daysLeft != null && daysLeft >= 0 ? (
-                        <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                        <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-(--danger)' : daysLeft <= 21 ? 'text-(--warning)' : 'text-(--success)'}`}>
                           <Timer size={12} />
                           {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-[var(--text-muted)] italic">Не се троши</span>
+                        <span className="text-[10px] text-(--text-muted) italic">Не се троши</span>
                       )}
                     </td>
                   </tr>
@@ -280,22 +280,22 @@ export default function ManageFoodInventory() {
             const daysLeft = p?.daysLeft;
             const endDate = p?.depletionDate;
             return (
-              <div key={item.id} className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)]">
+              <div key={item.id} className="p-2.5 rounded-(--r-sm) bg-(--bg)">
                 <div className="flex justify-between items-center text-xs mb-1">
-                  <span className="font-medium text-[var(--text-secondary)]">{item.food_type}</span>
-                  <span className={`font-bold ${stockKg <= 5 ? 'text-[var(--danger)]' : stockKg <= 15 ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'}`}>
+                  <span className="font-medium text-(--text-secondary)">{item.food_type}</span>
+                  <span className={`font-bold ${stockKg <= 5 ? 'text-(--danger)' : stockKg <= 15 ? 'text-(--warning)' : 'text-(--text-primary)'}`}>
                     {stockKg.toFixed(2)} kg
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)]">
+                <div className="flex justify-between items-center text-[10px] text-(--text-muted)">
                   <span>
-                    <span className="text-[var(--success)]">+{purchased.toFixed(1)}</span>
+                    <span className="text-(--success)">+{purchased.toFixed(1)}</span>
                     {' / '}
-                    <span className="text-[var(--danger)]">-{consumed.toFixed(1)}</span>
+                    <span className="text-(--danger)">-{consumed.toFixed(1)}</span>
                     {' kg'}
                   </span>
                   {daysLeft != null && daysLeft >= 0 ? (
-                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-[var(--danger)]' : daysLeft <= 21 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}>
+                    <span className={`inline-flex items-center gap-1 font-bold ${daysLeft <= 7 ? 'text-(--danger)' : daysLeft <= 21 ? 'text-(--warning)' : 'text-(--success)'}`}>
                       <Timer size={10} />
                       {daysLeft <= 0 ? 'Завршена!' : endDate ? `до ${formatDateShortMK(endDate)}` : `${daysLeft}+ дена`}
                     </span>
@@ -333,19 +333,19 @@ export default function ManageFoodInventory() {
                   : '1px solid rgba(34,197,94,0.2)',
             }}>
             <div className="flex items-center gap-2 mb-2">
-              <TrendingDown size={15} className="text-[var(--primary)]" />
+              <TrendingDown size={15} className="text-(--primary)" />
               <h3 className="section-title text-sm !mb-0">Проекција на залихи</h3>
             </div>
-            <p className="text-xs text-[var(--text-secondary)] mb-3">
+            <p className="text-xs text-(--text-secondary) mb-3">
               Врз база на реална потрошувачка од оброците (последни {soonest.periodDays} дена)
             </p>
 
             {critical.length > 0 && (
-              <div className="flex items-start gap-2 text-xs p-2 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 mb-2">
-                <AlertTriangle size={14} className="text-[var(--danger)] flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-xs p-2 rounded-(--r-sm) bg-red-50 dark:bg-red-950/20 mb-2">
+                <AlertTriangle size={14} className="text-(--danger) flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[var(--danger)]">{critical.some(s => s.status === 'depleted') ? 'Завршена залиха!' : 'Критично!'}</strong>
-                  <span className="text-[var(--text-secondary)]"> {critical.map(s =>
+                  <strong className="text-(--danger)">{critical.some(s => s.status === 'depleted') ? 'Завршена залиха!' : 'Критично!'}</strong>
+                  <span className="text-(--text-secondary)"> {critical.map(s =>
                     `${s.food_type} (${s.daysLeft <= 0 ? 'завршена' : s.depletionDate ? `до ${formatDateShortMK(s.depletionDate)}` : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
@@ -353,11 +353,11 @@ export default function ManageFoodInventory() {
             )}
 
             {warning.length > 0 && (
-              <div className="flex items-start gap-2 text-xs p-2 rounded-[var(--r-sm)] bg-amber-50 dark:bg-amber-950/20 mb-2">
-                <Timer size={14} className="text-[var(--warning)] flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-xs p-2 rounded-(--r-sm) bg-amber-50 dark:bg-amber-950/20 mb-2">
+                <Timer size={14} className="text-(--warning) flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[var(--warning)]">Набавете наскоро:</strong>
-                  <span className="text-[var(--text-secondary)]"> {warning.map(s =>
+                  <strong className="text-(--warning)">Набавете наскоро:</strong>
+                  <span className="text-(--text-secondary)"> {warning.map(s =>
                     `${s.food_type} (до ${s.depletionDate ? formatDateShortMK(s.depletionDate) : `${s.daysLeft} дена`})`
                   ).join(', ')}</span>
                 </div>
@@ -372,9 +372,9 @@ export default function ManageFoodInventory() {
                   ? 'var(--danger)'
                   : p.status === 'warning' ? 'var(--warning)' : 'var(--success)';
                 return (
-                  <div key={p.food_type} className="p-2 rounded-[var(--r-sm)] bg-[var(--bg)]">
+                  <div key={p.food_type} className="p-2 rounded-(--r-sm) bg-(--bg)">
                     <div className="flex justify-between items-center text-xs mb-1">
-                      <span className="font-medium text-[var(--text-secondary)]">{p.food_type}</span>
+                      <span className="font-medium text-(--text-secondary)">{p.food_type}</span>
                       <span className="font-bold" style={{ color: barColor }}>
                         {p.daysLeft <= 0
                           ? 'Завршена!'
@@ -384,11 +384,11 @@ export default function ManageFoodInventory() {
                         }
                       </span>
                     </div>
-                    <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-(--border) rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${pct}%`, background: barColor }} />
                     </div>
-                    <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
+                    <div className="flex justify-between text-[9px] text-(--text-muted) mt-0.5">
                       <span>{p.currentStockKg} kg залиха</span>
                       <span>{p.avgDailyConsumptionKg} kg/ден</span>
                     </div>
@@ -397,8 +397,8 @@ export default function ManageFoodInventory() {
               })}
             </div>
 
-            <div className="text-xs text-[var(--text-muted)] mt-3 pt-2 border-t border-[var(--border)]">
-              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-[var(--danger)]' : soonest.daysLeft <= 14 ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+            <div className="text-xs text-(--text-muted) mt-3 pt-2 border-t border-(--border)">
+              Следна набавка: <strong className={soonest.daysLeft <= 7 ? 'text-(--danger)' : soonest.daysLeft <= 14 ? 'text-(--warning)' : 'text-(--success)'}>
                 {soonest.daysLeft <= 0
                   ? 'ИТНО — залихата е завршена'
                   : soonest.depletionDate
@@ -415,12 +415,12 @@ export default function ManageFoodInventory() {
       <div id="purchase-form" className="card mb-4 animate-in-delay-1">
         <div className="flex items-center justify-between mb-3">
           <h3 className="section-title text-sm !mb-0 flex items-center gap-2">
-            {isEditMode ? <Pencil size={15} className="text-[var(--primary)]" /> : <Plus size={15} className="text-[var(--success)]" />}
+            {isEditMode ? <Pencil size={15} className="text-(--primary)" /> : <Plus size={15} className="text-(--success)" />}
             {isEditMode ? 'Измени набавка' : 'Додај набавка'}
           </h3>
           {isEditMode && (
             <button onClick={() => { resetForm(); setPurchaseDate(new Date().toISOString().split('T')[0]); }}
-              className="btn-ghost text-xs text-[var(--text-muted)] flex items-center gap-1">
+              className="btn-ghost text-xs text-(--text-muted) flex items-center gap-1">
               <X size={12} /> Откажи
             </button>
           )}
@@ -430,25 +430,25 @@ export default function ManageFoodInventory() {
         <div className="space-y-3 mb-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Добавувач</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Добавувач</label>
               <input type="text" value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
                 className="input-base" placeholder="нпр. Coppens" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на документ</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на документ</label>
               <input type="text" value={documentNumber}
                 onChange={(e) => setDocumentNumber(e.target.value)}
                 className="input-base" placeholder="нпр. ФА-00123" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на набавка</label>
+            <label className="block text-[10px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на набавка</label>
             <input type="date" value={purchaseDate}
               onChange={(e) => handleDateChange(e.target.value)}
               className="input-base" />
             {isEditMode && (
-              <p className="text-[10px] text-[var(--primary)] mt-1 font-medium">
+              <p className="text-[10px] text-(--primary) mt-1 font-medium">
                 Пронајдени {editingEntryIds.length} набавки за овој датум — можете да ги измените
               </p>
             )}
@@ -456,8 +456,8 @@ export default function ManageFoodInventory() {
         </div>
 
         {/* Separator */}
-        <div className="border-t border-[var(--border)] pt-3 mb-3">
-          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Ставки</label>
+        <div className="border-t border-(--border) pt-3 mb-3">
+          <label className="block text-[10px] font-semibold text-(--text-muted) mb-2 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Ставки</label>
         </div>
 
         {/* Food items — each item is a row with select + input */}
@@ -480,7 +480,7 @@ export default function ManageFoodInventory() {
               </div>
               {purchaseItems.length > 1 && (
                 <button onClick={() => removeItem(idx)}
-                  className="p-2 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex-shrink-0 mt-0.5"
+                  className="p-2 rounded hover:bg-red-50 text-(--text-muted) hover:text-(--danger) transition-colors flex-shrink-0 mt-0.5"
                   title="Тргни">
                   <X size={16} />
                 </button>
@@ -491,7 +491,7 @@ export default function ManageFoodInventory() {
 
         <div className="flex items-center justify-between">
           <button onClick={addItem}
-            className="btn-ghost text-xs flex items-center gap-1 text-[var(--primary)]">
+            className="btn-ghost text-xs flex items-center gap-1 text-(--primary)">
             <Plus size={13} /> Додај ставка
           </button>
           <button onClick={handlePurchase} disabled={saving}
@@ -509,7 +509,7 @@ export default function ManageFoodInventory() {
         </div>
 
         {message && (
-          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') || message.includes('ажурирана') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') || message.includes('ажурирана') ? 'text-(--success)' : 'text-(--danger)'}`}>
             {message}
           </p>
         )}
@@ -540,15 +540,15 @@ export default function ManageFoodInventory() {
         <div className="card animate-in-delay-2">
           <div className="flex items-center justify-between mb-3">
             <h3 className="section-title text-sm !mb-0 flex items-center gap-2">
-              <Clock size={15} className="text-[var(--text-muted)]" />
+              <Clock size={15} className="text-(--text-muted)" />
               Историја
             </h3>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowFilters(!showFilters)}
                 className={`text-[10px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
                   showFilters || hasActiveFilters
-                    ? 'bg-[var(--primary)] text-white'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--bg)] border border-[var(--border)]'
+                    ? 'bg-(--primary) text-white'
+                    : 'text-(--text-muted) hover:bg-(--bg) border border-(--border)'
                 }`}>
                 <Search size={10} />
                 Пребарај
@@ -560,8 +560,8 @@ export default function ManageFoodInventory() {
                     <button key={d} onClick={() => setLogDays(d)}
                       className={`text-[10px] px-2 py-1 rounded-full font-medium transition-colors ${
                         logDays === d
-                          ? 'bg-[var(--primary)] text-white'
-                          : 'text-[var(--text-muted)] hover:bg-[var(--bg)]'
+                          ? 'bg-(--primary) text-white'
+                          : 'text-(--text-muted) hover:bg-(--bg)'
                       }`}>
                       {d}д
                     </button>
@@ -576,10 +576,10 @@ export default function ManageFoodInventory() {
             const suppliers = [...new Set(log.filter(e => e.supplier).map(e => e.supplier))].sort();
             const products = [...new Set(log.map(e => e.food_type).filter(Boolean))].sort();
             return (
-            <div className="mb-3 p-3 rounded-[var(--r-sm)] bg-[var(--bg)] space-y-2.5">
+            <div className="mb-3 p-3 rounded-(--r-sm) bg-(--bg) space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Добавувач</label>
+                  <label className="block text-[9px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider">Добавувач</label>
                   <input type="text" list="supplier-list" value={searchSupplier}
                     onChange={(e) => setSearchSupplier(e.target.value)}
                     className="input-base text-xs !py-1.5" placeholder="Избери или пребарај..." />
@@ -588,7 +588,7 @@ export default function ManageFoodInventory() {
                   </datalist>
                 </div>
                 <div>
-                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Производ</label>
+                  <label className="block text-[9px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider">Производ</label>
                   <input type="text" list="product-list" value={searchProduct}
                     onChange={(e) => setSearchProduct(e.target.value)}
                     className="input-base text-xs !py-1.5" placeholder="Избери или пребарај..." />
@@ -599,13 +599,13 @@ export default function ManageFoodInventory() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Од датум</label>
+                  <label className="block text-[9px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider">Од датум</label>
                   <input type="date" value={searchDateFrom}
                     onChange={(e) => setSearchDateFrom(e.target.value)}
                     className="input-base text-xs !py-1.5" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider">До датум</label>
+                  <label className="block text-[9px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider">До датум</label>
                   <input type="date" value={searchDateTo}
                     onChange={(e) => setSearchDateTo(e.target.value)}
                     className="input-base text-xs !py-1.5" />
@@ -613,7 +613,7 @@ export default function ManageFoodInventory() {
               </div>
               {hasActiveFilters && (
                 <button onClick={() => { setSearchSupplier(''); setSearchProduct(''); setSearchDateFrom(''); setSearchDateTo(''); }}
-                  className="text-[10px] text-[var(--danger)] font-medium flex items-center gap-1 hover:underline">
+                  className="text-[10px] text-(--danger) font-medium flex items-center gap-1 hover:underline">
                   <X size={10} /> Тргни филтри
                 </button>
               )}
@@ -622,7 +622,7 @@ export default function ManageFoodInventory() {
           })()}
 
           {filteredLog.length === 0 ? (
-            <p className="text-xs text-[var(--text-muted)] text-center py-4">Нема резултати</p>
+            <p className="text-xs text-(--text-muted) text-center py-4">Нема резултати</p>
           ) : (
           <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
             {filteredLog.map((entry, i) => {
@@ -637,15 +637,15 @@ export default function ManageFoodInventory() {
               return (
                 <div key={`${entry.reason}-${entry.food_type}-${entry.date}-${i}`}>
                   {showDateHeader && (
-                    <div className={`flex items-center justify-between ${i > 0 ? 'mt-3 pt-3 border-t border-[var(--border)]' : ''} mb-1.5`}>
+                    <div className={`flex items-center justify-between ${i > 0 ? 'mt-3 pt-3 border-t border-(--border)' : ''} mb-1.5`}>
                       <div className="flex items-center gap-2">
-                        <Calendar size={11} className="text-[var(--text-muted)]" />
-                        <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">{dateStr}</span>
+                        <Calendar size={11} className="text-(--text-muted)" />
+                        <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider">{dateStr}</span>
                       </div>
                       {/* Edit all purchases for this date */}
                       {log.some(e => e.reason === 'purchase' && new Date(e.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) === dateStr) && (
                         <button onClick={() => editDateFromLog(entryDateISO)}
-                          className="text-[9px] px-2 py-0.5 rounded-full text-[var(--primary)] hover:bg-[var(--primary-muted)] transition-colors flex items-center gap-1 font-medium">
+                          className="text-[9px] px-2 py-0.5 rounded-full text-(--primary) hover:bg-(--primary-muted) transition-colors flex items-center gap-1 font-medium">
                           <Pencil size={9} /> Измени ден
                         </button>
                       )}
@@ -654,7 +654,7 @@ export default function ManageFoodInventory() {
 
                   {/* Inline edit mode */}
                   {isEditing ? (
-                    <div className="p-2.5 rounded-[var(--r-sm)] bg-[var(--bg)] border border-[var(--primary)] space-y-2">
+                    <div className="p-2.5 rounded-(--r-sm) bg-(--bg) border border-(--primary) space-y-2">
                       <div className="grid grid-cols-2 gap-2">
                         <select value={editFoodType} onChange={(e) => setEditFoodType(e.target.value)}
                           className="input-base text-xs !py-1.5">
@@ -679,7 +679,7 @@ export default function ManageFoodInventory() {
                       </div>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={cancelEdit}
-                          className="btn-ghost text-xs px-2.5 py-1 flex items-center gap-1 text-[var(--text-muted)]">
+                          className="btn-ghost text-xs px-2.5 py-1 flex items-center gap-1 text-(--text-muted)">
                           <X size={12} /> Откажи
                         </button>
                         <button onClick={saveEdit} disabled={editSaving}
@@ -689,54 +689,54 @@ export default function ManageFoodInventory() {
                       </div>
                     </div>
                   ) : isDeleting ? (
-                    <div className="p-2.5 rounded-[var(--r-sm)] bg-red-50 dark:bg-red-950/20 border border-[var(--danger)]">
-                      <p className="text-xs text-[var(--danger)] font-medium mb-2">
+                    <div className="p-2.5 rounded-(--r-sm) bg-red-50 dark:bg-red-950/20 border border-(--danger)">
+                      <p className="text-xs text-(--danger) font-medium mb-2">
                         Избриши: {entry.food_type} — {Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg?
                       </p>
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => setDeleteConfirmId(null)}
-                          className="btn-ghost text-xs px-2.5 py-1 text-[var(--text-muted)]">
+                          className="btn-ghost text-xs px-2.5 py-1 text-(--text-muted)">
                           Откажи
                         </button>
                         <button onClick={() => handleDelete(entry.id)}
-                          className="text-xs px-3 py-1 rounded-[var(--r-sm)] bg-[var(--danger)] text-white font-semibold hover:opacity-90 transition-opacity">
+                          className="text-xs px-3 py-1 rounded-(--r-sm) bg-(--danger) text-white font-semibold hover:opacity-90 transition-opacity">
                           Избриши
                         </button>
                       </div>
                     </div>
                   ) : (
                     /* Normal row */
-                    <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-[var(--r-sm)] hover:bg-[var(--bg)] transition-colors duration-150 group">
+                    <div className="flex items-center justify-between text-xs py-1.5 px-2 rounded-(--r-sm) hover:bg-(--bg) transition-colors duration-150 group">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         {isPurchase ? (
-                          <ArrowUp size={13} className="text-[var(--success)] flex-shrink-0" />
+                          <ArrowUp size={13} className="text-(--success) flex-shrink-0" />
                         ) : (
-                          <ArrowDown size={13} className="text-[var(--danger)] flex-shrink-0" />
+                          <ArrowDown size={13} className="text-(--danger) flex-shrink-0" />
                         )}
-                        <span className="text-[var(--text-secondary)] truncate">{entry.food_type}</span>
+                        <span className="text-(--text-secondary) truncate">{entry.food_type}</span>
                         {isPurchase && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-[var(--success)] font-medium flex-shrink-0">набавка</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-(--success) font-medium flex-shrink-0">набавка</span>
                         )}
                         {isPurchase && (entry.supplier || entry.document_number) && (
-                          <span className="text-[9px] text-[var(--text-muted)] truncate hidden sm:inline-flex items-center gap-0.5" title={[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}>
+                          <span className="text-[9px] text-(--text-muted) truncate hidden sm:inline-flex items-center gap-0.5" title={[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}>
                             <FileText size={9} className="flex-shrink-0" />
                             {[entry.supplier, entry.document_number].filter(Boolean).join(' • ')}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`font-bold ${isPurchase ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                        <span className={`font-bold ${isPurchase ? 'text-(--success)' : 'text-(--danger)'}`}>
                           {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
                         </span>
                         {isPurchase && entry.id && (
                           <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button onClick={() => startEdit(entry)}
-                              className="p-1 rounded hover:bg-[var(--primary-muted)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                              className="p-1 rounded hover:bg-(--primary-muted) text-(--text-muted) hover:text-(--primary) transition-colors"
                               title="Измени">
                               <Pencil size={12} />
                             </button>
                             <button onClick={() => { setDeleteConfirmId(entry.id); setEditId(null); }}
-                              className="p-1 rounded hover:bg-red-50 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+                              className="p-1 rounded hover:bg-red-50 text-(--text-muted) hover:text-(--danger) transition-colors"
                               title="Избриши">
                               <Trash2 size={12} />
                             </button>

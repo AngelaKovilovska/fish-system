@@ -223,7 +223,7 @@ export default function SalesNew() {
       {/* header */}
       <div className="mb-5 animate-in">
         <button onClick={() => navigate('/production')}
-          className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
+          className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
         <div className="flex items-center justify-between">
@@ -234,11 +234,11 @@ export default function SalesNew() {
             </div>
             <div>
               <h1 className="page-title !mb-0">{isEdit ? 'Уреди продажба' : 'Нова продажба'}</h1>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{isEdit && editSale ? `Фактура ${editSale.invoice_number}` : 'Фактура-испратница'}</p>
+              <p className="text-xs text-(--text-secondary) mt-0.5">{isEdit && editSale ? `Фактура ${editSale.invoice_number}` : 'Фактура-испратница'}</p>
             </div>
           </div>
           <button onClick={() => navigate('/production/sales/history')}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--primary)] bg-[var(--surface-elevated)] border border-[var(--border)] rounded-[var(--r-sm)] px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
+            className="flex items-center gap-1.5 text-xs font-medium text-(--primary) bg-(--surface-elevated) border border-(--border) rounded-(--r-sm) px-3 py-2 hover:bg-(--surface-hover) transition-colors">
             <History size={14} /> Историја
           </button>
         </div>
@@ -254,8 +254,8 @@ export default function SalesNew() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
               style={{ background: 'var(--primary)' }}>1</div>
-            <User size={14} className="text-[var(--text-muted)]" />
-            <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Купувач</h3>
+            <User size={14} className="text-(--text-muted)" />
+            <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Купувач</h3>
             {selectedBuyerId && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 ml-auto flex items-center gap-1">
                 <Check size={10} /> Зачуван
@@ -265,24 +265,24 @@ export default function SalesNew() {
 
           {/* name + autocomplete */}
           <div className="relative mb-3" ref={suggestRef}>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Име на фирма</label>
+            <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Име на фирма</label>
             <div className="flex gap-2">
               <input type="text" value={buyer.name}
                 onChange={e => handleBuyerNameChange(e.target.value)}
                 onFocus={() => { if (buyerSuggestions.length > 0) setShowSuggestions(true); }}
                 className="input-base text-sm flex-1" placeholder="Започнете да пишувате..." autoComplete="off" />
               {buyer.name && (
-                <button type="button" onClick={clearBuyer} className="btn-ghost p-2 text-[var(--text-muted)]"><X size={14} /></button>
+                <button type="button" onClick={clearBuyer} className="btn-ghost p-2 text-(--text-muted)"><X size={14} /></button>
               )}
             </div>
             {showSuggestions && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
+              <div className="absolute left-0 right-0 top-full mt-1 bg-(--surface) border border-(--border) rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
                 {buyerSuggestions.map(b => (
                   <button key={b.id} type="button" onClick={() => selectBuyer(b)}
-                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-[var(--surface-elevated)] transition-colors border-b border-[var(--border)] last:border-0">
-                    <span className="font-medium text-[var(--text-primary)]">{b.name}</span>
-                    {b.edb && <span className="text-[10px] text-[var(--text-muted)] ml-2">ЕДБ: {b.edb}</span>}
-                    {b.address && <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{b.address}</p>}
+                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-(--surface-elevated) transition-colors border-b border-(--border) last:border-0">
+                    <span className="font-medium text-(--text-primary)">{b.name}</span>
+                    {b.edb && <span className="text-[10px] text-(--text-muted) ml-2">ЕДБ: {b.edb}</span>}
+                    {b.address && <p className="text-[10px] text-(--text-muted) mt-0.5">{b.address}</p>}
                   </button>
                 ))}
               </div>
@@ -292,27 +292,27 @@ export default function SalesNew() {
           {/* buyer details */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">ЕДБ</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">ЕДБ</label>
               <input type="text" value={buyer.edb} onChange={e => setBuyer({ ...buyer, edb: e.target.value })}
                 className="input-base text-sm" placeholder="1234567890123" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Контакт лице</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Контакт лице</label>
               <input type="text" value={buyer.contact_person} onChange={e => setBuyer({ ...buyer, contact_person: e.target.value })}
                 className="input-base text-sm" placeholder="Име Презиме" />
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Адреса</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Адреса</label>
               <input type="text" value={buyer.address} onChange={e => setBuyer({ ...buyer, address: e.target.value })}
                 className="input-base text-sm" placeholder="ул. Улица бр. 1, Град" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Телефон</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Телефон</label>
               <input type="text" value={buyer.phone} onChange={e => setBuyer({ ...buyer, phone: e.target.value })}
                 className="input-base text-sm" placeholder="+389 7X XXX XXX" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Email</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Email</label>
               <input type="email" value={buyer.email} onChange={e => setBuyer({ ...buyer, email: e.target.value })}
                 className="input-base text-sm" placeholder="email@firma.mk" />
             </div>
@@ -324,9 +324,9 @@ export default function SalesNew() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
               style={{ background: 'var(--primary)' }}>2</div>
-            <Package size={14} className="text-[var(--text-muted)]" />
-            <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Производи</h3>
-            <button type="button" onClick={addItem} className="btn-ghost text-xs flex items-center gap-1 ml-auto text-[var(--primary)]">
+            <Package size={14} className="text-(--text-muted)" />
+            <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Производи</h3>
+            <button type="button" onClick={addItem} className="btn-ghost text-xs flex items-center gap-1 ml-auto text-(--primary)">
               <Plus size={14} /> Додади
             </button>
           </div>
@@ -336,9 +336,9 @@ export default function SalesNew() {
               const inv = inventory.find(i => i.product_type_id === parseInt(item.product_type_id));
               const lineTotal = (parseFloat(item.quantity_kg) || 0) * (parseFloat(item.price_per_kg) || 0);
               return (
-                <div key={idx} className="bg-[var(--surface-elevated)] rounded-[var(--r-sm)] p-3 border border-[var(--border)]">
+                <div key={idx} className="bg-(--surface-elevated) rounded-(--r-sm) p-3 border border-(--border)">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--surface)] w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">{idx + 1}</span>
+                    <span className="text-[10px] font-bold text-(--text-muted) bg-(--surface) w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">{idx + 1}</span>
                     <div className="flex-1">
                       <select value={item.product_type_id} onChange={e => updateItem(idx, 'product_type_id', e.target.value)}
                         className="input-base text-sm w-full">
@@ -349,7 +349,7 @@ export default function SalesNew() {
                       </select>
                     </div>
                     <button type="button" onClick={() => removeItem(idx)} disabled={items.length <= 1}
-                      className="btn-ghost p-1.5 text-[var(--danger)] flex-shrink-0"><Trash2 size={13} /></button>
+                      className="btn-ghost p-1.5 text-(--danger) flex-shrink-0"><Trash2 size={13} /></button>
                   </div>
 
                   {inv && (() => {
@@ -357,11 +357,11 @@ export default function SalesNew() {
                     const sel = lots.find(l => l.lot_number === item.lot_number);
                     return (
                       <div className="mb-2 ml-7">
-                        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">
+                        <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">
                           LOT / серија <span className="normal-case font-normal">— вкупно на залиха {availableInv(item.product_type_id).toFixed(2)} кг</span>
                         </label>
                         {lots.length === 0 ? (
-                          <p className="text-[11px] text-[var(--danger)] font-medium">Нема залиха за овој производ</p>
+                          <p className="text-[11px] text-(--danger) font-medium">Нема залиха за овој производ</p>
                         ) : (
                           <select value={item.lot_number} onChange={e => updateItem(idx, 'lot_number', e.target.value)}
                             className="input-base text-sm w-full">
@@ -373,7 +373,7 @@ export default function SalesNew() {
                           </select>
                         )}
                         {sel && parseFloat(item.quantity_kg) > parseFloat(sel.quantity_kg) && (
-                          <p className="text-[11px] text-[var(--danger)] font-medium mt-1">
+                          <p className="text-[11px] text-(--danger) font-medium mt-1">
                             Во LOT {sel.lot_number} има само {parseFloat(sel.quantity_kg).toFixed(2)} кг — поделете во две ставки
                           </p>
                         )}
@@ -383,13 +383,13 @@ export default function SalesNew() {
 
                   <div className="grid grid-cols-2 gap-2 ml-7">
                     <div>
-                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Количина (кг)</label>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Количина (кг)</label>
                       <input type="number" step="0.01" min="0" value={item.quantity_kg}
                         onChange={e => updateItem(idx, 'quantity_kg', e.target.value)}
                         className="input-base text-sm" placeholder="0.00" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Цена (ден/кг)</label>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Цена (ден/кг)</label>
                       <input type="number" step="0.01" min="0" value={item.price_per_kg}
                         onChange={e => updateItem(idx, 'price_per_kg', e.target.value)}
                         className="input-base text-sm" placeholder="0.00" />
@@ -397,7 +397,7 @@ export default function SalesNew() {
                   </div>
 
                   {lineTotal > 0 && (
-                    <p className="text-right text-[11px] font-semibold text-[var(--text-secondary)] mt-2 mr-1">
+                    <p className="text-right text-[11px] font-semibold text-(--text-secondary) mt-2 mr-1">
                       = {lineTotal.toFixed(2)} ден
                     </p>
                   )}
@@ -407,15 +407,15 @@ export default function SalesNew() {
           </div>
 
           {/* totals */}
-          <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-1">
-            <div className="flex justify-between text-xs text-[var(--text-secondary)]">
+          <div className="mt-4 pt-3 border-t border-(--border) space-y-1">
+            <div className="flex justify-between text-xs text-(--text-secondary)">
               <span>Основица:</span><span>{subtotal.toFixed(2)} ден</span>
             </div>
-            <div className="flex justify-between items-center text-xs text-[var(--text-secondary)]">
+            <div className="flex justify-between items-center text-xs text-(--text-secondary)">
               <span className="flex items-center gap-1.5">
                 ДДВ:
                 <select value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value))}
-                  className="text-xs font-semibold bg-[var(--surface-elevated)] border border-[var(--border)] rounded-md px-1.5 py-0.5 text-[var(--primary)] cursor-pointer">
+                  className="text-xs font-semibold bg-(--surface-elevated) border border-(--border) rounded-md px-1.5 py-0.5 text-(--primary) cursor-pointer">
                   <option value={5}>5%</option>
                   <option value={10}>10%</option>
                   <option value={18}>18%</option>
@@ -423,7 +423,7 @@ export default function SalesNew() {
               </span>
               <span>{vatAmount.toFixed(2)} ден</span>
             </div>
-            <div className="flex justify-between text-sm font-bold text-[var(--text-primary)] pt-1">
+            <div className="flex justify-between text-sm font-bold text-(--text-primary) pt-1">
               <span>Вкупно:</span><span>{total.toFixed(2)} ден</span>
             </div>
           </div>
@@ -434,26 +434,26 @@ export default function SalesNew() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
               style={{ background: 'var(--primary)' }}>3</div>
-            <Truck size={14} className="text-[var(--text-muted)]" />
-            <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Испорака</h3>
+            <Truck size={14} className="text-(--text-muted)" />
+            <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Испорака</h3>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Датум на продажба</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Датум на продажба</label>
               <input type="date" value={form.sale_date}
                 onChange={e => setForm({ ...form, sale_date: e.target.value })}
                 className="input-base text-sm" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Рок за плаќање</label>
-              <div className="input-base text-sm bg-[var(--surface-elevated)] !cursor-default opacity-75">
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Рок за плаќање</label>
+              <div className="input-base text-sm bg-(--surface-elevated) !cursor-default opacity-75">
                 {fmtDate(dueDate)}
               </div>
-              <p className="text-[9px] text-[var(--text-muted)] mt-0.5">Автоматски: +7 дена</p>
+              <p className="text-[9px] text-(--text-muted) mt-0.5">Автоматски: +7 дена</p>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Начин на плаќање</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
               <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })}
                 className="input-base text-sm">
                 <option value="фактура">Фактура</option>
@@ -462,27 +462,27 @@ export default function SalesNew() {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">LOT број</label>
-              <div className="input-base text-sm bg-[var(--surface-elevated)] text-[var(--text-secondary)]">
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">LOT број</label>
+              <div className="input-base text-sm bg-(--surface-elevated) text-(--text-secondary)">
                 {[...new Set(items.map(i => i.lot_number).filter(Boolean))].join(', ') || '— се одредува по ставка —'}
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Рег. ознака на возило</label>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Рег. ознака на возило</label>
               <input type="text" value={form.transport_vehicle}
                 onChange={e => setForm({ ...form, transport_vehicle: e.target.value })}
                 className="input-base text-sm" placeholder="ВЕ-1234-АА" />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Температура</label>
-              <div className="input-base text-sm bg-[var(--surface-elevated)] !cursor-default opacity-75">
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Температура</label>
+              <div className="input-base text-sm bg-(--surface-elevated) !cursor-default opacity-75">
                 -18°C
               </div>
             </div>
           </div>
 
           <div className="mt-3">
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Забелешки (опционално)</label>
+            <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Забелешки (опционално)</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
               className="input-base text-sm" rows="2" placeholder="Дополнителни информации..." />
           </div>

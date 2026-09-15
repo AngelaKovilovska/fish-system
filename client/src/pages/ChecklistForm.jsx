@@ -298,15 +298,15 @@ export default function ChecklistForm() {
             style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))' }}>
             <ClipboardList size={28} className="text-amber-500" />
           </div>
-          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2"
+          <h2 className="text-lg font-bold text-(--text-primary) mb-2"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             Чеклистата е веќе пополнета
           </h2>
-          <p className="text-sm text-[var(--text-secondary)] mb-1">
+          <p className="text-sm text-(--text-secondary) mb-1">
             Веќе постои запис за <strong>{(() => { const d = new Date(formData.date + 'T12:00:00'); return `${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`; })()}</strong>
           </p>
           {duplicateRecord.checked_by_name && (
-            <p className="text-xs text-[var(--text-muted)] mb-6">
+            <p className="text-xs text-(--text-muted) mb-6">
               Пополнета од: {duplicateRecord.checked_by_name}
               {duplicateRecord.created_at && (
                 <> во {new Date(duplicateRecord.created_at).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>
@@ -321,7 +321,7 @@ export default function ChecklistForm() {
               Едитирај го постоечкиот запис
             </button>
             <div className="mt-2">
-              <label htmlFor="cl-alt-date" className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Или избери друг датум:</label>
+              <label htmlFor="cl-alt-date" className="block text-xs font-semibold text-(--text-secondary) mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Или избери друг датум:</label>
               <input id="cl-alt-date" type="date" value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className="input-base" />
@@ -361,7 +361,7 @@ export default function ChecklistForm() {
 
       {/* Date */}
       <div className="mb-4 animate-in-delay-1">
-        <label htmlFor="cl-date" className="block text-xs font-semibold text-[var(--text-secondary)] mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Датум</label>
+        <label htmlFor="cl-date" className="block text-xs font-semibold text-(--text-secondary) mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Датум</label>
         <input id="cl-date" type="date" value={formData.date}
           onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           className="input-base" />
@@ -369,16 +369,16 @@ export default function ChecklistForm() {
 
       {/* ── Draft recovery banner ── */}
       {draftAvailable && (
-        <div className="mb-4 animate-in rounded-[var(--r-lg)] overflow-hidden"
+        <div className="mb-4 animate-in rounded-(--r-lg) overflow-hidden"
           style={{ border: '1px solid rgba(37,99,235,0.25)' }}>
           <div className="p-4" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(37,99,235,0.03))' }}>
             <div className="flex items-center gap-2 mb-1.5">
-              <RotateCcw size={16} className="text-[var(--primary)]" />
-              <span className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <RotateCcw size={16} className="text-(--primary)" />
+              <span className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Имате незавршена чек-листа
               </span>
             </div>
-            <p className="text-xs text-[var(--text-secondary)] mb-3">
+            <p className="text-xs text-(--text-secondary) mb-3">
               {draftAvailable.step != null && `Стигнато до: Чекор ${draftAvailable.step + 1} — ${STEPS[draftAvailable.step] || 'Вода'}`}
               {draftAvailable.savedAt && (
                 <> · зачувано во {new Date(draftAvailable.savedAt).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>
@@ -404,7 +404,7 @@ export default function ChecklistForm() {
       <div className="mb-5 animate-in-delay-1">
         <div className="flex items-center justify-between relative">
           {/* Progress line */}
-          <div className="absolute top-[14px] left-[24px] right-[24px] h-[1.5px] bg-[var(--border)] rounded-full" />
+          <div className="absolute top-[14px] left-[24px] right-[24px] h-[1.5px] bg-(--border) rounded-full" />
           <div className="absolute top-[14px] left-[24px] h-[1.5px] rounded-full transition-all duration-500"
             style={{
               width: `calc(${(step / (STEPS.length - 1)) * 100}% - 48px)`,
@@ -442,9 +442,9 @@ export default function ChecklistForm() {
                 className="flex flex-col items-center relative z-10">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
                   state === 'active' ? 'text-white' :
-                  state === 'error' ? 'bg-red-50 text-[var(--danger)] border-[1.5px] border-[var(--danger)]' :
+                  state === 'error' ? 'bg-red-50 text-(--danger) border-[1.5px] border-(--danger)' :
                   state === 'completed' ? 'text-white' :
-                  'bg-[var(--surface)] text-[var(--text-muted)] border-[1.5px] border-[var(--border)]'
+                  'bg-(--surface) text-(--text-muted) border-[1.5px] border-(--border)'
                 }`}
                   style={
                     state === 'active' ? { background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))', boxShadow: '0 0 0 4px rgba(37,99,235,0.15), 0 2px 8px rgba(37,99,235,0.25)' } :
@@ -453,10 +453,10 @@ export default function ChecklistForm() {
                   {state === 'completed' ? <Check size={12} strokeWidth={3} /> : i + 1}
                 </div>
                 <span className={`text-[10px] mt-1 font-medium whitespace-nowrap ${
-                  state === 'active' ? 'text-[var(--primary)]' :
-                  state === 'error' ? 'text-[var(--danger)]' :
-                  state === 'completed' ? 'text-[var(--success)]' :
-                  'text-[var(--text-muted)]'
+                  state === 'active' ? 'text-(--primary)' :
+                  state === 'error' ? 'text-(--danger)' :
+                  state === 'completed' ? 'text-(--success)' :
+                  'text-(--text-muted)'
                 }`}>{s}</span>
               </button>
             );
@@ -495,7 +495,7 @@ export default function ChecklistForm() {
       <div className="h-20" />
 
       {/* Sticky nav buttons */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--bg)] border-t border-[var(--border)] px-4 py-3 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-(--bg) border-t border-(--border) px-4 py-3 safe-area-bottom">
         <div className="max-w-lg mx-auto flex gap-3">
           {step > 0 && (
             <button type="button" onClick={() => {

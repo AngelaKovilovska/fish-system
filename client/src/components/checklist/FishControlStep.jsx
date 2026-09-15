@@ -23,12 +23,12 @@ export default function FishControlStep({ data, onChange }) {
         </div>
         <div>
           <h2 className="section-title">3. Риба - Визуелна контрола</h2>
-          <p className="section-subtitle">Сите полиња се задолжителни <span className="text-[var(--danger)]">*</span></p>
+          <p className="section-subtitle">Сите полиња се задолжителни <span className="text-(--danger)">*</span></p>
         </div>
       </div>
 
       <button type="button" onClick={handleAllOk}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-md)] font-semibold text-xs transition-all border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-[var(--success)] hover:bg-[rgba(34,197,94,0.12)] active:scale-[0.98]"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-(--r-md) font-semibold text-xs transition-all border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-(--success) hover:bg-[rgba(34,197,94,0.12)] active:scale-[0.98]"
         style={{ fontFamily: 'Sora, sans-serif' }}>
         <CheckCheck size={16} />
         Сè е во ред
@@ -42,22 +42,22 @@ export default function FishControlStep({ data, onChange }) {
 
           return (
             <div key={key}
-              className={`flex items-center justify-between p-2.5 rounded-[var(--r-md)] transition-all duration-200 border ${
+              className={`flex items-center justify-between p-2.5 rounded-(--r-md) transition-all duration-200 border ${
                 isOk ? 'bg-[rgba(34,197,94,0.03)] border-[rgba(34,197,94,0.15)]'
                 : isNotOk ? 'bg-[rgba(255,107,107,0.04)] border-[rgba(255,107,107,0.25)]'
-                : 'bg-[var(--surface)] border-[var(--border)]'
+                : 'bg-(--surface) border-(--border)'
               }`}>
-              <p className="text-xs text-[var(--text-primary)] font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
+              <p className="text-xs text-(--text-primary) font-medium pr-2 leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{label}</p>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button type="button" onClick={() => handleToggle(key, true)}
                   className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                    isOk ? 'bg-[var(--success)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                    isOk ? 'bg-(--success) text-white shadow-sm' : 'bg-(--bg) text-(--text-muted) border border-(--border)'
                   }`}>
                   <Check size={16} strokeWidth={2.5} />
                 </button>
                 <button type="button" onClick={() => handleToggle(key, false)}
                   className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                    isNotOk ? 'bg-[var(--danger)] text-white shadow-sm' : 'bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]'
+                    isNotOk ? 'bg-(--danger) text-white shadow-sm' : 'bg-(--bg) text-(--text-muted) border border-(--border)'
                   }`}>
                   <X size={16} strokeWidth={2.5} />
                 </button>
@@ -68,7 +68,7 @@ export default function FishControlStep({ data, onChange }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+        <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>
           Забелешка (опционално)
         </label>
         <textarea

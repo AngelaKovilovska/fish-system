@@ -51,18 +51,18 @@ export default function MealHistory() {
         </div>
         <div>
           <h1 className="page-title">Историја на оброци</h1>
-          <p className="text-xs text-[var(--text-secondary)]">Прегледај и измени оброци по датум</p>
+          <p className="text-xs text-(--text-secondary)">Прегледај и измени оброци по датум</p>
         </div>
       </div>
 
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4 animate-in-delay-1
-        bg-[var(--surface)] rounded-[var(--r-md)] px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
-        <label htmlFor="mh-from" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
+        bg-(--surface) rounded-(--r-md) px-4 py-3 overflow-hidden" style={{ boxShadow: 'var(--sh-card)' }}>
+        <label htmlFor="mh-from" className="text-xs font-semibold text-(--text-secondary) whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>Од:</label>
         <input id="mh-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
           className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
-        <label htmlFor="mh-to" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap hidden sm:block"
+        <label htmlFor="mh-to" className="text-xs font-semibold text-(--text-secondary) whitespace-nowrap hidden sm:block"
           style={{ fontFamily: 'Sora, sans-serif' }}>До:</label>
         <input id="mh-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
           className="input-base !py-2 !text-sm sm:flex-1 w-full min-w-0" style={{ maxWidth: '100%' }} />
@@ -79,7 +79,7 @@ export default function MealHistory() {
       </div>
 
       {/* Results count */}
-      <p className="text-xs text-[var(--text-muted)] mb-3 animate-in-delay-2" style={{ fontFamily: 'Sora, sans-serif' }}>
+      <p className="text-xs text-(--text-muted) mb-3 animate-in-delay-2" style={{ fontFamily: 'Sora, sans-serif' }}>
         {total} {total === 1 ? 'датум' : 'датуми'}
         {(dateFrom || dateTo) && ' за избраниот период'}
       </p>
@@ -91,14 +91,14 @@ export default function MealHistory() {
         </div>
       ) : dates.length === 0 ? (
         <div className="card text-center py-10">
-          <Calendar size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-          <p className="text-[var(--text-muted)] text-sm">Нема внесени оброци.</p>
+          <Calendar size={32} className="mx-auto text-(--text-muted) mb-2" />
+          <p className="text-(--text-muted) text-sm">Нема внесени оброци.</p>
         </div>
       ) : (
         <>
           {/* Desktop table */}
           <div className="hidden lg:block">
-            <div className="bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-2" style={{ boxShadow: 'var(--sh-card)' }}>
+            <div className="bg-(--surface) rounded-(--r-md) overflow-hidden animate-in-delay-2" style={{ boxShadow: 'var(--sh-card)' }}>
               <table className="table-modern">
                 <thead>
                   <tr>
@@ -117,7 +117,7 @@ export default function MealHistory() {
                         <td className="font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
                           {`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`}
                         </td>
-                        <td className="text-[var(--text-secondary)]">
+                        <td className="text-(--text-secondary)">
                           {MK_DAYS[d.getDay()]}
                         </td>
                         <td>
@@ -143,7 +143,7 @@ export default function MealHistory() {
                             })}
                           </div>
                         </td>
-                        <td className="text-right text-[var(--text-secondary)]">
+                        <td className="text-right text-(--text-secondary)">
                           {entry.total_food_gr > 0 ? `${(entry.total_food_gr).toFixed(0)} gr` : '-'}
                         </td>
                         <td className="text-right">
@@ -175,11 +175,11 @@ export default function MealHistory() {
                   <div className="px-4 py-3">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="font-semibold text-sm text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                        <span className="font-semibold text-sm text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                           {`${MK_DAYS[d.getDay()]}, ${d.getDate()} ${MK_MONTHS[d.getMonth()]} ${d.getFullYear()}`}
                         </span>
                         {entry.total_food_gr > 0 && (
-                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                          <p className="text-[11px] text-(--text-muted) mt-0.5">
                             Вкупно: {entry.total_food_gr.toFixed(0)} gr
                           </p>
                         )}
@@ -192,17 +192,17 @@ export default function MealHistory() {
                           <Link
                             key={mt}
                             to={`/meal/${mt}?date=${entry.date}`}
-                            className="flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-[var(--r-sm)] transition-all active:scale-95 border"
+                            className="flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-(--r-sm) transition-all active:scale-95 border"
                             style={{
                               background: filled ? 'rgba(34,197,94,0.08)' : 'var(--bg)',
                               borderColor: filled ? 'rgba(34,197,94,0.25)' : 'var(--border)',
                             }}
                           >
                             {MEAL_INFO[mt].icon}
-                            <span className={`text-[10px] font-medium ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>
+                            <span className={`text-[10px] font-medium ${filled ? 'text-(--success)' : 'text-(--text-muted)'}`}>
                               {MEAL_INFO[mt].label}
                             </span>
-                            <span className={`text-[9px] ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)] opacity-50'}`}>
+                            <span className={`text-[9px] ${filled ? 'text-(--success)' : 'text-(--text-muted) opacity-50'}`}>
                               {filled ? '✓ Измени' : '+ Додај'}
                             </span>
                           </Link>

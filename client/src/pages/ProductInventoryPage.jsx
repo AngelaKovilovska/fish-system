@@ -25,8 +25,8 @@ function fmtDate(d) {
 function expiryInfo(expiry) {
   if (!expiry) return null;
   const days = Math.ceil((new Date(expiry) - new Date().setHours(0, 0, 0, 0)) / 86400000);
-  if (days < 0) return { label: `истечено ${fmtDate(expiry)}`, cls: 'bg-[rgba(239,68,68,0.12)] text-[var(--danger)] font-semibold' };
-  if (days <= 14) return { label: `рок ${fmtDate(expiry)} (${days} д.)`, cls: 'bg-[rgba(245,158,11,0.14)] text-[var(--warning)] font-semibold' };
+  if (days < 0) return { label: `истечено ${fmtDate(expiry)}`, cls: 'bg-[rgba(239,68,68,0.12)] text-(--danger) font-semibold' };
+  if (days <= 14) return { label: `рок ${fmtDate(expiry)} (${days} д.)`, cls: 'bg-[rgba(245,158,11,0.14)] text-(--warning) font-semibold' };
   return { label: `рок ${fmtDate(expiry)}`, cls: '' };
 }
 
@@ -102,19 +102,19 @@ export default function ProductInventoryPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <button onClick={() => navigate('/production')} className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
+        <button onClick={() => navigate('/production')} className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
           <ChevronLeft size={14} /> Назад
         </button>
         <div className="flex items-center justify-between">
           <h1 className="page-title">Залиха на производи</h1>
           <button onClick={openPopis}
-            className="flex items-center gap-1.5 text-xs font-medium text-[var(--primary)] bg-[var(--surface-elevated)] border border-[var(--border)] rounded-[var(--r-sm)] px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
+            className="flex items-center gap-1.5 text-xs font-medium text-(--primary) bg-(--surface-elevated) border border-(--border) rounded-(--r-sm) px-3 py-2 hover:bg-(--surface-hover) transition-colors">
             <ClipboardList size={14} /> Попис
           </button>
         </div>
         <div className="flex items-center gap-1.5 -mt-1">
-          <Fish size={13} className="text-[var(--text-muted)]" />
-          <p className="text-xs text-[var(--text-secondary)]">Преработена риба за продажба</p>
+          <Fish size={13} className="text-(--text-muted)" />
+          <p className="text-xs text-(--text-secondary)">Преработена риба за продажба</p>
         </div>
       </div>
 
@@ -126,12 +126,12 @@ export default function ProductInventoryPage() {
       {showPopis && (
         <div className="card mb-4 animate-in">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
               <ClipboardList size={14} className="inline -mt-0.5 mr-1.5" />Попис на залиха
             </h3>
             <button onClick={() => setShowPopis(false)} className="btn-ghost p-1.5"><X size={16} /></button>
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] mb-4">Внесете ја реалната количина за секој производ (во кг)</p>
+          <p className="text-[11px] text-(--text-muted) mb-4">Внесете ја реалната количина за секој производ (во кг)</p>
 
           <div className="space-y-2.5 mb-4">
             {inventory.map((item, idx) => {
@@ -139,13 +139,13 @@ export default function ProductInventoryPage() {
               const newQty = parseFloat(popisValues[item.product_type_id] || 0);
               const diff = newQty - currentQty;
               return (
-                <div key={item.product_type_id} className="bg-[var(--surface-elevated)] rounded-[var(--r-sm)] p-3 border border-[var(--border)]">
+                <div key={item.product_type_id} className="bg-(--surface-elevated) rounded-(--r-sm) p-3 border border-(--border)">
                   <div className="flex items-center gap-2.5 mb-2">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold flex-shrink-0"
                       style={{ background: ptColor(idx).light, color: ptColor(idx).bg }}>{item.code}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-[var(--text-primary)] truncate">{item.name}</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Моментална: {currentQty.toFixed(2)} кг</p>
+                      <p className="text-xs font-medium text-(--text-primary) truncate">{item.name}</p>
+                      <p className="text-[10px] text-(--text-muted)">Моментална: {currentQty.toFixed(2)} кг</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default function ProductInventoryPage() {
                         className="input-base w-full text-sm" placeholder="Нова количина (кг)" />
                     </div>
                     {diff !== 0 && !isNaN(diff) && (
-                      <span className={`text-[10px] font-semibold flex-shrink-0 ${diff > 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                      <span className={`text-[10px] font-semibold flex-shrink-0 ${diff > 0 ? 'text-(--success)' : 'text-(--danger)'}`}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(2)}
                       </span>
                     )}
@@ -177,11 +177,11 @@ export default function ProductInventoryPage() {
       <div className="card !p-4 mb-4 animate-in">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <p className="text-[10px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>
               Вкупна залиха
             </p>
-            <p className="text-2xl font-bold text-[var(--text-primary)] mt-0.5" style={{ fontFamily: 'Sora, sans-serif' }}>
-              {totalKg.toFixed(1)} <span className="text-sm font-normal text-[var(--text-muted)]">кг</span>
+            <p className="text-2xl font-bold text-(--text-primary) mt-0.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+              {totalKg.toFixed(1)} <span className="text-sm font-normal text-(--text-muted)">кг</span>
             </p>
           </div>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white"
@@ -193,9 +193,9 @@ export default function ProductInventoryPage() {
 
       {inventory.length === 0 ? (
         <div className="card text-center py-8 animate-in">
-          <Fish size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-          <p className="text-sm text-[var(--text-secondary)]">Нема производи на залиха</p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Залихата се зголемува при завршување на обработка</p>
+          <Fish size={32} className="mx-auto text-(--text-muted) mb-2" />
+          <p className="text-sm text-(--text-secondary)">Нема производи на залиха</p>
+          <p className="text-xs text-(--text-muted) mt-1">Залихата се зголемува при завршување на обработка</p>
         </div>
       ) : (
         <div className="card !p-4 space-y-3 animate-in">
@@ -212,15 +212,15 @@ export default function ProductInventoryPage() {
               <div key={item.product_type_id}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--surface-elevated)] px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-(--text-muted) bg-(--surface-elevated) px-1.5 py-0.5 rounded">
                       {item.code}
                     </span>
-                    <span className="text-[12px] font-medium text-[var(--text-secondary)] truncate">
+                    <span className="text-[12px] font-medium text-(--text-secondary) truncate">
                       {item.name}
                     </span>
                   </div>
                   <span className={`text-[12px] font-bold flex-shrink-0 ml-2 ${
-                    isEmpty ? 'text-[var(--text-muted)]' : isLow ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
+                    isEmpty ? 'text-(--text-muted)' : isLow ? 'text-(--warning)' : 'text-(--text-primary)'
                   }`}>
                     {qty.toFixed(1)} кг
                   </span>
@@ -233,7 +233,7 @@ export default function ProductInventoryPage() {
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
                   {editingThreshold === item.product_type_id ? (
-                    <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1 text-[10px] text-(--text-muted)">
                       праг
                       <input type="number" step="0.5" min="0" autoFocus value={thresholdValue}
                         onChange={e => setThresholdValue(e.target.value)}
@@ -245,12 +245,12 @@ export default function ProductInventoryPage() {
                   ) : (
                     <button type="button"
                       onClick={() => { setEditingThreshold(item.product_type_id); setThresholdValue(String(minStock)); }}
-                      className="text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] underline decoration-dotted">
+                      className="text-[10px] text-(--text-muted) hover:text-(--primary) underline decoration-dotted">
                       праг {minStock.toFixed(1)} кг
                     </button>
                   )}
                   {item.price_per_unit && (
-                    <p className="text-[10px] text-[var(--text-muted)]">
+                    <p className="text-[10px] text-(--text-muted)">
                       {parseFloat(item.price_per_unit).toFixed(0)} ден/{item.unit || 'кг'}
                     </p>
                   )}
@@ -261,14 +261,14 @@ export default function ProductInventoryPage() {
                       const exp = expiryInfo(lot.expiry_date);
                       return (
                         <div key={lot.lot_number} className="flex items-center justify-between text-[10.5px]">
-                          <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                            <span className="font-mono text-[var(--text-secondary)]">LOT {lot.lot_number}</span>
+                          <span className="flex items-center gap-1.5 text-(--text-muted)">
+                            <span className="font-mono text-(--text-secondary)">LOT {lot.lot_number}</span>
                             {lot.production_date && <span>· {fmtDate(lot.production_date)}</span>}
                             {exp && (
                               <span className={`px-1 rounded ${exp.cls}`}>{exp.label}</span>
                             )}
                           </span>
-                          <span className="font-semibold text-[var(--text-secondary)]">{parseFloat(lot.quantity_kg).toFixed(2)} кг</span>
+                          <span className="font-semibold text-(--text-secondary)">{parseFloat(lot.quantity_kg).toFixed(2)} кг</span>
                         </div>
                       );
                     })}
@@ -282,9 +282,9 @@ export default function ProductInventoryPage() {
             const warnings = productStockWarnings(inventory);
             if (warnings.length === 0) return null;
             return (
-              <div className="mt-2 pt-2 border-t border-[var(--border)] space-y-1">
+              <div className="mt-2 pt-2 border-t border-(--border) space-y-1">
                 {warnings.map((w, i) => (
-                  <p key={i} className={`text-[11px] font-medium flex items-center gap-1.5 ${w.level === 'danger' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'}`}>
+                  <p key={i} className={`text-[11px] font-medium flex items-center gap-1.5 ${w.level === 'danger' ? 'text-(--danger)' : 'text-(--warning)'}`}>
                     <AlertTriangle size={12} className="flex-shrink-0" /> {w.text}
                   </p>
                 ))}

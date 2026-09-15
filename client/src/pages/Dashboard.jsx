@@ -96,9 +96,9 @@ export default function Dashboard() {
       <div className="flex flex-col min-[400px]:flex-row min-[400px]:items-start min-[400px]:justify-between gap-1 animate-in">
         <div>
           <h1 className="page-title">Здраво, {user?.full_name?.split(' ')[0]}</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-0.5">Контролен панел</p>
+          <p className="text-sm text-(--text-secondary) mt-0.5">Контролен панел</p>
         </div>
-        <p className="text-sm text-[var(--text-secondary)] min-[400px]:mt-1 min-[400px]:text-right flex-shrink-0"
+        <p className="text-sm text-(--text-secondary) min-[400px]:mt-1 min-[400px]:text-right flex-shrink-0"
           style={{ fontFamily: 'Sora, sans-serif' }}>
           {todayFormatted}
         </p>
@@ -116,7 +116,7 @@ export default function Dashboard() {
                   <ClipboardList size={20} className="text-amber-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-[var(--text-primary)]"
+                  <p className="font-semibold text-sm text-(--text-primary)"
                     style={{ fontFamily: 'Sora, sans-serif' }}>
                     Денешна чеклиста
                   </p>
@@ -126,7 +126,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <Link to="/checklist"
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-[var(--r-sm)] text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-(--r-sm) text-sm font-semibold text-white transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
                 style={{
                   background: 'linear-gradient(135deg, var(--primary), var(--primary-deep))',
                   boxShadow: '0 2px 10px rgba(37,99,235,0.2)',
@@ -144,17 +144,17 @@ export default function Dashboard() {
             <div className="px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                  <CheckCircle size={20} className="text-[var(--success)]" />
+                  <CheckCircle size={20} className="text-(--success)" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-[var(--text-primary)]"
+                  <p className="font-semibold text-sm text-(--text-primary)"
                     style={{ fontFamily: 'Sora, sans-serif' }}>
                     Денешна чеклиста
                   </p>
                   <p className="text-[12px] text-green-600 dark:text-green-400 mt-0.5">
                     Пополнета
                     {todayRecord.checked_by_name && (
-                      <span className="text-[var(--text-muted)]">
+                      <span className="text-(--text-muted)">
                         {' '}— {todayRecord.checked_by_name}
                         {todayRecord.created_at && (
                           <>, {new Date(todayRecord.created_at).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>
@@ -164,7 +164,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <Link to={`/checklist/${todayRecord.id}`}
-                  className="btn-ghost text-[var(--primary)] flex-shrink-0 text-xs">
+                  className="btn-ghost text-(--primary) flex-shrink-0 text-xs">
                   Прегледај
                 </Link>
               </div>
@@ -178,7 +178,7 @@ export default function Dashboard() {
         <div className="animate-in-delay-1">
           <div className="flex items-center gap-2 mb-2.5">
             <h2 className="section-title flex items-center gap-2 text-sm">
-              <UtensilsCrossed size={15} className="text-[var(--primary)]" />
+              <UtensilsCrossed size={15} className="text-(--primary)" />
               Оброци
             </h2>
           </div>
@@ -199,17 +199,17 @@ export default function Dashboard() {
                 >
                   <div className="px-3 py-3 text-center">
                     <div className="flex justify-center mb-1">{meal.icon}</div>
-                    <p className="text-[11px] font-semibold text-[var(--text-primary)]"
+                    <p className="text-[11px] font-semibold text-(--text-primary)"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
                       {meal.label}
                     </p>
                     {filled ? (
                       <>
-                        <p className="text-[10px] text-[var(--success)] mt-0.5 font-medium truncate">
+                        <p className="text-[10px] text-(--success) mt-0.5 font-medium truncate">
                           ✓ {status.fed_by_name?.split(' ')[0] || 'Готово'}
                         </p>
                         {status.created_at && (
-                          <p className="text-[9px] text-[var(--text-muted)] mt-0.5 flex items-center justify-center gap-0.5">
+                          <p className="text-[9px] text-(--text-muted) mt-0.5 flex items-center justify-center gap-0.5">
                             <Timer size={8} />
                             {new Date(status.created_at).toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}
                           </p>
@@ -242,7 +242,7 @@ export default function Dashboard() {
                 <Archive size={15} className="text-purple-500" />
                 Залихи
               </h2>
-              <Link to="/inventory/products" className="text-[11px] text-[var(--primary)] font-medium hover:underline flex items-center gap-1">
+              <Link to="/inventory/products" className="text-[11px] text-(--primary) font-medium hover:underline flex items-center gap-1">
                 Детали <ArrowRight size={10} />
               </Link>
             </div>
@@ -255,18 +255,18 @@ export default function Dashboard() {
                     style={{ background: productWarnings.length > 0 ? (productDanger ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)') : 'rgba(139,92,246,0.1)' }}>
                     <Archive size={15} className={productWarnings.length > 0 ? (productDanger ? 'text-red-500' : 'text-amber-500') : 'text-purple-500'} />
                   </div>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold"
+                  <p className="text-[10px] text-(--text-muted) uppercase tracking-wider font-semibold"
                     style={{ fontFamily: 'Sora, sans-serif' }}>Производи</p>
                 </div>
-                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {totalProductKg.toFixed(0)} <span className="text-xs font-normal text-[var(--text-muted)]">кг</span>
+                <p className="text-lg font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {totalProductKg.toFixed(0)} <span className="text-xs font-normal text-(--text-muted)">кг</span>
                 </p>
                 {productWarnings.length > 0 ? (
                   <p className={`text-[10px] mt-0.5 font-medium ${productDanger ? 'text-red-500' : 'text-amber-500'}`}>
                     ⚠ {productWarnings.length} {productWarnings.length === 1 ? 'предупредување' : 'предупредувања'}
                   </p>
                 ) : (
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                  <p className="text-[10px] text-(--text-secondary) mt-0.5">
                     {productInv.length} {productInv.length === 1 ? 'производ' : 'производи'}
                   </p>
                 )}
@@ -279,18 +279,18 @@ export default function Dashboard() {
                     style={{ background: lowFoodItems.length > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)' }}>
                     <Package size={15} className={lowFoodItems.length > 0 ? 'text-amber-500' : 'text-green-500'} />
                   </div>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold"
+                  <p className="text-[10px] text-(--text-muted) uppercase tracking-wider font-semibold"
                     style={{ fontFamily: 'Sora, sans-serif' }}>Храна</p>
                 </div>
-                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {totalFoodKg.toFixed(0)} <span className="text-xs font-normal text-[var(--text-muted)]">кг</span>
+                <p className="text-lg font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {totalFoodKg.toFixed(0)} <span className="text-xs font-normal text-(--text-muted)">кг</span>
                 </p>
                 {lowFoodItems.length > 0 ? (
                   <p className="text-[10px] text-amber-500 mt-0.5 font-medium">
                     ⚠ {lowFoodItems.length} со ниска залиха
                   </p>
                 ) : (
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
+                  <p className="text-[10px] text-(--text-secondary) mt-0.5">
                     {foodInv.length} {foodInv.length === 1 ? 'тип' : 'типови'} храна
                   </p>
                 )}
@@ -304,12 +304,12 @@ export default function Dashboard() {
                   <Link key={i} to="/inventory/products"
                     className="card !p-2.5 !py-2 flex items-center gap-2 text-[11px] hover:scale-[1.005] transition-all"
                     style={{ borderLeft: `3px solid ${w.level === 'danger' ? 'var(--danger)' : 'var(--warning)'}` }}>
-                    <AlertTriangle size={13} className={w.level === 'danger' ? 'text-[var(--danger)] flex-shrink-0' : 'text-amber-500 flex-shrink-0'} />
-                    <span className="text-[var(--text-secondary)]">{w.text}</span>
+                    <AlertTriangle size={13} className={w.level === 'danger' ? 'text-(--danger) flex-shrink-0' : 'text-amber-500 flex-shrink-0'} />
+                    <span className="text-(--text-secondary)">{w.text}</span>
                   </Link>
                 ))}
                 {productWarnings.length > 6 && (
-                  <Link to="/inventory/products" className="text-[11px] text-[var(--primary)] font-medium hover:underline block pl-1">
+                  <Link to="/inventory/products" className="text-[11px] text-(--primary) font-medium hover:underline block pl-1">
                     + уште {productWarnings.length - 6}
                   </Link>
                 )}
@@ -325,13 +325,13 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <h2 className="section-title flex items-center gap-2 text-sm">
-                <AlertTriangle size={15} className="text-[var(--danger)]" />
+                <AlertTriangle size={15} className="text-(--danger)" />
                 Активни аларми
               </h2>
               <span className="pill pill-danger">{alerts.length}</span>
             </div>
             <button onClick={handleAcknowledgeAll}
-              className="text-[11px] font-medium text-[var(--primary)] hover:underline flex items-center gap-1">
+              className="text-[11px] font-medium text-(--primary) hover:underline flex items-center gap-1">
               <CheckCircle size={12} />
               Обележи ги сите
             </button>
@@ -342,18 +342,18 @@ export default function Dashboard() {
               const info = getAlertInfo(alert);
               return (
                 <div key={alert.id}
-                  className="bg-[var(--surface)] rounded-[var(--r-sm)] border border-[var(--border)] px-4 py-3 flex items-center gap-3"
+                  className="bg-(--surface) rounded-(--r-sm) border border-(--border) px-4 py-3 flex items-center gap-3"
                   style={{
                     borderLeft: `3px solid ${info.isDanger ? 'var(--danger)' : 'var(--warning)'}`,
                   }}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">{info.message}</p>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    <p className="text-sm font-medium text-(--text-primary) truncate">{info.message}</p>
+                    <p className="text-[11px] text-(--text-muted) mt-0.5">
                       {new Date(alert.date).toLocaleDateString('mk-MK', { weekday: 'short', month: 'short', day: 'numeric' })}
                     </p>
                   </div>
                   <button onClick={() => handleAcknowledge(alert.id)}
-                    className="btn-ghost text-[var(--success)] flex-shrink-0 text-xs"
+                    className="btn-ghost text-(--success) flex-shrink-0 text-xs"
                     title="Потврди" aria-label="Потврди">
                     <CheckCircle size={16} />
                   </button>
@@ -380,7 +380,7 @@ export default function Dashboard() {
               <Brain size={15} className="text-purple-500" />
               Препорака за храна
             </h2>
-            <Link to="/ai-calculator" className="text-[11px] text-[var(--primary)] font-medium hover:underline flex items-center gap-1">
+            <Link to="/ai-calculator" className="text-[11px] text-(--primary) font-medium hover:underline flex items-center gap-1">
               Калкулатор <ArrowRight size={10} />
             </Link>
           </div>
@@ -389,15 +389,15 @@ export default function Dashboard() {
           <div className="card !p-4 mb-2">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>Дневна потреба (сите базени)</p>
-                <p className="text-xl font-bold text-[var(--text-primary)] mt-0.5" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {aiRec.summary.totalDailyFoodKg.toFixed(2)} <span className="text-sm font-normal text-[var(--text-muted)]">kg</span>
+                <p className="text-[11px] text-(--text-muted) uppercase tracking-wider font-semibold" style={{ fontFamily: 'Sora, sans-serif' }}>Дневна потреба (сите базени)</p>
+                <p className="text-xl font-bold text-(--text-primary) mt-0.5" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  {aiRec.summary.totalDailyFoodKg.toFixed(2)} <span className="text-sm font-normal text-(--text-muted)">kg</span>
                 </p>
               </div>
               {aiRec.summary.temperature != null && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--primary-muted)]">
-                  <Thermometer size={14} className="text-[var(--primary)]" />
-                  <span className="text-sm font-semibold text-[var(--primary)]">{aiRec.summary.temperature}°C</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-(--primary-muted)">
+                  <Thermometer size={14} className="text-(--primary)" />
+                  <span className="text-sm font-semibold text-(--primary)">{aiRec.summary.temperature}°C</span>
                 </div>
               )}
             </div>
@@ -422,12 +422,12 @@ export default function Dashboard() {
                 return (
                   <div key={poolRec.poolNumber} className="card !p-3 opacity-50">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Fish size={13} className="text-[var(--text-muted)]" />
-                      <span className="text-[11px] font-bold text-[var(--text-muted)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      <Fish size={13} className="text-(--text-muted)" />
+                      <span className="text-[11px] font-bold text-(--text-muted)" style={{ fontFamily: 'Sora, sans-serif' }}>
                         Базен {poolRec.poolNumber}
                       </span>
                     </div>
-                    <p className="text-[10px] text-[var(--text-muted)]">Нема податоци</p>
+                    <p className="text-[10px] text-(--text-muted)">Нема податоци</p>
                   </div>
                 );
               }
@@ -442,8 +442,8 @@ export default function Dashboard() {
                 <div key={poolRec.poolNumber} className="card !p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Fish size={13} className="text-[var(--primary)]" />
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                      <Fish size={13} className="text-(--primary)" />
+                      <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                         Базен {poolRec.poolNumber}
                       </span>
                     </div>
@@ -452,29 +452,29 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
-                    {poolRec.recommendation.dailyFoodGr}<span className="text-[10px] font-normal text-[var(--text-muted)]"> g/ден</span>
+                  <p className="text-lg font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    {poolRec.recommendation.dailyFoodGr}<span className="text-[10px] font-normal text-(--text-muted)"> g/ден</span>
                   </p>
 
                   <div className="mt-1.5 space-y-0.5">
-                    <p className="text-[10px] text-[var(--text-secondary)]">
+                    <p className="text-[10px] text-(--text-secondary)">
                       {poolRec.poolData.fishCount} риби × {poolRec.poolData.avgWeight}g
                     </p>
                     <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
                       {poolRec.recommendation.foodType} ({poolRec.recommendation.feedSizeMm}mm)
                     </p>
-                    <p className="text-[10px] text-[var(--text-muted)]">
+                    <p className="text-[10px] text-(--text-muted)">
                       {poolRec.recommendation.feedRatePercent}% BW · {poolRec.recommendation.mealsPerDay}×{poolRec.recommendation.perMealGr}g
                     </p>
                   </div>
 
                   {/* Comparison with actual */}
                   {comp && (
-                    <div className="mt-2 pt-1.5 border-t border-[var(--border)]">
+                    <div className="mt-2 pt-1.5 border-t border-(--border)">
                       <p className="text-[10px] font-medium" style={{ color: statusColor }}>
                         {comp.status === 'optimal' ? '✓ Оптимално' :
                          comp.differencePercent > 0 ? `↑ +${comp.differencePercent}%` : `↓ ${comp.differencePercent}%`}
-                        <span className="text-[var(--text-muted)] font-normal"> (денес: {comp.actualGr}g)</span>
+                        <span className="text-(--text-muted) font-normal"> (денес: {comp.actualGr}g)</span>
                       </p>
                     </div>
                   )}

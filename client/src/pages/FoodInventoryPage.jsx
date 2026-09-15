@@ -39,19 +39,19 @@ export default function FoodInventoryPage() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="mb-6 animate-in">
-        <Link to="/inventory" className="inline-flex items-center gap-1 text-xs text-[var(--primary)] font-medium mb-3 hover:underline">
+        <Link to="/inventory" className="inline-flex items-center gap-1 text-xs text-(--primary) font-medium mb-3 hover:underline">
           <ArrowLeft size={14} /> Залиха
         </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="page-title">Залиха на храна</h1>
             <div className="flex items-center gap-1.5 -mt-1">
-              <Package size={13} className="text-[var(--text-muted)]" />
-              <p className="text-xs text-[var(--text-secondary)]">Тековни залихи и проекција</p>
+              <Package size={13} className="text-(--text-muted)" />
+              <p className="text-xs text-(--text-secondary)">Тековни залихи и проекција</p>
             </div>
           </div>
           {isAdmin && (
-            <Link to="/admin/inventory" className="btn-ghost text-xs flex items-center gap-1 text-[var(--primary)]">
+            <Link to="/admin/inventory" className="btn-ghost text-xs flex items-center gap-1 text-(--primary)">
               <Settings size={14} /> Управувај
             </Link>
           )}
@@ -60,8 +60,8 @@ export default function FoodInventoryPage() {
 
       {inventory.length === 0 ? (
         <div className="card text-center py-8 animate-in">
-          <Package size={32} className="mx-auto text-[var(--text-muted)] mb-2" />
-          <p className="text-sm text-[var(--text-secondary)]">Нема внесени залихи</p>
+          <Package size={32} className="mx-auto text-(--text-muted) mb-2" />
+          <p className="text-sm text-(--text-secondary)">Нема внесени залихи</p>
         </div>
       ) : (
         <div className="card !p-4 space-y-3 animate-in">
@@ -79,11 +79,11 @@ export default function FoodInventoryPage() {
             return (
               <div key={item.id}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                  <span className="text-[12px] font-medium text-(--text-secondary)">
                     {item.food_type}
                   </span>
                   <span className={`text-[12px] font-bold ${
-                    isLow ? 'text-[var(--danger)]' : isWarn ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'
+                    isLow ? 'text-(--danger)' : isWarn ? 'text-(--warning)' : 'text-(--text-primary)'
                   }`}>
                     {qty.toFixed(2)} kg
                   </span>
@@ -97,10 +97,10 @@ export default function FoodInventoryPage() {
                 <div className="flex items-center justify-end mt-0.5">
                   {daysLeft != null && daysLeft >= 0 ? (
                     <span className={`text-[10px] font-semibold inline-flex items-center gap-0.5 ${
-                      daysLeft <= 0 ? 'text-[var(--danger)]'
-                      : daysLeft <= 7 ? 'text-[var(--danger)]'
-                      : daysLeft <= 21 ? 'text-[var(--warning)]'
-                      : 'text-[var(--success)]'
+                      daysLeft <= 0 ? 'text-(--danger)'
+                      : daysLeft <= 7 ? 'text-(--danger)'
+                      : daysLeft <= 21 ? 'text-(--warning)'
+                      : 'text-(--success)'
                     }`}>
                       <Timer size={9} />
                       {daysLeft <= 0
@@ -111,7 +111,7 @@ export default function FoodInventoryPage() {
                       }
                     </span>
                   ) : (
-                    <span className="text-[9px] text-[var(--text-muted)] italic">Не се троши</span>
+                    <span className="text-[9px] text-(--text-muted) italic">Не се троши</span>
                   )}
                 </div>
               </div>
@@ -119,7 +119,7 @@ export default function FoodInventoryPage() {
           })}
 
           {inventory.some(i => parseFloat(i.quantity_kg) <= 5) && (
-            <p className="text-[11px] text-[var(--danger)] font-medium mt-1 flex items-center gap-1.5">
+            <p className="text-[11px] text-(--danger) font-medium mt-1 flex items-center gap-1.5">
               <AlertTriangle size={12} />
               Ниски залихи — потребна набавка
             </p>

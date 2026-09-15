@@ -70,25 +70,25 @@ export default function ManageUsers() {
           <h3 className="section-title">Нов корисник</h3>
           {error && <div className="alert-danger text-xs">{error}</div>}
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Е-пошта</label>
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Е-пошта</label>
             <input type="email" placeholder="нпр. korisnik@firma.mk"
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="input-base" required />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Целосно име</label>
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Целосно име</label>
             <input type="text" placeholder="Име Презиме"
               value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               className="input-base" required />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Лозинка</label>
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Лозинка</label>
             <input type="password" placeholder="••••••••"
               value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="input-base" required />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Улога</label>
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Улога</label>
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
               className="input-base">
               <option value="operator">Оператор</option>
@@ -107,7 +107,7 @@ export default function ManageUsers() {
       )}
 
       {/* Users table — desktop */}
-      <div className="hidden sm:block bg-[var(--surface)] rounded-[var(--r-md)] overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
+      <div className="hidden sm:block bg-(--surface) rounded-(--r-md) overflow-hidden animate-in-delay-1" style={{ boxShadow: 'var(--sh-card)' }}>
         <table className="table-modern">
           <thead>
             <tr>
@@ -135,7 +135,7 @@ export default function ManageUsers() {
                     </span>
                   </div>
                 </td>
-                <td className="text-[var(--text-secondary)] text-xs">{u.email}</td>
+                <td className="text-(--text-secondary) text-xs">{u.email}</td>
                 <td className="text-center">
                   <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
                     {u.role === 'admin' ? 'Админ' : 'Оператор'}
@@ -144,7 +144,7 @@ export default function ManageUsers() {
                 <td className="text-right">
                   {u.id !== currentUser.id && (
                     <button onClick={() => handleDelete(u.id, u.full_name)}
-                      className="btn-ghost text-[var(--danger)] hover:bg-red-50 p-2"
+                      className="btn-ghost text-(--danger) hover:bg-red-50 p-2"
                       aria-label={`Избриши ${u.full_name}`}>
                       <Trash2 size={15} />
                     </button>
@@ -170,17 +170,17 @@ export default function ManageUsers() {
                 {u.full_name?.[0] || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-[var(--text-primary)] truncate" style={{ fontFamily: 'Sora, sans-serif' }}>
+                <p className="font-semibold text-sm text-(--text-primary) truncate" style={{ fontFamily: 'Sora, sans-serif' }}>
                   {u.full_name}
                 </p>
-                <p className="text-xs text-[var(--text-muted)] truncate">{u.email}</p>
+                <p className="text-xs text-(--text-muted) truncate">{u.email}</p>
               </div>
               <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
                 {u.role === 'admin' ? 'Админ' : 'Оператор'}
               </span>
               {u.id !== currentUser.id && (
                 <button onClick={() => handleDelete(u.id, u.full_name)}
-                  className="btn-ghost text-[var(--danger)] p-2"
+                  className="btn-ghost text-(--danger) p-2"
                   aria-label={`Избриши ${u.full_name}`}>
                   <Trash2 size={16} />
                 </button>

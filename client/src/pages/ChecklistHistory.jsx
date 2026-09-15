@@ -149,20 +149,20 @@ export default function ChecklistHistory() {
             )}
 
             {/* Simple count */}
-            <span className="text-[11px] text-[var(--text-secondary)] flex-1 min-w-0">
-              Внесени <span className="font-bold text-[var(--text-primary)]">{monthStats.completed}</span> од {monthStats.lastDay} денови
+            <span className="text-[11px] text-(--text-secondary) flex-1 min-w-0">
+              Внесени <span className="font-bold text-(--text-primary)">{monthStats.completed}</span> од {monthStats.lastDay} денови
             </span>
 
             {/* Compact progress */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-16 h-1.5 bg-[var(--bg)] rounded-full overflow-hidden">
+              <div className="w-16 h-1.5 bg-(--bg) rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${monthStats.pct}%`,
                     background: monthStats.pct >= 80 ? '#22C55E' : monthStats.pct >= 50 ? '#F59E0B' : '#EF4444',
                   }} />
               </div>
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] w-7 text-right">{monthStats.pct}%</span>
+              <span className="text-[10px] font-bold text-(--text-secondary) w-7 text-right">{monthStats.pct}%</span>
             </div>
           </div>
         </div>
@@ -176,13 +176,13 @@ export default function ChecklistHistory() {
             <ChevronLeft size={20} />
           </button>
           <div className="text-center">
-            <h2 className="text-base font-bold text-[var(--text-primary)]"
+            <h2 className="text-base font-bold text-(--text-primary)"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               {MK_MONTHS[month]} {year}
             </h2>
             {!isCurrentMonth && (
               <button onClick={goToday}
-                className="text-[11px] text-[var(--primary)] font-medium hover:underline mt-0.5">
+                className="text-[11px] text-(--primary) font-medium hover:underline mt-0.5">
                 Оди на денес
               </button>
             )}
@@ -200,7 +200,7 @@ export default function ChecklistHistory() {
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {MK_DAYS_SHORT.map(d => (
-            <div key={d} className="text-center text-[10px] font-semibold text-[var(--text-muted)] uppercase"
+            <div key={d} className="text-center text-[10px] font-semibold text-(--text-muted) uppercase"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               {d}
             </div>
@@ -250,8 +250,8 @@ export default function ChecklistHistory() {
                     aspect-square rounded-xl flex flex-col items-center justify-center
                     transition-all duration-150 relative
                     ${future ? 'opacity-30 cursor-default' : 'cursor-pointer hover:scale-105 active:scale-95'}
-                    ${isSelected ? 'ring-2 ring-[var(--primary)] ring-offset-1' : ''}
-                    ${isToday ? 'ring-1 ring-[var(--primary)]' : ''}
+                    ${isSelected ? 'ring-2 ring-(--primary) ring-offset-1' : ''}
+                    ${isToday ? 'ring-1 ring-(--primary)' : ''}
                   `}
                   style={{
                     background: colors.bg || 'var(--surface)',
@@ -259,7 +259,7 @@ export default function ChecklistHistory() {
                   }}
                 >
                   <span className={`text-[13px] font-semibold leading-none ${
-                    isToday ? 'text-[var(--primary)]' : 'text-[var(--text-primary)]'
+                    isToday ? 'text-(--primary)' : 'text-(--text-primary)'
                   }`} style={{ fontFamily: 'Sora, sans-serif' }}>
                     {day}
                   </span>
@@ -268,7 +268,7 @@ export default function ChecklistHistory() {
                   {data && !future && (
                     <div className="flex items-center gap-[2px] mt-1">
                       {data.checklist && (
-                        <div className="w-[5px] h-[5px] rounded-full bg-[var(--primary)]" title="Чеклиста" />
+                        <div className="w-[5px] h-[5px] rounded-full bg-(--primary)" title="Чеклиста" />
                       )}
                       {data.meals?.includes('breakfast') && (
                         <div className="w-[5px] h-[5px] rounded-full bg-amber-400" title="Појадок" />
@@ -280,7 +280,7 @@ export default function ChecklistHistory() {
                         <div className="w-[5px] h-[5px] rounded-full bg-indigo-400" title="Вечера" />
                       )}
                       {data.alert_count > 0 && (
-                        <div className="w-[5px] h-[5px] rounded-full bg-[var(--danger)]" title="Аларми" />
+                        <div className="w-[5px] h-[5px] rounded-full bg-(--danger)" title="Аларми" />
                       )}
                     </div>
                   )}
@@ -291,26 +291,26 @@ export default function ChecklistHistory() {
         )}
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[var(--border)]">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 pt-3 border-t border-(--border)">
           <div className="flex items-center gap-1.5">
-            <div className="w-[6px] h-[6px] rounded-full bg-[var(--primary)]" />
-            <span className="text-[10px] text-[var(--text-muted)]">Чеклиста</span>
+            <div className="w-[6px] h-[6px] rounded-full bg-(--primary)" />
+            <span className="text-[10px] text-(--text-muted)">Чеклиста</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-[6px] h-[6px] rounded-full bg-amber-400" />
-            <span className="text-[10px] text-[var(--text-muted)]">Појадок</span>
+            <span className="text-[10px] text-(--text-muted)">Појадок</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-[6px] h-[6px] rounded-full bg-yellow-400" />
-            <span className="text-[10px] text-[var(--text-muted)]">Ручек</span>
+            <span className="text-[10px] text-(--text-muted)">Ручек</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-[6px] h-[6px] rounded-full bg-indigo-400" />
-            <span className="text-[10px] text-[var(--text-muted)]">Вечера</span>
+            <span className="text-[10px] text-(--text-muted)">Вечера</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-[6px] h-[6px] rounded-full bg-[var(--danger)]" />
-            <span className="text-[10px] text-[var(--text-muted)]">Аларм</span>
+            <div className="w-[6px] h-[6px] rounded-full bg-(--danger)" />
+            <span className="text-[10px] text-(--text-muted)">Аларм</span>
           </div>
         </div>
       </div>
@@ -322,10 +322,10 @@ export default function ChecklistHistory() {
           <div className="px-4 py-3">
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]"
+              <h3 className="text-sm font-bold text-(--text-primary)"
                 style={{ fontFamily: 'Sora, sans-serif' }}>
                 {selectedDay} {MK_MONTHS[month]} {year}
-                <span className="text-[var(--text-muted)] font-normal text-xs ml-2">
+                <span className="text-(--text-muted) font-normal text-xs ml-2">
                   {MK_DAYS[new Date(year, month, selectedDay).getDay()]}
                 </span>
               </h3>
@@ -341,13 +341,13 @@ export default function ChecklistHistory() {
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: selectedDayData.checklist ? 'rgba(34,197,94,0.1)' : 'var(--bg)' }}>
                     {selectedDayData.checklist
-                      ? <CheckCircle size={16} className="text-[var(--success)]" />
-                      : <ClipboardList size={16} className="text-[var(--text-muted)]" />
+                      ? <CheckCircle size={16} className="text-(--success)" />
+                      : <ClipboardList size={16} className="text-(--text-muted)" />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[var(--text-primary)]">Чеклиста</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">
+                    <p className="text-xs font-semibold text-(--text-primary)">Чеклиста</p>
+                    <p className="text-[11px] text-(--text-muted)">
                       {selectedDayData.checklist
                         ? `Пополнета — ${selectedDayData.checked_by}`
                         : 'Не е пополнета'
@@ -356,7 +356,7 @@ export default function ChecklistHistory() {
                   </div>
                   {selectedDayData.record_id && (
                     <Link to={`/history/${selectedDayData.record_id}`}
-                      className="btn-ghost text-xs text-[var(--primary)]">
+                      className="btn-ghost text-xs text-(--primary)">
                       Детали <ChevronRight size={14} />
                     </Link>
                   )}
@@ -365,8 +365,8 @@ export default function ChecklistHistory() {
                 {/* Alerts */}
                 {selectedDayData.alert_count > 0 && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                    <AlertTriangle size={14} className="text-[var(--danger)]" />
-                    <span className="text-xs font-semibold text-[var(--danger)]">
+                    <AlertTriangle size={14} className="text-(--danger)" />
+                    <span className="text-xs font-semibold text-(--danger)">
                       {selectedDayData.alert_count} {selectedDayData.alert_count === 1 ? 'аларм' : 'аларми'}
                     </span>
                   </div>
@@ -392,10 +392,10 @@ export default function ChecklistHistory() {
                         }}
                       >
                         {meal.icon}
-                        <span className={`text-[10px] font-semibold ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}`}>
+                        <span className={`text-[10px] font-semibold ${filled ? 'text-(--success)' : 'text-(--text-muted)'}`}>
                           {meal.label}
                         </span>
-                        <span className={`text-[9px] ${filled ? 'text-[var(--success)]' : 'text-[var(--text-muted)] opacity-50'}`}>
+                        <span className={`text-[9px] ${filled ? 'text-(--success)' : 'text-(--text-muted) opacity-50'}`}>
                           {filled ? '✓ Измени' : '+ Додај'}
                         </span>
                       </Link>
@@ -405,10 +405,10 @@ export default function ChecklistHistory() {
               </div>
             ) : (
               <div className="text-center py-4">
-                <Clock size={24} className="mx-auto text-[var(--text-muted)] mb-1.5" />
-                <p className="text-xs text-[var(--text-muted)]">Нема записи за овој ден</p>
+                <Clock size={24} className="mx-auto text-(--text-muted) mb-1.5" />
+                <p className="text-xs text-(--text-muted)">Нема записи за овој ден</p>
                 <Link to="/checklist"
-                  className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-[var(--primary)] hover:underline">
+                  className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-(--primary) hover:underline">
                   <ClipboardList size={12} /> Пополни чеклиста
                 </Link>
               </div>

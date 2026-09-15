@@ -272,7 +272,7 @@ export default function MealForm() {
         </div>
         <div>
           <h1 className="page-title flex items-center gap-2">{mealIcon} {mealLabel}</h1>
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-(--text-secondary)">
             {isEdit ? 'Ажурирање на оброк' : 'Внесете храна по базен'}
           </p>
         </div>
@@ -281,8 +281,8 @@ export default function MealForm() {
       {/* Date picker */}
       <div className="card mb-4 animate-in-delay-1 !py-3">
         <div className="flex items-center gap-3">
-          <Calendar size={16} className="text-[var(--primary)] flex-shrink-0" />
-          <label htmlFor="meal-date" className="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
+          <Calendar size={16} className="text-(--primary) flex-shrink-0" />
+          <label htmlFor="meal-date" className="text-xs font-semibold text-(--text-secondary) whitespace-nowrap"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             Датум
           </label>
@@ -298,7 +298,7 @@ export default function MealForm() {
             <button
               type="button"
               onClick={() => handleDateChange(today)}
-              className="text-[11px] text-[var(--primary)] font-medium whitespace-nowrap hover:underline"
+              className="text-[11px] text-(--primary) font-medium whitespace-nowrap hover:underline"
             >
               Денес
             </button>
@@ -320,8 +320,8 @@ export default function MealForm() {
             type="button"
             onClick={() => setActivePool(num)}
             className={`${activePool === num ? 'chip-active' : 'chip-inactive'} ${
-              isPoolIncomplete(num) ? '!border-[var(--danger)] !text-[var(--danger)]' : ''
-            } ${isPoolFilled(num) && activePool !== num ? '!border-[var(--success)] !text-[var(--success)]' : ''}`}
+              isPoolIncomplete(num) ? '!border-(--danger) !text-(--danger)' : ''
+            } ${isPoolFilled(num) && activePool !== num ? '!border-(--success) !text-(--success)' : ''}`}
           >
             Б{num}
           </button>
@@ -329,12 +329,12 @@ export default function MealForm() {
       </div>
 
       {/* Pool form */}
-      <div className={`card mb-4 animate-in-delay-2 ${currentIncomplete ? 'border-[var(--danger)]' : ''}`}>
+      <div className={`card mb-4 animate-in-delay-2 ${currentIncomplete ? 'border-(--danger)' : ''}`}>
         <div className="space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Fish size={16} className="text-[var(--primary)]" />
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <Fish size={16} className="text-(--primary)" />
+              <h3 className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Базен бр. {activePool}
               </h3>
             </div>
@@ -342,7 +342,7 @@ export default function MealForm() {
               <button
                 type="button"
                 onClick={fillFromLast}
-                className="text-[11px] font-semibold text-[var(--primary)] hover:underline flex items-center gap-1"
+                className="text-[11px] font-semibold text-(--primary) hover:underline flex items-center gap-1"
               >
                 <Copy size={12} />
                 Пополни
@@ -374,7 +374,7 @@ export default function MealForm() {
             const dailyGr = rec.dailyFoodGr;
 
             return (
-              <div className="rounded-[var(--r-sm)] p-3 flex flex-col gap-1.5"
+              <div className="rounded-(--r-sm) p-3 flex flex-col gap-1.5"
                 style={{
                   background: 'linear-gradient(135deg, rgba(109,40,217,0.10), rgba(139,92,246,0.07))',
                   border: '1px solid rgba(109,40,217,0.22)',
@@ -386,10 +386,10 @@ export default function MealForm() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-[var(--text-secondary)]">
+                    <span className="text-xs text-(--text-secondary)">
                       <strong style={{ color: '#7c3aed' }}>{perMealGr}g</strong> /оброк
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)]">×{mealsCount} = {dailyGr}g/ден</span>
+                    <span className="text-[10px] text-(--text-muted)">×{mealsCount} = {dailyGr}g/ден</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                     style={{
@@ -413,15 +413,15 @@ export default function MealForm() {
             const hasType = food.food_type && food.food_type.trim() !== '';
             const hasQty = food.food_quantity_gr !== '' && parseFloat(food.food_quantity_gr) > 0;
             return (
-              <div key={fi} className={`${fi > 0 ? 'pt-3 border-t border-dashed border-[var(--border)]' : ''}`}>
+              <div key={fi} className={`${fi > 0 ? 'pt-3 border-t border-dashed border-(--border)' : ''}`}>
                 {poolData.foods.length > 1 && (
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold text-[var(--text-muted)]"
+                    <span className="text-[10px] font-semibold text-(--text-muted)"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
                       Храна {fi + 1}
                     </span>
                     <button type="button" onClick={() => removeFood(activePool, fi)}
-                      className="text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full p-0.5 transition-colors"
+                      className="text-(--danger) hover:bg-(--danger)/10 rounded-full p-0.5 transition-colors"
                       aria-label="Тргни храна">
                       <X size={14} />
                     </button>
@@ -429,33 +429,33 @@ export default function MealForm() {
                 )}
                 <div className="space-y-2.5">
                   <div>
-                    <label htmlFor={`food-type-${activePool}-${fi}`} className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+                    <label htmlFor={`food-type-${activePool}-${fi}`} className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
-                      <UtensilsCrossed size={12} className="text-[var(--primary)]" />
-                      Тип на храна <span className="text-[var(--danger)]">*</span>
+                      <UtensilsCrossed size={12} className="text-(--primary)" />
+                      Тип на храна <span className="text-(--danger)">*</span>
                     </label>
                     <select
                       id={`food-type-${activePool}-${fi}`}
                       value={food.food_type ?? ''}
                       onChange={(e) => updateFood(activePool, fi, 'food_type', e.target.value)}
-                      className={`input-base ${!hasType && hasQty ? 'border-[var(--danger)]' : ''}`}
+                      className={`input-base ${!hasType && hasQty ? 'border-(--danger)' : ''}`}
                     >
                       <option value="">-- Избери тип на храна --</option>
                       {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+                    <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
                       style={{ fontFamily: 'Sora, sans-serif' }}>
-                      <Weight size={12} className="text-[var(--primary)]" />
-                      Количина (gr) <span className="text-[var(--danger)]">*</span>
+                      <Weight size={12} className="text-(--primary)" />
+                      Количина (gr) <span className="text-(--danger)">*</span>
                     </label>
                     <input
                       type="number"
                       step="any"
                       value={food.food_quantity_gr ?? ''}
                       onChange={(e) => updateFood(activePool, fi, 'food_quantity_gr', e.target.value)}
-                      className={`input-base ${hasType && !hasQty ? 'border-[var(--danger)]' : ''}`}
+                      className={`input-base ${hasType && !hasQty ? 'border-(--danger)' : ''}`}
                       placeholder="нпр. 200"
                     />
                   </div>
@@ -466,7 +466,7 @@ export default function MealForm() {
 
           {/* Add another food type */}
           <button type="button" onClick={() => addFood(activePool)}
-            className="w-full py-2 rounded-lg border border-dashed border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2 rounded-lg border border-dashed border-(--border) text-xs font-semibold text-(--text-secondary) hover:border-(--primary) hover:text-(--primary) transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             <Plus size={14} />
             Додади уште еден тип храна

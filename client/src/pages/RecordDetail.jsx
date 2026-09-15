@@ -206,8 +206,8 @@ ${html}
 
   if (!data) return (
     <div className="text-center py-12">
-      <p className="text-[var(--danger)] font-medium">Записот не е пронајден</p>
-      <Link to="/history" className="text-sm text-[var(--primary)] mt-2 inline-block">← Назад</Link>
+      <p className="text-(--danger) font-medium">Записот не е пронајден</p>
+      <Link to="/history" className="text-sm text-(--primary) mt-2 inline-block">← Назад</Link>
     </div>
   );
 
@@ -241,9 +241,9 @@ ${html}
 
   // Check helpers
   const okBadge = (val) => {
-    if (val === true) return <span className="inline-flex items-center gap-0.5 text-[var(--success)] font-semibold"><Check size={12} /> ОК</span>;
-    if (val === false) return <span className="inline-flex items-center gap-0.5 text-[var(--danger)] font-semibold"><X size={12} /> НЕ</span>;
-    return <span className="text-[var(--text-muted)]">–</span>;
+    if (val === true) return <span className="inline-flex items-center gap-0.5 text-(--success) font-semibold"><Check size={12} /> ОК</span>;
+    if (val === false) return <span className="inline-flex items-center gap-0.5 text-(--danger) font-semibold"><X size={12} /> НЕ</span>;
+    return <span className="text-(--text-muted)">–</span>;
   };
 
   return (
@@ -256,31 +256,31 @@ ${html}
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-[var(--text-primary)] leading-tight"
+            <h1 className="text-base font-bold text-(--text-primary) leading-tight"
               style={{ fontFamily: 'Sora, sans-serif' }}>
               {dateStr}
             </h1>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Проверил: {record.checked_by_name}</p>
+            <p className="text-[11px] text-(--text-muted) mt-0.5">Проверил: {record.checked_by_name}</p>
           </div>
         </div>
 
         {/* Action buttons — compact row */}
         <div className="flex gap-1.5 mt-3 flex-wrap">
           <Link to={`/checklist/${id}`}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-[var(--primary)] text-white active:scale-95 transition-transform">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-(--primary) text-white active:scale-95 transition-transform">
             <Pencil size={12} /> Едитирај
           </Link>
           <button onClick={handleDelete}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--danger)] border border-[var(--border)] active:scale-95 transition-transform" style={{ background: 'rgba(239,68,68,0.08)' }}>
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-(--danger) border border-(--border) active:scale-95 transition-transform" style={{ background: 'rgba(239,68,68,0.08)' }}>
             <Trash2 size={12} /> Избриши
           </button>
           <button onClick={handleSendReport} disabled={sending}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)] active:scale-95 transition-transform">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-(--bg-secondary) text-(--text-secondary) border border-(--border) active:scale-95 transition-transform">
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
             {sending ? 'Праќа...' : 'Испрати'}
           </button>
           <button onClick={handlePrintDaily}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)] active:scale-95 transition-transform">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-(--bg-secondary) text-(--text-secondary) border border-(--border) active:scale-95 transition-transform">
             <Printer size={12} /> Принтај
           </button>
         </div>
@@ -289,7 +289,7 @@ ${html}
       {/* Alerts Banner */}
       {alerts.length > 0 && (
         <div className="rounded-2xl p-3 animate-in-delay-1" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <h3 className="flex items-center gap-1.5 font-bold text-xs text-[var(--danger)] mb-2"
+          <h3 className="flex items-center gap-1.5 font-bold text-xs text-(--danger) mb-2"
             style={{ fontFamily: 'Sora, sans-serif' }}>
             <AlertTriangle size={14} /> {alerts.length} {alerts.length === 1 ? 'Аларм' : 'Аларми'}
           </h3>
@@ -299,9 +299,9 @@ ${html}
               const hasNorms = a.min_norm != null || a.max_norm != null;
               const unit = PARAMETER_LABELS[a.parameter_name]?.unit || '';
               return (
-                <div key={a.id} className="flex items-center justify-between bg-[var(--surface)]/60 rounded-lg px-2.5 py-1.5">
-                  <span className="text-[11px] text-[var(--danger)] font-medium">{label}</span>
-                  <span className="text-[11px] font-bold text-[var(--danger)]">
+                <div key={a.id} className="flex items-center justify-between bg-(--surface)/60 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[11px] text-(--danger) font-medium">{label}</span>
+                  <span className="text-[11px] font-bold text-(--danger)">
                     {hasNorms ? (
                       <>{a.value}{unit ? ` ${unit}` : ''} <span className="font-normal opacity-70">(норма: {a.min_norm ?? '-'} – {a.max_norm ?? '-'})</span></>
                     ) : (
@@ -322,13 +322,13 @@ ${html}
           <div className="card !p-3 !rounded-2xl">
             <div className="flex items-center gap-1.5 mb-2">
               <Droplets size={14} className="text-blue-500" />
-              <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Вода</span>
+              <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Вода</span>
             </div>
             <div className="space-y-1">
               {Object.entries(PARAMETER_LABELS).map(([key, { label, unit }]) => (
                 <div key={key} className="flex justify-between items-center">
-                  <span className="text-[10px] text-[var(--text-muted)] truncate mr-1">{label}</span>
-                  <span className="text-[11px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                  <span className="text-[10px] text-(--text-muted) truncate mr-1">{label}</span>
+                  <span className="text-[11px] font-semibold text-(--text-primary) whitespace-nowrap">
                     {water_control[key] != null ? `${water_control[key]}${unit ? ` ${unit}` : ''}` : '–'}
                   </span>
                 </div>
@@ -343,18 +343,18 @@ ${html}
             <div className="card !p-3 !rounded-2xl">
               <div className="flex items-center gap-1.5 mb-2">
                 <Filter size={14} className="text-purple-500" />
-                <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Филтрација</span>
+                <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Филтрација</span>
               </div>
               <div className="space-y-1">
                 {Object.entries(FILTRATION_LABELS).map(([key, label]) => (
                   <div key={key} className="flex justify-between items-center">
-                    <span className="text-[10px] text-[var(--text-muted)] truncate mr-1">{label}</span>
+                    <span className="text-[10px] text-(--text-muted) truncate mr-1">{label}</span>
                     <span className="text-[11px]">
                       {key === 'bio_filter_foam'
                         ? (filtration_checks[key] === 'yes'
-                          ? <span className="text-[var(--danger)] font-semibold">Има</span>
+                          ? <span className="text-(--danger) font-semibold">Има</span>
                           : filtration_checks[key] === 'no'
-                          ? <span className="text-[var(--success)] font-semibold">Нема</span>
+                          ? <span className="text-(--success) font-semibold">Нема</span>
                           : '–')
                         : okBadge(filtration_checks[key])
                       }
@@ -362,7 +362,7 @@ ${html}
                   </div>
                 ))}
                 {filtration_checks.notes && (
-                  <p className="text-[10px] text-[var(--text-muted)] italic mt-1 pt-1 border-t border-[var(--border)]">
+                  <p className="text-[10px] text-(--text-muted) italic mt-1 pt-1 border-t border-(--border)">
                     {filtration_checks.notes}
                   </p>
                 )}
@@ -374,17 +374,17 @@ ${html}
             <div className="card !p-3 !rounded-2xl">
               <div className="flex items-center gap-1.5 mb-2">
                 <Fish size={14} className="text-cyan-500" />
-                <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Визуелна</span>
+                <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Визуелна</span>
               </div>
               <div className="space-y-1">
                 {Object.entries(FISH_VISUAL_LABELS).map(([key, label]) => (
                   <div key={key} className="flex justify-between items-center">
-                    <span className="text-[10px] text-[var(--text-muted)] truncate mr-1">{label}</span>
+                    <span className="text-[10px] text-(--text-muted) truncate mr-1">{label}</span>
                     <span className="text-[11px]">{okBadge(fish_visual[key])}</span>
                   </div>
                 ))}
                 {fish_visual.notes && (
-                  <p className="text-[10px] text-[var(--text-muted)] italic mt-1 pt-1 border-t border-[var(--border)]">
+                  <p className="text-[10px] text-(--text-muted) italic mt-1 pt-1 border-t border-(--border)">
                     {fish_visual.notes}
                   </p>
                 )}
@@ -399,7 +399,7 @@ ${html}
         <div className="card !p-3 !rounded-2xl animate-in-delay-2">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Warehouse size={14} className="text-indigo-500" />
-            <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
               Евиденција на базени
             </span>
           </div>
@@ -408,7 +408,7 @@ ${html}
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-[11px]" style={{ minWidth: '100%' }}>
               <thead>
-                <tr className="text-[10px] text-[var(--text-muted)]">
+                <tr className="text-[10px] text-(--text-muted)">
                   <th className="text-left font-semibold py-1 px-1.5">Базен</th>
                   <th className="text-right font-semibold py-1 px-1.5">Риби</th>
                   <th className="text-right font-semibold py-1 px-1.5">Тежина</th>
@@ -426,8 +426,8 @@ ${html}
                   const avgW = parseFloat(pf.avg_weight_gr) || 0;
                   const totalKgPool = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : null;
                   return (
-                    <tr key={pf.pool_number} className="border-t border-[var(--border)]">
-                      <td className="py-1.5 px-1.5 font-semibold text-[var(--primary)]">#{pf.pool_number}</td>
+                    <tr key={pf.pool_number} className="border-t border-(--border)">
+                      <td className="py-1.5 px-1.5 font-semibold text-(--primary)">#{pf.pool_number}</td>
                       <td className="py-1.5 px-1.5 text-right font-medium">{actualCount}</td>
                       <td className="py-1.5 px-1.5 text-right">{avgW > 0 ? `${avgW} gr` : '–'}</td>
                       <td className="py-1.5 px-1.5 text-right font-medium">{totalKgPool != null ? `${totalKgPool.toFixed(1)}` : '–'}</td>
@@ -438,7 +438,7 @@ ${html}
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[var(--primary)] text-[var(--primary)] font-bold">
+                <tr className="border-t-2 border-(--primary) text-(--primary) font-bold">
                   <td className="py-1.5 px-1.5">Збир</td>
                   <td className="py-1.5 px-1.5 text-right">{totalFish}</td>
                   <td className="py-1.5 px-1.5"></td>
@@ -457,40 +457,40 @@ ${html}
         <div className="card !p-3 !rounded-2xl animate-in-delay-2">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Utensils size={14} className="text-orange-500" />
-            <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
               Храна
             </span>
-            <span className="ml-auto text-[11px] font-bold text-[var(--primary)]">{grandTotalFood} gr</span>
+            <span className="ml-auto text-[11px] font-bold text-(--primary)">{grandTotalFood} gr</span>
           </div>
 
           <div className="space-y-2">
             {poolMealData.map(({ poolNum, mealRows, total }) => (
-              <div key={poolNum} className="bg-[var(--bg-secondary)] rounded-xl p-2.5">
+              <div key={poolNum} className="bg-(--bg-secondary) rounded-xl p-2.5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-[var(--primary)]">Базен {poolNum}</span>
-                  <span className="text-[10px] font-semibold text-[var(--text-muted)]">{total} gr</span>
+                  <span className="text-[11px] font-bold text-(--primary)">Базен {poolNum}</span>
+                  <span className="text-[10px] font-semibold text-(--text-muted)">{total} gr</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {mealRows.map(meal => (
                     <div key={meal.type}
                       className={`rounded-lg px-2 py-1.5 text-center ${
                         meal.has_data
-                          ? 'bg-[var(--surface)] border border-[var(--border)]'
-                          : 'bg-[var(--bg-secondary)] opacity-40'
+                          ? 'bg-(--surface) border border-(--border)'
+                          : 'bg-(--bg-secondary) opacity-40'
                       }`}>
                       <div className="flex items-center justify-center gap-1 mb-0.5">
                         {MEAL_ICONS[meal.type]}
-                        <span className="text-[9px] font-semibold text-[var(--text-muted)]">{meal.label}</span>
+                        <span className="text-[9px] font-semibold text-(--text-muted)">{meal.label}</span>
                       </div>
                       {meal.has_data ? (
                         <>
-                          <p className="text-[11px] font-bold text-[var(--text-primary)]">{meal.food_quantity_gr}g</p>
+                          <p className="text-[11px] font-bold text-(--text-primary)">{meal.food_quantity_gr}g</p>
                           {meal.foodItems.map((fi, idx) => (
-                            <p key={idx} className="text-[9px] text-[var(--text-muted)]">{fi.food_type}{meal.foodItems.length > 1 ? ` ${fi.food_quantity_gr}g` : ''}</p>
+                            <p key={idx} className="text-[9px] text-(--text-muted)">{fi.food_type}{meal.foodItems.length > 1 ? ` ${fi.food_quantity_gr}g` : ''}</p>
                           ))}
                         </>
                       ) : (
-                        <p className="text-[10px] text-[var(--text-muted)]">–</p>
+                        <p className="text-[10px] text-(--text-muted)">–</p>
                       )}
                     </div>
                   ))}
@@ -506,11 +506,11 @@ ${html}
         <div className="card !p-3 !rounded-2xl animate-in-delay-2">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Utensils size={14} className="text-orange-500" />
-            <span className="text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Храна</span>
+            <span className="text-[11px] font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>Храна</span>
           </div>
           {pool_feeding.filter(pf => pf.food_type || parseFloat(pf.food_quantity_gr) > 0).map(pf => (
-            <div key={pf.pool_number} className="flex justify-between text-xs py-1.5 border-b border-[var(--border)] last:border-0">
-              <span className="font-semibold text-[var(--primary)]">Базен {pf.pool_number}</span>
+            <div key={pf.pool_number} className="flex justify-between text-xs py-1.5 border-b border-(--border) last:border-0">
+              <span className="font-semibold text-(--primary)">Базен {pf.pool_number}</span>
               <span className="font-medium">{pf.food_type} — {pf.food_quantity_gr} gr</span>
             </div>
           ))}

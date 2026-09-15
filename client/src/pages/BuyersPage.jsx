@@ -69,7 +69,7 @@ export default function BuyersPage() {
         <button onClick={() => navigate('/production/sales')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Купувачи</h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">{buyers.length} зачувани</p>
+          <p className="text-xs text-(--text-secondary) mt-0.5">{buyers.length} зачувани</p>
         </div>
         <button onClick={startNew} className="btn-primary text-sm flex items-center gap-1.5"><Plus size={16} /> Нов</button>
       </div>
@@ -79,7 +79,7 @@ export default function BuyersPage() {
       {/* Edit / New form */}
       {isEditing && (
         <div className="card mb-4 animate-in border-2" style={{ borderColor: 'var(--primary)' }}>
-          <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
+          <h3 className="text-sm font-bold text-(--text-primary) mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
             {editingId ? 'Измени купувач' : 'Нов купувач'}
           </h3>
           <div className="grid grid-cols-2 gap-3 mb-3">
@@ -118,8 +118,8 @@ export default function BuyersPage() {
       {/* Buyers list */}
       {buyers.length === 0 ? (
         <div className="card text-center py-12 animate-in">
-          <Users size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm text-[var(--text-secondary)]">Нема купувачи</p>
+          <Users size={40} className="mx-auto mb-3 text-(--text-muted)" />
+          <p className="text-sm text-(--text-secondary)">Нема купувачи</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -130,13 +130,13 @@ export default function BuyersPage() {
                 {b.name[0]}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{b.name}</p>
-                <p className="text-[10px] text-[var(--text-muted)] truncate">
+                <p className="text-sm font-semibold text-(--text-primary) truncate">{b.name}</p>
+                <p className="text-[10px] text-(--text-muted) truncate">
                   {[b.edb && `ЕДБ: ${b.edb}`, b.phone, b.address].filter(Boolean).join(' • ') || 'Без детали'}
                 </p>
               </div>
               <button onClick={() => startEdit(b)} className="btn-ghost p-1.5"><Pencil size={14} /></button>
-              <button onClick={() => handleDelete(b.id)} className="btn-ghost p-1.5 text-[var(--danger)]"><Trash2 size={14} /></button>
+              <button onClick={() => handleDelete(b.id)} className="btn-ghost p-1.5 text-(--danger)"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>

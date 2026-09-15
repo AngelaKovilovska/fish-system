@@ -18,7 +18,7 @@ export default function AdminHub() {
         </button>
         <h1 className="page-title">Администрација</h1>
       </div>
-      <p className="text-sm text-[var(--text-muted)] mb-5 animate-in" style={{ fontFamily: 'Sora, sans-serif' }}>
+      <p className="text-sm text-(--text-muted) mb-5 animate-in" style={{ fontFamily: 'Sora, sans-serif' }}>
         Управување со системот
       </p>
 
@@ -32,12 +32,12 @@ export default function AdminHub() {
               <item.icon size={20} style={{ color: item.color }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <p className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                 {item.label}
               </p>
-              <p className="text-xs text-[var(--text-muted)]">{item.desc}</p>
+              <p className="text-xs text-(--text-muted)">{item.desc}</p>
             </div>
-            <ChevronRight size={16} className="text-[var(--text-muted)] flex-shrink-0" />
+            <ChevronRight size={16} className="text-(--text-muted) flex-shrink-0" />
           </Link>
         ))}
       </div>

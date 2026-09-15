@@ -130,7 +130,7 @@ export default function ManagePoolMeasurements() {
           </button>
           <h1 className="page-title mb-1">Мерења по базен</h1>
         </div>
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+        <p className="text-xs text-(--text-muted) leading-relaxed">
           Внесете број на риби и просечна тежина. Зачувајте сè одеднаш на крајот.
         </p>
       </div>
@@ -138,8 +138,8 @@ export default function ManagePoolMeasurements() {
       {/* Date picker — shared for all pools */}
       <div className="card mb-3 animate-in">
         <div className="flex items-center gap-2.5 mb-2">
-          <Calendar size={15} className="text-[var(--primary)]" />
-          <label className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
+          <Calendar size={15} className="text-(--primary)" />
+          <label className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>Датум на мерење</label>
         </div>
         <input type="date" value={measuredDate}
           onChange={(e) => setMeasuredDate(e.target.value)}
@@ -154,10 +154,10 @@ export default function ManagePoolMeasurements() {
           return (
             <button key={num} type="button"
               onClick={() => { setActivePool(num); setMessage(''); setShowHistory(false); setHistory([]); }}
-              className={`relative ${isActive ? 'chip-active' : hasData ? 'chip-inactive !border-[rgba(34,197,94,0.3)] !text-[var(--success)] !bg-[rgba(34,197,94,0.06)]' : 'chip-inactive'}`}>
+              className={`relative ${isActive ? 'chip-active' : hasData ? 'chip-inactive !border-[rgba(34,197,94,0.3)] !text-(--success) !bg-[rgba(34,197,94,0.06)]' : 'chip-inactive'}`}>
               Б{num}
               {hasData && !isActive && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[var(--success)] rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-(--success) rounded-full flex items-center justify-center">
                   <Check size={8} className="text-white" strokeWidth={3} />
                 </span>
               )}
@@ -183,25 +183,25 @@ export default function ManagePoolMeasurements() {
               <Info size={13} /> Последно мерење:
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-[var(--surface)]/60 rounded-[var(--r-sm)] p-2.5 text-center">
-                <Fish size={14} className="mx-auto text-[var(--primary)] mb-1" />
-                <p className="text-[10px] text-[var(--text-muted)] font-medium">Број на риби</p>
-                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.fish_count}</p>
+              <div className="bg-(--surface)/60 rounded-(--r-sm) p-2.5 text-center">
+                <Fish size={14} className="mx-auto text-(--primary) mb-1" />
+                <p className="text-[10px] text-(--text-muted) font-medium">Број на риби</p>
+                <p className="text-lg font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.fish_count}</p>
               </div>
-              <div className="bg-[var(--surface)]/60 rounded-[var(--r-sm)] p-2.5 text-center">
-                <Weight size={14} className="mx-auto text-[var(--primary)] mb-1" />
-                <p className="text-[10px] text-[var(--text-muted)] font-medium">Просечна тежина</p>
-                <p className="text-lg font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.avg_weight_gr} gr</p>
+              <div className="bg-(--surface)/60 rounded-(--r-sm) p-2.5 text-center">
+                <Weight size={14} className="mx-auto text-(--primary) mb-1" />
+                <p className="text-[10px] text-(--text-muted) font-medium">Просечна тежина</p>
+                <p className="text-lg font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>{currentMeasurement.avg_weight_gr} gr</p>
               </div>
             </div>
-            <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">
+            <p className="text-[10px] text-(--text-muted) mt-2 text-center">
               {new Date(currentMeasurement.measured_at).toLocaleDateString('mk-MK', {
                 year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
               })}
             </p>
           </div>
         ) : (
-          <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-[var(--r-md)] mb-4 text-xs text-[var(--text-muted)] text-center">
+          <div className="bg-(--bg) border border-(--border) p-4 rounded-(--r-md) mb-4 text-xs text-(--text-muted) text-center">
             Нема внесено мерење за овој базен
           </div>
         )}
@@ -212,18 +212,18 @@ export default function ManagePoolMeasurements() {
             style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03))', border: '1px solid rgba(34,197,94,0.2)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Fish size={14} className="text-[var(--success)]" />
-                <span className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                <Fish size={14} className="text-(--success)" />
+                <span className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                   Актуелен број на риби
                 </span>
               </div>
-              <span className="text-lg font-bold text-[var(--success)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <span className="text-lg font-bold text-(--success)" style={{ fontFamily: 'Sora, sans-serif' }}>
                 {currentInventory.current_count}
               </span>
             </div>
             {currentMeasurement && currentInventory.current_count !== currentMeasurement.fish_count && (
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                Разлика од мерење: <span className="text-[var(--danger)] font-semibold">{currentInventory.current_count - currentMeasurement.fish_count}</span>
+              <p className="text-[10px] text-(--text-muted) mt-1">
+                Разлика од мерење: <span className="text-(--danger) font-semibold">{currentInventory.current_count - currentMeasurement.fish_count}</span>
                 {' '}(угинати + продадени)
               </p>
             )}
@@ -231,16 +231,16 @@ export default function ManagePoolMeasurements() {
         )}
 
         {/* Input fields for this pool */}
-        <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>Ново мерење:</p>
+        <p className="text-xs font-semibold text-(--text-secondary) mb-2.5" style={{ fontFamily: 'Sora, sans-serif' }}>Ново мерење:</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на риби</label>
+            <label className="block text-[10px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Број на риби</label>
             <input type="number" value={currentData.fishCount}
               onChange={(e) => updatePoolField(activePool, 'fishCount', e.target.value)}
               className="input-base" placeholder="нпр. 500" />
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Тежина (gr)</label>
+            <label className="block text-[10px] font-semibold text-(--text-muted) mb-1 uppercase tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>Тежина (gr)</label>
             <input type="number" step="any" value={currentData.avgWeight}
               onChange={(e) => updatePoolField(activePool, 'avgWeight', e.target.value)}
               className="input-base" placeholder="нпр. 150" />
@@ -250,13 +250,13 @@ export default function ManagePoolMeasurements() {
 
       {/* Save all button */}
       <div className="card mb-3 animate-in-delay-1">
-        <p className="text-xs text-[var(--text-secondary)] mb-2 text-center" style={{ fontFamily: 'Sora, sans-serif' }}>
-          <span className="font-bold text-[var(--primary)]">{filledCount}</span> базен{filledCount !== 1 ? 'и' : ''} со риби,{' '}
-          <span className="font-bold text-[var(--text-muted)]">{POOL_NUMBERS.length - filledCount}</span> празн{(POOL_NUMBERS.length - filledCount) !== 1 ? 'и' : 'о'}
+        <p className="text-xs text-(--text-secondary) mb-2 text-center" style={{ fontFamily: 'Sora, sans-serif' }}>
+          <span className="font-bold text-(--primary)">{filledCount}</span> базен{filledCount !== 1 ? 'и' : ''} со риби,{' '}
+          <span className="font-bold text-(--text-muted)">{POOL_NUMBERS.length - filledCount}</span> празн{(POOL_NUMBERS.length - filledCount) !== 1 ? 'и' : 'о'}
         </p>
 
         {message && (
-          <p className={`text-xs mb-2 font-medium text-center ${message.includes('Зачувано') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+          <p className={`text-xs mb-2 font-medium text-center ${message.includes('Зачувано') ? 'text-(--success)' : 'text-(--danger)'}`}>
             {message}
           </p>
         )}
@@ -285,29 +285,29 @@ export default function ManagePoolMeasurements() {
             </div>
             <h3 className="section-title text-sm">Историја — Б{activePool}</h3>
           </div>
-          {showHistory ? <ChevronUp size={16} className="text-[var(--text-muted)]" /> : <ChevronDown size={16} className="text-[var(--text-muted)]" />}
+          {showHistory ? <ChevronUp size={16} className="text-(--text-muted)" /> : <ChevronDown size={16} className="text-(--text-muted)" />}
         </button>
 
         {showHistory && (
           <div className="mt-3">
             {loadingHistory ? (
-              <div className="text-center py-4"><Loader2 size={18} className="animate-spin mx-auto text-[var(--text-muted)]" /></div>
+              <div className="text-center py-4"><Loader2 size={18} className="animate-spin mx-auto text-(--text-muted)" /></div>
             ) : history.length === 0 ? (
-              <p className="text-xs text-[var(--text-muted)] text-center py-3">Нема мерења за овој базен</p>
+              <p className="text-xs text-(--text-muted) text-center py-3">Нема мерења за овој базен</p>
             ) : (
               <div className="space-y-1.5">
                 {history.map(m => (
-                  <div key={m.id} className="flex items-center justify-between p-2.5 rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--bg)]">
+                  <div key={m.id} className="flex items-center justify-between p-2.5 rounded-(--r-sm) border border-(--border) bg-(--bg)">
                     <div className="text-xs">
-                      <p className="font-medium text-[var(--text-primary)]">
+                      <p className="font-medium text-(--text-primary)">
                         <span className="font-bold">{m.fish_count}</span> риби / <span className="font-bold">{m.avg_weight_gr}</span> gr
                       </p>
-                      <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                      <p className="text-[10px] text-(--text-muted) mt-0.5">
                         {new Date(m.measured_at).toLocaleDateString('mk-MK', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                     <button type="button" onClick={() => handleDelete(m.id)} disabled={deleting === m.id}
-                      className="p-1.5 rounded-[var(--r-sm)] text-[var(--danger)] hover:bg-red-50 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-(--r-sm) text-(--danger) hover:bg-red-50 transition-colors disabled:opacity-50"
                       title="Избриши мерење">
                       {deleting === m.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
@@ -330,14 +330,14 @@ export default function ManagePoolMeasurements() {
             return (
               <button key={num} type="button"
                 onClick={() => { setActivePool(num); setMessage(''); setShowHistory(false); setHistory([]); }}
-                className={`w-full flex justify-between items-center text-xs p-2.5 rounded-[var(--r-sm)] transition-all text-left ${
-                  activePool === num ? 'bg-[var(--primary-muted)] border border-[rgba(37,99,235,0.12)]' : 'border border-transparent hover:bg-[var(--bg)]'
+                className={`w-full flex justify-between items-center text-xs p-2.5 rounded-(--r-sm) transition-all text-left ${
+                  activePool === num ? 'bg-(--primary-muted) border border-[rgba(37,99,235,0.12)]' : 'border border-transparent hover:bg-(--bg)'
                 }`}>
-                <span className={`font-semibold ${activePool === num ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}
+                <span className={`font-semibold ${activePool === num ? 'text-(--primary)' : 'text-(--text-secondary)'}`}
                   style={{ fontFamily: 'Sora, sans-serif' }}>Базен {num}</span>
-                <span className="text-[var(--text-muted)] font-medium">
+                <span className="text-(--text-muted) font-medium">
                   {hasNew ? (
-                    <span className="text-[var(--success)]">
+                    <span className="text-(--success)">
                       {poolData[num].fishCount} риби / {poolData[num].avgWeight} gr
                       <span className="text-[10px] ml-1 font-semibold">(ново)</span>
                     </span>

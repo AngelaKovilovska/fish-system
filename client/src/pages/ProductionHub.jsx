@@ -88,8 +88,8 @@ export default function ProductionHub() {
           <h1 className="page-title !mb-0">Производство</h1>
         </div>
         <div className="flex items-center gap-1.5 mt-1 ml-8">
-          <Package size={13} className="text-[var(--text-muted)]" />
-          <p className="text-xs text-[var(--text-secondary)]">Обработка на риба и продажба</p>
+          <Package size={13} className="text-(--text-muted)" />
+          <p className="text-xs text-(--text-secondary)">Обработка на риба и продажба</p>
         </div>
       </div>
 
@@ -104,20 +104,20 @@ export default function ProductionHub() {
                   <card.icon size={26} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                  <h2 className="text-base font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                     {card.title}
                   </h2>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">{card.desc}</p>
+                  <p className="text-xs text-(--text-secondary) mt-0.5">{card.desc}</p>
                 </div>
-                <ChevronRight size={20} className="text-[var(--text-muted)] flex-shrink-0" />
+                <ChevronRight size={20} className="text-(--text-muted) flex-shrink-0" />
               </div>
 
               {/* Stats row */}
-              <div className="flex border-t border-[var(--border)]">
+              <div className="flex border-t border-(--border)">
                 {card.stats.map((st, i) => (
-                  <div key={i} className={`flex-1 text-center py-3 ${i > 0 ? 'border-l border-[var(--border)]' : ''}`}>
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">{st.label}</p>
-                    <p className="text-base font-bold text-[var(--text-primary)] mt-0.5">{st.value}</p>
+                  <div key={i} className={`flex-1 text-center py-3 ${i > 0 ? 'border-l border-(--border)' : ''}`}>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide">{st.label}</p>
+                    <p className="text-base font-bold text-(--text-primary) mt-0.5">{st.value}</p>
                   </div>
                 ))}
               </div>

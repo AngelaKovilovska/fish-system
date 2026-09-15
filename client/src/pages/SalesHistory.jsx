@@ -228,9 +228,9 @@ export default function SalesHistory() {
       {/* Document Preview Modal */}
       {previewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="bg-[var(--surface)] rounded-xl shadow-2xl flex flex-col" style={{ width: '90vw', maxWidth: '900px', height: '85vh' }}>
+          <div className="bg-(--surface) rounded-xl shadow-2xl flex flex-col" style={{ width: '90vw', maxWidth: '900px', height: '85vh' }}>
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-(--border)">
               <h3 className="font-semibold text-sm">{DOC_LABELS[previewDoc.docType]}</h3>
               <div className="flex items-center gap-2">
                 <button onClick={handlePreviewPrint} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
@@ -250,7 +250,7 @@ export default function SalesHistory() {
                 ref={previewFrameRef}
                 src={previewDoc.url}
                 title="preview"
-                className="w-full h-full rounded-lg border border-[var(--border)]"
+                className="w-full h-full rounded-lg border border-(--border)"
                 style={{ background: '#fff' }}
               />
             </div>
@@ -269,7 +269,7 @@ export default function SalesHistory() {
         </div>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Продажби</h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Историја и документи</p>
+          <p className="text-xs text-(--text-secondary) mt-0.5">Историја и документи</p>
         </div>
         <button onClick={() => navigate('/production/sales')} className="btn-primary text-sm flex items-center gap-1.5">
           <Plus size={16} /> Нова
@@ -280,13 +280,13 @@ export default function SalesHistory() {
       {success && <div className="alert alert-success mb-4 animate-in">{success}</div>}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]">
+      <div className="flex gap-1 mb-4 p-1 rounded-xl bg-(--surface-elevated) border border-(--border)">
         <button onClick={() => setTab('sales')}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'sales' ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'sales' ? 'bg-(--primary) text-white shadow-sm' : 'text-(--text-secondary)'}`}>
           Продажби ({sales.length})
         </button>
         <button onClick={() => setTab('buyers')}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'buyers' ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${tab === 'buyers' ? 'bg-(--primary) text-white shadow-sm' : 'text-(--text-secondary)'}`}>
           <Users size={13} className="inline mr-1" />Купувачи ({buyers.length})
         </button>
       </div>
@@ -297,29 +297,29 @@ export default function SalesHistory() {
           {/* Summary stats */}
           {sales.length > 0 && (
             <div className="grid grid-cols-2 min-[420px]:grid-cols-4 gap-2 mb-4 animate-in">
-              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
-                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+              <div className="rounded-(--r-md) bg-(--surface) border border-(--border) p-2.5 text-center">
+                <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Продажби</div>
-                <div className="text-base font-bold text-[var(--text-primary)]">{stats.count}</div>
+                <div className="text-base font-bold text-(--text-primary)">{stats.count}</div>
               </div>
-              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
-                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+              <div className="rounded-(--r-md) bg-(--surface) border border-(--border) p-2.5 text-center">
+                <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-                <div className="text-base font-bold text-[var(--primary)]">{(stats.totalAmount / 1000).toFixed(1)}к ден</div>
+                <div className="text-base font-bold text-(--primary)">{(stats.totalAmount / 1000).toFixed(1)}к ден</div>
               </div>
-              <div className="rounded-[var(--r-md)] bg-[var(--surface)] border border-[var(--border)] p-2.5 text-center">
-                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+              <div className="rounded-(--r-md) bg-(--surface) border border-(--border) p-2.5 text-center">
+                <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
-                <div className="text-base font-bold text-[var(--text-primary)]">{stats.totalKg.toFixed(1)} кг</div>
+                <div className="text-base font-bold text-(--text-primary)">{stats.totalKg.toFixed(1)} кг</div>
               </div>
               <button type="button" onClick={() => setFilterUnpaid(v => !v)}
-                className={`rounded-[var(--r-md)] bg-[var(--surface)] border p-2.5 text-center transition-colors ${filterUnpaid ? 'border-[var(--danger)]' : 'border-[var(--border)]'}`}>
-                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5"
+                className={`rounded-(--r-md) bg-(--surface) border p-2.5 text-center transition-colors ${filterUnpaid ? 'border-(--danger)' : 'border-(--border)'}`}>
+                <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Неплатено</div>
-                <div className={`text-base font-bold ${stats.unpaidCount > 0 ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>
+                <div className={`text-base font-bold ${stats.unpaidCount > 0 ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
                   {(stats.unpaidAmount / 1000).toFixed(1)}к ден
                 </div>
-                <div className="text-[9px] text-[var(--text-muted)]">{stats.unpaidCount} факт.</div>
+                <div className="text-[9px] text-(--text-muted)">{stats.unpaidCount} факт.</div>
               </button>
             </div>
           )}
@@ -329,30 +329,30 @@ export default function SalesHistory() {
             <div className="mb-4 animate-in space-y-2">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
                   <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     className="input-base text-sm !pl-8" placeholder="Пребарај по фактура или купувач..." />
                 </div>
                 <button onClick={() => setShowFilters(!showFilters)}
-                  className={`btn-ghost text-xs flex items-center gap-1 flex-shrink-0 ${hasActiveFilters ? '!text-[var(--primary)] !border-[var(--primary)]' : ''}`}>
+                  className={`btn-ghost text-xs flex items-center gap-1 flex-shrink-0 ${hasActiveFilters ? '!text-(--primary) !border-(--primary)' : ''}`}>
                   <Filter size={14} />
-                  {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />}
+                  {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-(--primary)" />}
                 </button>
               </div>
 
               {/* Filters panel */}
               {showFilters && (
-                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r-md)] p-3 space-y-2">
+                <div className="bg-(--surface) border border-(--border) rounded-(--r-md) p-3 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Месец</label>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Месец</label>
                       <select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))}
                         className="input-base text-xs">
                         {MK_MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase mb-1">Купувач</label>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
                       <select value={filterBuyer} onChange={e => setFilterBuyer(e.target.value)}
                         className="input-base text-xs">
                         <option value="">Сите купувачи</option>
@@ -360,12 +360,12 @@ export default function SalesHistory() {
                       </select>
                     </div>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-(--text-secondary) cursor-pointer">
                     <input type="checkbox" checked={filterUnpaid} onChange={e => setFilterUnpaid(e.target.checked)} />
                     Само неплатени
                   </label>
                   {hasActiveFilters && (
-                    <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-[var(--danger)]">
+                    <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-(--danger)">
                       <X size={12} /> Тргни филтри
                     </button>
                   )}
@@ -377,12 +377,12 @@ export default function SalesHistory() {
           {/* Sales list */}
           {filteredSales.length === 0 ? (
             <div className="card text-center py-12 animate-in">
-              <ShoppingCart size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
-              <p className="text-sm text-[var(--text-secondary)]">
+              <ShoppingCart size={40} className="mx-auto mb-3 text-(--text-muted)" />
+              <p className="text-sm text-(--text-secondary)">
                 {hasActiveFilters ? 'Нема продажби со овие филтри' : 'Нема продажби'}
               </p>
               {hasActiveFilters && (
-                <button onClick={clearFilters} className="btn-ghost text-xs mt-2 text-[var(--primary)]">
+                <button onClick={clearFilters} className="btn-ghost text-xs mt-2 text-(--primary)">
                   Тргни филтри
                 </button>
               )}
@@ -399,22 +399,22 @@ export default function SalesHistory() {
                       onClick={() => setExpandedSale(isExpanded ? null : sale.id)}>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+                          <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                             {sale.invoice_number}
                           </h3>
                           <span className="pill pill-blue text-[9px]">{sale.payment_method}</span>
                           {(() => { const b = paymentBadge(sale); return <span className={`pill ${b.cls} text-[9px]`}>{b.label}</span>; })()}
                         </div>
-                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                        <p className="text-xs text-(--text-secondary) mt-0.5">
                           {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <div className="text-right">
-                          <span className="text-sm font-bold text-[var(--primary)]">{parseFloat(sale.total).toFixed(0)} ден</span>
-                          <p className="text-[10px] text-[var(--text-muted)]">{totalKg.toFixed(1)} кг</p>
+                          <span className="text-sm font-bold text-(--primary)">{parseFloat(sale.total).toFixed(0)} ден</span>
+                          <p className="text-[10px] text-(--text-muted)">{totalKg.toFixed(1)} кг</p>
                         </div>
-                        {isExpanded ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
+                        {isExpanded ? <ChevronUp size={14} className="text-(--text-muted)" /> : <ChevronDown size={14} className="text-(--text-muted)" />}
                       </div>
                     </div>
 
@@ -422,7 +422,7 @@ export default function SalesHistory() {
                     {sale.items && sale.items.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {sale.items.map(item => (
-                          <span key={item.id} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]">
+                          <span key={item.id} className="text-[10px] px-2 py-0.5 rounded-full bg-(--surface-elevated) text-(--text-secondary) border border-(--border)">
                             {item.code}: {parseFloat(item.quantity_kg).toFixed(1)}кг × {parseFloat(item.price_per_kg).toFixed(0)}ден
                           </span>
                         ))}
@@ -430,7 +430,7 @@ export default function SalesHistory() {
                     )}
 
                     {/* Document buttons — always visible */}
-                    <div className="flex gap-2 flex-wrap mt-3 pt-2 border-t border-[var(--border)]">
+                    <div className="flex gap-2 flex-wrap mt-3 pt-2 border-t border-(--border)">
                       <button onClick={(e) => { e.stopPropagation(); openPreview(sale.id, 'invoice'); }}
                         className="btn-ghost text-[11px] flex items-center gap-1 py-1.5">
                         <Eye size={12} /> Фактура
@@ -447,56 +447,56 @@ export default function SalesHistory() {
 
                     {/* Expanded details */}
                     {isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                      <div className="mt-3 pt-3 border-t border-(--border) space-y-2">
                         <div className="grid grid-cols-2 gap-2 text-[11px]">
                           <div>
-                            <span className="text-[var(--text-muted)]">Испратница: </span>
+                            <span className="text-(--text-muted)">Испратница: </span>
                             <span className="font-medium">{sale.dispatch_number || '—'}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">ДДВ: </span>
+                            <span className="text-(--text-muted)">ДДВ: </span>
                             <span className="font-medium">{sale.vat_rate}% ({parseFloat(sale.vat_amount).toFixed(0)} ден)</span>
                           </div>
                           {sale.lot_number && (
                             <div>
-                              <span className="text-[var(--text-muted)]">LOT: </span>
+                              <span className="text-(--text-muted)">LOT: </span>
                               <span className="font-medium">{sale.lot_number}</span>
                             </div>
                           )}
                           {sale.transport_vehicle && (
                             <div>
-                              <span className="text-[var(--text-muted)]">Возило: </span>
+                              <span className="text-(--text-muted)">Возило: </span>
                               <span className="font-medium">{sale.transport_vehicle}</span>
                             </div>
                           )}
                           {sale.due_date && (
                             <div>
-                              <span className="text-[var(--text-muted)]">Рок: </span>
+                              <span className="text-(--text-muted)">Рок: </span>
                               <span className="font-medium">{formatDateShortMK(sale.due_date)}</span>
                             </div>
                           )}
                           <div>
-                            <span className="text-[var(--text-muted)]">Основица: </span>
+                            <span className="text-(--text-muted)">Основица: </span>
                             <span className="font-medium">{parseFloat(sale.subtotal).toFixed(2)} ден</span>
                           </div>
                         </div>
                         {sale.notes && (
-                          <p className="text-[11px] text-[var(--text-muted)] italic">📝 {sale.notes}</p>
+                          <p className="text-[11px] text-(--text-muted) italic">📝 {sale.notes}</p>
                         )}
                         <div className="flex justify-end gap-1 flex-wrap">
                           <label className="flex items-center gap-1.5 text-[11px] cursor-pointer select-none mr-auto pl-1">
                             <input type="checkbox" checked={sale.payment_status === 'платено'} onChange={() => togglePaid(sale)}
                               className="w-3.5 h-3.5 accent-[#16a34a]" />
-                            <span className={sale.payment_status === 'платено' ? 'text-[#16a34a] font-semibold' : 'text-[var(--text-secondary)]'}>
+                            <span className={sale.payment_status === 'платено' ? 'text-[#16a34a] font-semibold' : 'text-(--text-secondary)'}>
                               {sale.payment_status === 'платено' ? `Платено${sale.paid_at ? ' ' + formatDateShortMK(sale.paid_at) : ''}` : 'Неплатено'}
                             </span>
                           </label>
                           <button onClick={() => navigate(`/production/sales/${sale.id}/edit`)}
-                            className="btn-ghost text-[11px] text-[var(--primary)] flex items-center gap-1">
+                            className="btn-ghost text-[11px] text-(--primary) flex items-center gap-1">
                             <Pencil size={12} /> Уреди
                           </button>
                           <button onClick={() => handleDeleteSale(sale.id)}
-                            className="btn-ghost text-[11px] text-[var(--danger)] hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
+                            className="btn-ghost text-[11px] text-(--danger) hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
                             <Trash2 size={12} /> Избриши
                           </button>
                         </div>
@@ -515,9 +515,9 @@ export default function SalesHistory() {
         <>
           {buyers.length === 0 ? (
             <div className="card text-center py-12 animate-in">
-              <Users size={40} className="mx-auto mb-3 text-[var(--text-muted)]" />
-              <p className="text-sm text-[var(--text-secondary)]">Нема зачувани купувачи</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">Купувачите се додаваат при нова продажба</p>
+              <Users size={40} className="mx-auto mb-3 text-(--text-muted)" />
+              <p className="text-sm text-(--text-secondary)">Нема зачувани купувачи</p>
+              <p className="text-xs text-(--text-muted) mt-1">Купувачите се додаваат при нова продажба</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -557,16 +557,16 @@ export default function SalesHistory() {
                         {b.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[var(--text-primary)]">{b.name}</p>
-                        {b.edb && <p className="text-[10px] text-[var(--text-muted)]">ЕДБ: {b.edb}</p>}
-                        {b.address && <p className="text-[10px] text-[var(--text-muted)]">{b.address}</p>}
-                        {b.phone && <p className="text-[10px] text-[var(--text-muted)]">{b.phone}</p>}
+                        <p className="text-sm font-bold text-(--text-primary)">{b.name}</p>
+                        {b.edb && <p className="text-[10px] text-(--text-muted)">ЕДБ: {b.edb}</p>}
+                        {b.address && <p className="text-[10px] text-(--text-muted)">{b.address}</p>}
+                        {b.phone && <p className="text-[10px] text-(--text-muted)">{b.phone}</p>}
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => startEditBuyer(b)} className="btn-ghost p-1.5 text-[var(--text-secondary)]">
+                        <button onClick={() => startEditBuyer(b)} className="btn-ghost p-1.5 text-(--text-secondary)">
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => deleteBuyer(b.id)} className="btn-ghost p-1.5 text-[var(--danger)]">
+                        <button onClick={() => deleteBuyer(b.id)} className="btn-ghost p-1.5 text-(--danger)">
                           <Trash2 size={13} />
                         </button>
                       </div>

@@ -71,7 +71,7 @@ export default function ProductTypesPage() {
         <button onClick={() => navigate('/production')} className="btn-ghost p-1.5 -ml-1.5"><ChevronLeft size={20} /></button>
         <div className="flex-1">
           <h1 className="page-title !mb-0">Типови производи</h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">Цени и залиха</p>
+          <p className="text-xs text-(--text-secondary) mt-0.5">Цени и залиха</p>
         </div>
         <button onClick={() => setShowNew(true)} className="btn-primary text-sm flex items-center gap-1.5"><Plus size={16} /> Нов тип</button>
       </div>
@@ -81,7 +81,7 @@ export default function ProductTypesPage() {
 
       {showNew && (
         <form onSubmit={handleAddType} className="card mb-4 animate-in border-2" style={{ borderColor: 'var(--primary)' }}>
-          <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>Нов тип на производ</h3>
+          <h3 className="text-sm font-bold text-(--text-primary) mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>Нов тип на производ</h3>
           <div className="grid grid-cols-3 gap-3 mb-3">
             <div>
               <label className="label">Код *</label>
@@ -115,9 +115,9 @@ export default function ProductTypesPage() {
                   {t.code}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">{t.name}</p>
-                  <p className="text-[10px] text-[var(--text-muted)]">
-                    Залиха: <span className={stock > 0 ? 'text-green-500' : 'text-[var(--text-muted)]'}>{stock.toFixed(1)} кг</span>
+                  <p className="text-sm font-semibold text-(--text-primary)">{t.name}</p>
+                  <p className="text-[10px] text-(--text-muted)">
+                    Залиха: <span className={stock > 0 ? 'text-green-500' : 'text-(--text-muted)'}>{stock.toFixed(1)} кг</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -128,8 +128,8 @@ export default function ProductTypesPage() {
                     className="input w-24 text-sm text-right"
                     placeholder="ден/кг"
                   />
-                  <button onClick={() => handleSavePrice(t.id)} className="btn-ghost p-1.5 text-[var(--primary)]"><Save size={14} /></button>
-                  <button onClick={() => handleDelete(t.id)} className="btn-ghost p-1.5 text-[var(--danger)]"><Trash2 size={14} /></button>
+                  <button onClick={() => handleSavePrice(t.id)} className="btn-ghost p-1.5 text-(--primary)"><Save size={14} /></button>
+                  <button onClick={() => handleDelete(t.id)} className="btn-ghost p-1.5 text-(--danger)"><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>

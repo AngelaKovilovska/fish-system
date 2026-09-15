@@ -122,8 +122,8 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
       {/* Pool form */}
       <div className="space-y-3.5">
         <div className="flex items-center gap-2">
-          <Fish size={16} className="text-[var(--primary)]" />
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+          <Fish size={16} className="text-(--primary)" />
+          <h3 className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
             Базен бр. {activePool}
           </h3>
         </div>
@@ -133,24 +133,24 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
           style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(37,99,235,0.03))', border: '1px solid rgba(37,99,235,0.15)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Hash size={14} className="text-[var(--primary)]" />
-              <span className="text-xs font-semibold text-[var(--text-secondary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+              <Hash size={14} className="text-(--primary)" />
+              <span className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Број на риби
               </span>
             </div>
-            <span className="text-lg font-bold text-[var(--primary)]" style={{ fontFamily: 'Sora, sans-serif' }}>
+            <span className="text-lg font-bold text-(--primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
               {currentFishCount}
             </span>
           </div>
           {(todayDead > 0 || todaySold > 0) && (
             <div className="mt-2 pt-2 border-t border-[rgba(37,99,235,0.1)] flex items-center justify-between">
-              <span className="text-[10px] text-[var(--text-muted)]">
+              <span className="text-[10px] text-(--text-muted)">
                 По денешен запис:
-                {todayDead > 0 && <span className="text-[var(--danger)]"> -{todayDead} угинати</span>}
+                {todayDead > 0 && <span className="text-(--danger)"> -{todayDead} угинати</span>}
                 {todayDead > 0 && todaySold > 0 && ','}
                 {todaySold > 0 && <span className="text-amber-600"> -{todaySold} продадени</span>}
               </span>
-              <span className={`text-sm font-bold ${afterCount < currentFishCount ? 'text-[var(--danger)]' : 'text-[var(--primary)]'}`}
+              <span className={`text-sm font-bold ${afterCount < currentFishCount ? 'text-(--danger)' : 'text-(--primary)'}`}
                 style={{ fontFamily: 'Sora, sans-serif' }}>
                 → {afterCount}
               </span>
@@ -159,7 +159,7 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
         </div>
 
         {afterCount < 0 && (
-          <div className="rounded-xl p-2.5 text-xs font-medium text-[var(--danger)]"
+          <div className="rounded-xl p-2.5 text-xs font-medium text-(--danger)"
             style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
             Внимание: Угинати + продадени ({todayDead + todaySold}) е поголемо од бројот на риби ({currentFishCount})!
           </div>
@@ -167,9 +167,9 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
 
         {/* Weight */}
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+          <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
             style={{ fontFamily: 'Sora, sans-serif' }}>
-            <Weight size={12} className="text-[var(--primary)]" />
+            <Weight size={12} className="text-(--primary)" />
             Моментална тежина (gr)
           </label>
           <input type="number" step="any" value={displayAvgWeight}
@@ -181,9 +181,9 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
         {/* Sold & dead */}
         <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
               style={{ fontFamily: 'Sora, sans-serif' }}>
-              <ShoppingCart size={12} className="text-[var(--primary)]" />
+              <ShoppingCart size={12} className="text-(--primary)" />
               Продадени
             </label>
             <input type="number" value={poolData.sold_count ?? 0}
@@ -191,9 +191,9 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
               className="input-base" placeholder="0" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1.5"
+            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
               style={{ fontFamily: 'Sora, sans-serif' }}>
-              <Skull size={12} className="text-[var(--danger)]" />
+              <Skull size={12} className="text-(--danger)" />
               Угинати
             </label>
             <input type="number" value={poolData.dead_count ?? 0}
