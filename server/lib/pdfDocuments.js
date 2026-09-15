@@ -110,8 +110,8 @@ async function buildInvoice(sale) {
   const FIRST_ROW = 1;
   items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
     const base = ROWS[i + FIRST_ROW] - 8.5;
-    // Формат: Риба (Clarias gariepinus) - РСГ - риба со глава
-    const name = ['Риба (Clarias gariepinus)', it.code, it.name].filter(Boolean).join(' - ');
+    // Формат: Риба (Clarias gariepinus) - РСГ
+    const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
     draw(ctx, num(it.quantity_kg), { x: 369, top: base, size: 11, align: 'right' });
     draw(ctx, money(it.price_per_kg), { x: 467, top: base, size: 11, align: 'right' });
