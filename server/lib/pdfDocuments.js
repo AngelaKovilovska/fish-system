@@ -95,8 +95,13 @@ async function buildInvoice(sale) {
   draw(ctx, contact, { x: VX, top: 223, size: 10, maxWidth: 295 });
   draw(ctx, sale.buyer_edb, { x: VX, top: 247.6, size: 10, maxWidth: 295 });
 
-  // Број и датум (центрирано над линиите)
+  // Начин на плаќање — само за готово/гратис, над „ИСПРАТНИЦА / ФАКТУРА“
   const CX = 519.5;
+  const PAY_LABELS = { 'готово': 'ПЛАТЕНО ВО ГОТОВО', 'гратис': 'ГРАТИС' };
+  const payLabel = PAY_LABELS[String(sale.payment_method || '').toLowerCase()];
+  if (payLabel) draw(ctx, payLabel, { x: CX, top: 143, size: 10, font: B, align: 'center' });
+
+  // Број и датум (центрирано над линиите)
   draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 12, font: B, align: 'center' });
   draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 12, font: B, align: 'center' });
 
