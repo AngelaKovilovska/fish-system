@@ -38,7 +38,13 @@ function fmtDate(d) {
   return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
 }
 function num(v, dec = 2) { return (parseFloat(v) || 0).toFixed(dec); }
-function money(v) { return `${num(v)} ден.`; }
+// 12584.25 → „12.584,25 ден.“
+function money(v) {
+  const [int, dec] = num(v).split('.');
+  const sign = int.startsWith('-') ? '-' : '';
+  const grouped = int.replace('-', '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${sign}${grouped},${dec} ден.`;
+}
 function str(v) { return v == null ? '' : String(v); }
 
 // Draw text using TOP-origin coordinates (како во pdfplumber): `top` е baseline од горе.
