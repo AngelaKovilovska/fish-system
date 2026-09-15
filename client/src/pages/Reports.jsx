@@ -9,20 +9,48 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts';
 
-const REPORT_TYPES = [
-  { key: 'daily', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
-  { key: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
-  { key: 'salesHistory', label: 'Историја на продажби', desc: 'Фактури и продажба на производи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
-  { key: 'salesByBuyer', label: 'Продажби по купувач', desc: 'Приходи и количини по купувач', icon: Users, needsDates: true },
-  { key: 'salesByProduct', label: 'Продажби по производ', desc: 'Продадени количини и приходи по производ', icon: Package, needsDates: true },
-  { key: 'salesByPeriod', label: 'Месечни продажби', desc: 'Месечен преглед на продажбите', icon: TrendingUp, needsDates: true },
-  { key: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
-  { key: 'weight', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
-  { key: 'alerts', label: 'Аларми', desc: 'Историја на активирани аларми', icon: AlertTriangle, needsDates: true, needsPool: false },
-  { key: 'sorting', label: 'Сортирање', desc: 'Евиденција на сортирања', icon: ArrowLeftRight, needsDates: true, needsPool: false },
-  { key: 'purchases', label: 'Набавки на храна', desc: 'Кога и колку храна е купена', icon: ShoppingCart, needsDates: true, needsPool: false },
-  { key: 'inventory', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
+const REPORT_GROUPS = [
+  { key: 'farm', label: 'Одгледување', color: '#3b82f6' },
+  { key: 'food', label: 'Храна', color: '#10b981' },
+  { key: 'production', label: 'Производство', color: '#8b5cf6' },
+  { key: 'sales', label: 'Продажба', color: '#f59e0b' },
 ];
+
+const REPORT_TYPES = [
+  { key: 'daily', group: 'farm', label: 'Дневни извештаи', desc: 'Календар со преглед на сите записи по ден', icon: Calendar, isLink: true, linkTo: '/history' },
+  { key: 'weight', group: 'farm', label: 'Просечна тежина', desc: 'Мерења по базен и датум', icon: Weight, needsDates: false, needsPool: true, needsMeasurementDate: true },
+  { key: 'sorting', group: 'farm', label: 'Сортирање', desc: 'Евиденција на сортирања', icon: ArrowLeftRight, needsDates: true, needsPool: false },
+  { key: 'alerts', group: 'farm', label: 'Аларми', desc: 'Историја на активирани аларми', icon: AlertTriangle, needsDates: true, needsPool: false },
+  { key: 'food', group: 'food', label: 'Потрошена храна', desc: 'Преглед на потрошувачка по тип', icon: BarChart3, needsDates: true, needsPool: true },
+  { key: 'purchases', group: 'food', label: 'Набавки на храна', desc: 'Кога и колку храна е купена', icon: ShoppingCart, needsDates: true, needsPool: false },
+  { key: 'inventory', group: 'food', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
+  { key: 'production', group: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
+  { key: 'salesHistory', group: 'sales', label: 'Историја на продажби', desc: 'Фактури и документи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
+  { key: 'sales', group: 'sales', label: 'Продажби', desc: 'По купувач, по производ и по месец', icon: TrendingUp, needsDates: true },
+];
+
+// Под-прегледи на продажниот извештај
+const SALES_VIEWS = [
+  { key: 'salesByBuyer', label: 'По купувач', icon: Users },
+  { key: 'salesByProduct', label: 'По производ', icon: Package },
+  { key: 'salesByPeriod', label: 'По месец', icon: TrendingUp },
+];
+
+// Брзи периоди
+function periodPreset(kind) {
+  const d = new Date();
+  const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  const y = d.getFullYear(), m = d.getMonth();
+  switch (kind) {
+    case 'month': return [iso(new Date(y, m, 1)), iso(new Date(y, m + 1, 0))];
+    case 'prevMonth': return [iso(new Date(y, m - 1, 1)), iso(new Date(y, m, 0))];
+    case '30d': { const f = new Date(d); f.setDate(f.getDate() - 29); return [iso(f), iso(d)]; }
+    case 'year': default: return [`${y}-01-01`, `${y}-12-31`];
+  }
+}
+
+// Извештаи што имаат серверско испраќање на е-пошта
+const EMAIL_REPORTS = ['food', 'weight', 'alerts', 'sorting', 'purchases'];
 
 const MK_MONTHS_SHORT = ['Јан', 'Фев', 'Мар', 'Апр', 'Мај', 'Јун', 'Јул', 'Авг', 'Сеп', 'Окт', 'Ное', 'Дек'];
 
@@ -76,7 +104,8 @@ export default function Reports() {
   const [measurementDates, setMeasurementDates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
+  const [previewRaw, setPreviewData] = useState(null);
+  const [salesView, setSalesView] = useState('salesByBuyer');
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
 
@@ -167,12 +196,11 @@ export default function Reports() {
         case 'alerts': result = await api.previewAlertsReport(from, to); break;
         case 'sorting': result = await api.previewSortingReport(from, to); break;
         case 'purchases': result = await api.previewPurchasesReport(from, to); break;
-        case 'salesByBuyer':
-        case 'salesByProduct':
-        case 'salesByPeriod': {
+        case 'sales': {
           const sRes = await api.getSales({ from, to, limit: 500 });
           const allSales = sRes.sales || [];
-          if (activeReport === 'salesByBuyer') {
+          result = {};
+          {
             const byBuyer = {};
             for (const s of allSales) {
               const name = s.buyer_name || 'Непознат';
@@ -183,9 +211,9 @@ export default function Reports() {
               if (s.payment_status !== 'платено') byBuyer[name].unpaid += parseFloat(s.total || 0);
             }
             const rows = Object.entries(byBuyer).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.totalAmount - a.totalAmount);
-            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+            result.salesByBuyer = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
           }
-          if (activeReport === 'salesByProduct') {
+          {
             const byProduct = {};
             for (const s of allSales) {
               for (const item of (s.items || [])) {
@@ -197,9 +225,9 @@ export default function Reports() {
               }
             }
             const rows = Object.values(byProduct).sort((a, b) => b.totalAmount - a.totalAmount);
-            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+            result.salesByProduct = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
           }
-          if (activeReport === 'salesByPeriod') {
+          {
             const byMonth = {};
             for (const s of allSales) {
               const d = new Date(s.sale_date);
@@ -211,7 +239,7 @@ export default function Reports() {
               byMonth[key].totalKg += (s.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0);
             }
             const rows = Object.values(byMonth).sort((a, b) => a.key.localeCompare(b.key));
-            result = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
+            result.salesByPeriod = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
           }
           break;
         }
@@ -223,7 +251,7 @@ export default function Reports() {
 
   const [exporting, setExporting] = useState(false);
   const handleSalesExcel = async () => {
-    const type = { salesByBuyer: 'buyer', salesByProduct: 'product', salesByPeriod: 'period' }[activeReport];
+    const type = { salesByBuyer: 'buyer', salesByProduct: 'product', salesByPeriod: 'period' }[viewKey];
     if (!type) return;
     setExporting(true); setError('');
     try {
@@ -271,22 +299,60 @@ export default function Reports() {
     setActiveReport(null); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
     setProductTypeFilter('');
-    setFrom(defaultFrom); setTo(defaultTo);
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
+  // Извештаи што бараат само период се генерираат веднаш по избор
+  const isSimpleReport = (r) => r && !r.isLink && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
   const handleSelectReport = (key) => {
     setActiveReport(key); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
     setProductTypeFilter('');
-    setFrom(defaultFrom); setTo(defaultTo);
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
+  const applyPeriod = (f, t) => { setFrom(f); setTo(t); };
+
+  // Автоматско генерирање: едноставни извештаи веднаш по избор, и при промена на периодот
+  useEffect(() => {
+    if (!activeReport) return;
+    const r = REPORT_TYPES.find(x => x.key === activeReport);
+    if (isSimpleReport(r) || (previewRaw && r?.needsDates)) handleGenerate();
+  }, [activeReport, from, to]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Заеднички период (важи за сите извештаи) ──
+  const PRESETS = [
+    { key: 'month', label: 'Овој месец' },
+    { key: 'prevMonth', label: 'Минат месец' },
+    { key: '30d', label: '30 дена' },
+    { key: 'year', label: 'Оваа година' },
+  ];
+  const activePreset = PRESETS.find(pr => { const [f, t] = periodPreset(pr.key); return f === from && t === to; })?.key;
+  const renderPeriodBar = () => (
+    <div className="card !p-3 mb-4 animate-in">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-semibold text-(--text-muted) uppercase tracking-wide mr-1" style={{ fontFamily: 'Sora, sans-serif' }}>Период</span>
+        {PRESETS.map(pr => (
+          <button key={pr.key} type="button" onClick={() => applyPeriod(...periodPreset(pr.key))}
+            className={activePreset === pr.key ? 'chip-active' : 'chip-inactive'}>{pr.label}</button>
+        ))}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="input-base !py-1.5 !text-xs !w-[135px]" />
+          <span className="text-(--text-muted) text-xs">—</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="input-base !py-1.5 !text-xs !w-[135px]" />
+        </div>
+      </div>
+    </div>
+  );
 
   const report = REPORT_TYPES.find(r => r.key === activeReport);
+  // Продажбите се еден извештај со три прегледи — активниот преглед ја одредува „виртуелната“ клуч
+  const viewKey = activeReport === 'sales' ? salesView : activeReport;
+  const previewData = activeReport === 'sales' ? (previewRaw ? previewRaw[salesView] : null) : previewRaw;
 
   const handlePrint = () => {
     if (!previewData && activeReport !== 'inventory') return;
-    const title = report?.label || 'Извештај';
+    const title = activeReport === 'sales'
+      ? `Продажби — ${SALES_VIEWS.find(v => v.key === viewKey)?.label || ''}`
+      : (report?.label || 'Извештај');
     let subtitle = '';
     if (report?.needsDates) subtitle = `Период: ${fmtDate(from)} — ${fmtDate(to)}`;
     if (poolNumber) subtitle += ` | Базен ${poolNumber}`;
@@ -351,7 +417,7 @@ export default function Reports() {
         <p class="total">Вкупно набавки: ${previewData.total} | Вкупно количина: ${previewData.totalKg} kg</p>`;
     }
 
-    if (activeReport === 'salesByBuyer') {
+    if (viewKey === 'salesByBuyer') {
       const rows = previewData.rows || [];
       const trs = rows.map(r =>
         `<tr><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r">${r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td><td class="r">${r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td></tr>`
@@ -359,7 +425,7 @@ export default function Reports() {
       tableHTML = `<table><thead><tr><th>Купувач</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Ден/кг</th><th class="r">Износ (ден)</th><th class="r">Неплатено</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandKg > 0 ? (previewData.grandTotal / previewData.grandKg).toFixed(0) : '–'}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td><td class="r"><strong>${(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</strong></td></tr></tbody></table>`;
     }
 
-    if (activeReport === 'salesByProduct') {
+    if (viewKey === 'salesByProduct') {
       const rows = previewData.rows || [];
       const trs = rows.map(r =>
         `<tr><td>${r.code}</td><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
@@ -367,7 +433,7 @@ export default function Reports() {
       tableHTML = `<table><thead><tr><th>Код</th><th>Производ</th><th class="r">Ставки</th><th class="r">Количина (кг)</th><th class="r">Износ (ден)</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td colspan="2"><strong>Вкупно</strong></td><td class="r"><strong>${rows.reduce((s, r) => s + r.count, 0)}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td></tr></tbody></table>`;
     }
 
-    if (activeReport === 'salesByPeriod') {
+    if (viewKey === 'salesByPeriod') {
       const rows = previewData.rows || [];
       const trs = rows.map(r =>
         `<tr><td>${r.label}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td></tr>`
@@ -663,7 +729,7 @@ ${tableHTML}
     }
 
     // ── Sales by buyer bar chart ──
-    if (activeReport === 'salesByBuyer' && (previewData.rows || []).length > 0) {
+    if (viewKey === 'salesByBuyer' && (previewData.rows || []).length > 0) {
       const chartData = previewData.rows.slice(0, 10).map(r => ({ name: r.name.length > 15 ? r.name.slice(0, 14) + '…' : r.name, Приход: parseFloat(r.totalAmount.toFixed(0)) }));
       return (
         <div className="card mb-4 animate-in">
@@ -682,7 +748,7 @@ ${tableHTML}
     }
 
     // ── Sales by product bar chart ──
-    if (activeReport === 'salesByProduct' && (previewData.rows || []).length > 0) {
+    if (viewKey === 'salesByProduct' && (previewData.rows || []).length > 0) {
       const chartData = previewData.rows.map(r => ({ name: r.code, Количина: parseFloat(r.totalKg.toFixed(1)), Приход: parseFloat(r.totalAmount.toFixed(0)) }));
       return (
         <div className="card mb-4 animate-in">
@@ -702,7 +768,7 @@ ${tableHTML}
     }
 
     // ── Sales by period line chart ──
-    if (activeReport === 'salesByPeriod' && (previewData.rows || []).length > 1) {
+    if (viewKey === 'salesByPeriod' && (previewData.rows || []).length > 1) {
       const chartData = previewData.rows.map(r => ({ name: r.label, Приход: parseFloat(r.totalAmount.toFixed(0)), Количина: parseFloat(r.totalKg.toFixed(1)) }));
       return (
         <div className="card mb-4 animate-in">
@@ -1109,7 +1175,7 @@ ${tableHTML}
     }
 
     // ── Sales by buyer ──
-    if (activeReport === 'salesByBuyer') {
+    if (viewKey === 'salesByBuyer') {
       const rows = previewData.rows || [];
       return (
         <div className="space-y-3">
@@ -1159,7 +1225,7 @@ ${tableHTML}
     }
 
     // ── Sales by product ──
-    if (activeReport === 'salesByProduct') {
+    if (viewKey === 'salesByProduct') {
       const rows = previewData.rows || [];
       return (
         <div className="space-y-3">
@@ -1206,7 +1272,7 @@ ${tableHTML}
     }
 
     // ── Sales by period (monthly) ──
-    if (activeReport === 'salesByPeriod') {
+    if (viewKey === 'salesByPeriod') {
       const rows = previewData.rows || [];
       const avgMonthly = rows.length > 0 ? previewData.grandTotal / rows.length : 0;
       return (
@@ -1504,7 +1570,7 @@ ${tableHTML}
       <div className="max-w-[900px] mx-auto">
         {/* Header with back button */}
         <div className="flex items-center gap-3 mb-5 animate-in">
-          <button onClick={!isInventory && previewData ? handleBackFromPreview : handleBackToList}
+          <button onClick={!isInventory && previewData && !isSimpleReport(report) ? handleBackFromPreview : handleBackToList}
             className="btn-ghost text-sm flex-shrink-0 !px-2.5" aria-label="Назад">
             <ChevronLeft size={18} />
           </button>
@@ -1545,21 +1611,27 @@ ${tableHTML}
           </>
         )}
 
-        {/* Standard reports — form or preview */}
-        {!isInventory && !previewData && (
+        {/* Заеднички период */}
+        {!isInventory && report?.needsDates && renderPeriodBar()}
+
+        {/* Продажби — три прегледи */}
+        {activeReport === 'sales' && (
+          <div className="flex gap-2 mb-4 animate-in">
+            {SALES_VIEWS.map(v => {
+              const VI = v.icon;
+              return (
+                <button key={v.key} type="button" onClick={() => setSalesView(v.key)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-(--r-md) text-xs font-semibold transition-colors ${salesView === v.key ? 'bg-(--primary) text-white' : 'bg-(--surface) border border-(--border) text-(--text-secondary) hover:bg-(--surface-hover)'}`}>
+                  <VI size={14} /> {v.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Standard reports — form (само за извештаи со дополнителни опции) */}
+        {!isInventory && !previewData && !loading && !isSimpleReport(report) && (
           <div className="card animate-in space-y-4">
-            {report.needsDates && (
-              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>Од</label>
-                  <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="input-base" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>До</label>
-                  <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="input-base" />
-                </div>
-              </div>
-            )}
 
             {report.needsPool && (
               <div>
@@ -1638,6 +1710,15 @@ ${tableHTML}
           </div>
         )}
 
+        {!isInventory && loading && isSimpleReport(report) && (
+          <div className="card animate-in flex items-center justify-center gap-3 py-10 text-sm text-(--text-secondary)">
+            <div className="wave-loader"><span /><span /><span /><span /></div> Се генерира...
+          </div>
+        )}
+        {!isInventory && !loading && !previewData && isSimpleReport(report) && error && (
+          <div className="alert-danger text-xs">{error}</div>
+        )}
+
         {/* Preview data */}
         {!isInventory && previewData && (
           <div className="animate-in space-y-0">
@@ -1648,25 +1729,27 @@ ${tableHTML}
 
             {renderPreview()}
 
-            {['salesByBuyer', 'salesByProduct', 'salesByPeriod'].includes(activeReport) && (
+            {activeReport === 'sales' && (
               <button onClick={handleSalesExcel} disabled={exporting} className="btn-secondary w-full py-3">
                 <FileSpreadsheet size={18} /> {exporting ? 'Подготвувам…' : 'Симни Excel'}
               </button>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid ${EMAIL_REPORTS.includes(activeReport) ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <button onClick={handlePrint} className="btn-secondary w-full py-3">
                 <Printer size={18} /> Принтај
               </button>
-              <button onClick={handleSendEmail} disabled={sending} className="btn-primary w-full py-3">
-                {sending ? (
-                  <span className="flex items-center gap-2">
-                    <div className="wave-loader"><span /><span /><span /><span /></div>
-                    Се испраќа...
-                  </span>
-                ) : (
-                  <><Mail size={18} /> Испрати на е-пошта</>
-                )}
-              </button>
+              {EMAIL_REPORTS.includes(activeReport) && (
+                <button onClick={handleSendEmail} disabled={sending} className="btn-primary w-full py-3">
+                  {sending ? (
+                    <span className="flex items-center gap-2">
+                      <div className="wave-loader"><span /><span /><span /><span /></div>
+                      Се испраќа...
+                    </span>
+                  ) : (
+                    <><Mail size={18} /> Испрати на е-пошта</>
+                  )}
+                </button>
+              )}
             </div>
 
             {emailSent && <div className="alert-success text-xs">Извештајот е испратен на вашата е-пошта.</div>}
@@ -1688,27 +1771,39 @@ ${tableHTML}
         <h1 className="page-title !mb-0">Извештаи</h1>
       </div>
 
-      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-        {REPORT_TYPES.map((r, i) => {
-          const Icon = r.icon;
+      {renderPeriodBar()}
+
+      <div className="space-y-6">
+        {REPORT_GROUPS.map((g, gi) => {
+          const items = REPORT_TYPES.filter(r => r.group === g.key);
           return (
-            <button key={r.key} onClick={() => r.isLink ? navigate(r.linkTo) : handleSelectReport(r.key)}
-              className={`card-hover text-left animate-in-delay-${Math.min(i + 1, 5)} !p-6`}>
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="icon-box"
-                  style={{
-                    background: 'rgba(37,99,235,0.06)',
-                    color: 'var(--primary)',
-                  }}>
-                  <Icon size={18} />
-                </div>
-                <span className="text-sm font-semibold text-(--text-primary)"
-                  style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {r.label}
-                </span>
+            <section key={g.key} className={`animate-in-delay-${Math.min(gi + 1, 5)}`}>
+              <h2 className="text-[11px] font-bold uppercase tracking-wider mb-2 flex items-center gap-2"
+                style={{ fontFamily: 'Sora, sans-serif', color: g.color }}>
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: g.color }} />
+                {g.label}
+              </h2>
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 gap-3">
+                {items.map(r => {
+                  const Icon = r.icon;
+                  return (
+                    <button key={r.key} onClick={() => r.isLink ? navigate(r.linkTo) : handleSelectReport(r.key)}
+                      className="card-hover text-left !p-4">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <div className="icon-box" style={{ background: `${g.color}14`, color: g.color }}>
+                          <Icon size={17} />
+                        </div>
+                        <span className="text-sm font-semibold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
+                          {r.label}
+                        </span>
+                        {r.isLink && <ArrowUp size={12} className="ml-auto rotate-45 text-(--text-muted)" />}
+                      </div>
+                      <p className="text-[11px] text-(--text-secondary) ml-[calc(2.5rem+0.625rem)]">{r.desc}</p>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-[11px] text-(--text-secondary) ml-[calc(2.5rem+0.625rem)]">{r.desc}</p>
-            </button>
+            </section>
           );
         })}
       </div>
