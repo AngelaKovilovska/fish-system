@@ -297,24 +297,6 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            {/* Product stock warnings: low stock, expiring / expired LOTs */}
-            {productWarnings.length > 0 && (
-              <div className="mt-2 space-y-1.5">
-                {productWarnings.slice(0, 6).map((w, i) => (
-                  <Link key={i} to="/inventory/products"
-                    className="card !p-2.5 !py-2 flex items-center gap-2 text-[11px] hover:scale-[1.005] transition-all"
-                    style={{ borderLeft: `3px solid ${w.level === 'danger' ? 'var(--danger)' : 'var(--warning)'}` }}>
-                    <AlertTriangle size={13} className={w.level === 'danger' ? 'text-(--danger) flex-shrink-0' : 'text-amber-500 flex-shrink-0'} />
-                    <span className="text-(--text-secondary)">{w.text}</span>
-                  </Link>
-                ))}
-                {productWarnings.length > 6 && (
-                  <Link to="/inventory/products" className="text-[11px] text-(--primary) font-medium hover:underline block pl-1">
-                    + уште {productWarnings.length - 6}
-                  </Link>
-                )}
-              </div>
-            )}
           </div>
         );
       })()}
