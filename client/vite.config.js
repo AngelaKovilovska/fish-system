@@ -45,7 +45,13 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // API навигации (пр. PDF документи во iframe) не смеат да добијат index.html
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          {
+            urlPattern: /\/api\/(documents|reports\/sales-export)/i,
+            handler: 'NetworkOnly',
+          },
           {
             urlPattern: /^https?:\/\/.*\/api\/.*/i,
             handler: 'NetworkFirst',
