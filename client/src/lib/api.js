@@ -44,14 +44,9 @@ export async function downloadFile(url, fileName) {
   setTimeout(() => URL.revokeObjectURL(href), 2000);
 }
 
-// Официјален PDF документ за продажба (фактура / комерцијален / декларација) — Blob
-export async function fetchDocumentPdf(type, saleId) {
-  const res = await fetch(`${API_BASE}/documents/${type}/${saleId}`, { credentials: 'include' });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'Грешка при генерирање на документот');
-  }
-  return res.blob();
+// URL на официјалниот PDF документ за продажба (фактура / комерцијален / декларација)
+export function documentUrl(type, saleId) {
+  return `${API_BASE}/documents/${type}/${saleId}`;
 }
 
 export const api = {

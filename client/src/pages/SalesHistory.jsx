@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, fetchDocumentPdf } from '../lib/api';
+import { api, documentUrl } from '../lib/api';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
@@ -42,7 +42,7 @@ export default function SalesHistory() {
   const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Document preview modal: { url (blob), docType, fileName }
+  // Document preview modal: { url (API), docType, fileName }
   const [previewDoc, setPreviewDoc] = useState(null);
   const previewFrameRef = useRef(null);
 
@@ -154,31 +154,26 @@ export default function SalesHistory() {
 
   const DOC_LABELS = { invoice: 'Фактура', commercial: 'Комерцијален', declaration: 'Декларација' };
 
-  // Отвори официјален PDF (пополнет урнек) во preview
+  // Отвори официјален PDF (пополнет урнек) во preview — директно од API (иста домена)
   async function openPreview(saleId, docType) {
     try {
-      const [blob, sale] = await Promise.all([fetchDocumentPdf(docType, saleId), api.getSale(saleId)]);
+      const sale = await api.getSale(saleId);
       const invoiceNum = sale.invoice_number || sale.dispatch_number || saleId;
       const fileName = `${DOC_LABELS[docType]}_${invoiceNum}`.replace(/[\s/\\:*?"<>|]/g, '_');
-      if (previewDoc?.url) URL.revokeObjectURL(previewDoc.url);
-      setPreviewDoc({ url: URL.createObjectURL(blob), docType, fileName });
+      setPreviewDoc({ url: documentUrl(docType, saleId), docType, fileName });
     } catch (err) {
       setError('Грешка при отворање: ' + err.message);
     }
   }
 
-  function closePreview() {
-    if (previewDoc?.url) setTimeout(() => URL.revokeObjectURL(previewDoc.url), 1000);
-    setPreviewDoc(null);
-  }
+  function closePreview() { setPreviewDoc(null); }
 
   // Печати го истиот PDF
   function handlePreviewPrint() {
     if (!previewDoc) return;
-    const frame = previewFrameRef.current;
     try {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
+      previewFrameRef.current.contentWindow.focus();
+      previewFrameRef.current.contentWindow.print();
     } catch {
       window.open(previewDoc.url, '_blank');
     }
@@ -188,7 +183,7 @@ export default function SalesHistory() {
   function handlePreviewDownload() {
     if (!previewDoc) return;
     const a = document.createElement('a');
-    a.href = previewDoc.url;
+    a.href = `${previewDoc.url}?download=1`;
     a.download = `${previewDoc.fileName}.pdf`;
     document.body.appendChild(a);
     a.click();

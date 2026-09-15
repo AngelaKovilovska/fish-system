@@ -35,6 +35,8 @@ app.use(helmet({
       connectSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
       workerSrc: ["'self'"],
       manifestSrc: ["'self'"],
+      frameSrc: ["'self'", "blob:"],
+      objectSrc: ["'self'", "blob:"],
     },
   },
 }));
