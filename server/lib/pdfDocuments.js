@@ -38,6 +38,7 @@ function fmtDate(d) {
   return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
 }
 function num(v, dec = 2) { return (parseFloat(v) || 0).toFixed(dec); }
+function money(v) { return `${num(v)} ден.`; }
 function str(v) { return v == null ? '' : String(v); }
 
 // Draw text using TOP-origin coordinates (како во pdfplumber): `top` е baseline од горе.
@@ -90,8 +91,8 @@ async function buildInvoice(sale) {
 
   // Број и датум (центрирано над линиите)
   const CX = 519.5;
-  draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 10, font: B, align: 'center' });
-  draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 10, font: B, align: 'center' });
+  draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 12, font: B, align: 'center' });
+  draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 12, font: B, align: 'center' });
 
   // Ставки — линии на овие „top“ позиции; првиот ред се прескокнува (ставките почнуваат од вториот)
   const ROWS = [328.5, 356.9, 385.2, 413.6, 441.9, 470.3, 498.6, 527.0, 555.3];
@@ -99,10 +100,10 @@ async function buildInvoice(sale) {
   items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
     const base = ROWS[i + FIRST_ROW] - 8.5;
     const name = `${it.name ? it.name.charAt(0).toUpperCase() + it.name.slice(1) : 'Риба'} (Clarias gariepinus) - ${it.code || ''}`;
-    draw(ctx, name, { x: 45, top: base, size: 10, maxWidth: 236 });
-    draw(ctx, num(it.quantity_kg), { x: 369, top: base, size: 10, align: 'right' });
-    draw(ctx, num(it.price_per_kg), { x: 467, top: base, size: 10, align: 'right' });
-    draw(ctx, num(it.amount), { x: 567, top: base, size: 10, align: 'right' });
+    draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
+    draw(ctx, num(it.quantity_kg), { x: 369, top: base, size: 11, align: 'right' });
+    draw(ctx, money(it.price_per_kg), { x: 467, top: base, size: 11, align: 'right' });
+    draw(ctx, money(it.amount), { x: 567, top: base, size: 11, align: 'right' });
   });
 
   // Износ / ДДВ / Се вкупно
@@ -111,9 +112,9 @@ async function buildInvoice(sale) {
     whiteBox(ctx, { x0: 427, x1: 466, top: 591.5, bottom: 605.5 });
     draw(ctx, `ДДВ ${num(vatRate, 0)}%:`, { x: 464.5, top: 601.6, size: 10, align: 'right' });
   }
-  draw(ctx, num(sale.subtotal), { x: 567, top: 575.8, size: 10, align: 'right' });
-  draw(ctx, num(sale.vat_amount), { x: 567, top: 602.6, size: 10, align: 'right' });
-  draw(ctx, num(sale.total), { x: 567, top: 629.8, size: 11, font: B, align: 'right' });
+  draw(ctx, money(sale.subtotal), { x: 567, top: 575.8, size: 11, align: 'right' });
+  draw(ctx, money(sale.vat_amount), { x: 567, top: 602.6, size: 11, align: 'right' });
+  draw(ctx, money(sale.total), { x: 567, top: 629.8, size: 12, font: B, align: 'right' });
 
   // ЛОТ (бело на сина лента, по „ЛОТ:“)
   draw(ctx, lots.join(', '), { x: 114, top: 629.3, size: 10, font: B, color: WHITE, maxWidth: 78 });
