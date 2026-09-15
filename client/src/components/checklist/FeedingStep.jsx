@@ -1,6 +1,6 @@
 import { POOL_NUMBERS } from '../../lib/constants';
 import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Fish, ShoppingCart, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
+import { Fish, Skull, Weight, Hash, ClipboardList } from 'lucide-react';
 
 const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasurements, fishInventory }, ref) {
   const [activePool, setActivePool] = useState(1);
@@ -55,7 +55,7 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
   const getPoolData = (poolNum) => {
     return data.find(p => p.pool_number === poolNum) || {
       pool_number: poolNum, fish_count: '', avg_weight_gr: '',
-      sold_count: 0, dead_count: 0,
+      dead_count: 0,
     };
   };
 
@@ -63,7 +63,7 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
     const updated = [...data];
     const idx = updated.findIndex(p => p.pool_number === poolNum);
     if (idx >= 0) { updated[idx] = { ...updated[idx], [field]: value }; }
-    else { updated.push({ pool_number: poolNum, [field]: value, sold_count: 0, dead_count: 0 }); }
+    else { updated.push({ pool_number: poolNum, [field]: value, dead_count: 0 }); }
     onChange(updated);
   };
 
@@ -78,10 +78,9 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
   // Current fish count comes from inventory
   const currentFishCount = inventory?.current_count ?? 0;
 
-  // Calculate what the count will be after today's dead + sold
+  // Број по денешните угинати (продадените/преработените се следат преку сериите за преработка)
   const todayDead = parseInt(poolData.dead_count) || 0;
-  const todaySold = parseInt(poolData.sold_count) || 0;
-  const afterCount = currentFishCount - todayDead - todaySold;
+  const afterCount = currentFishCount - todayDead;
 
   return (
     <div className="space-y-4">
@@ -142,13 +141,11 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
               {currentFishCount}
             </span>
           </div>
-          {(todayDead > 0 || todaySold > 0) && (
+          {todayDead > 0 && (
             <div className="mt-2 pt-2 border-t border-[rgba(37,99,235,0.1)] flex items-center justify-between">
               <span className="text-[10px] text-(--text-muted)">
                 По денешен запис:
-                {todayDead > 0 && <span className="text-(--danger)"> -{todayDead} угинати</span>}
-                {todayDead > 0 && todaySold > 0 && ','}
-                {todaySold > 0 && <span className="text-amber-600"> -{todaySold} продадени</span>}
+                <span className="text-(--danger)"> -{todayDead} угинати</span>
               </span>
               <span className={`text-sm font-bold ${afterCount < currentFishCount ? 'text-(--danger)' : 'text-(--primary)'}`}
                 style={{ fontFamily: 'Sora, sans-serif' }}>
@@ -161,7 +158,7 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
         {afterCount < 0 && (
           <div className="rounded-xl p-2.5 text-xs font-medium text-(--danger)"
             style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            Внимание: Угинати + продадени ({todayDead + todaySold}) е поголемо од бројот на риби ({currentFishCount})!
+            Внимание: Угинати ({todayDead}) е поголемо од бројот на риби ({currentFishCount})!
           </div>
         )}
 
@@ -178,28 +175,19 @@ const FeedingStep = forwardRef(function FeedingStep({ data, onChange, poolMeasur
             placeholder={projectedWeight ? `${projectedWeight}` : 'нпр. 150'} />
         </div>
 
-        {/* Sold & dead */}
-        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
-              style={{ fontFamily: 'Sora, sans-serif' }}>
-              <ShoppingCart size={12} className="text-(--primary)" />
-              Продадени
-            </label>
-            <input type="number" value={poolData.sold_count ?? 0}
-              onChange={(e) => updatePool(activePool, 'sold_count', e.target.value)}
-              className="input-base" placeholder="0" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
-              style={{ fontFamily: 'Sora, sans-serif' }}>
-              <Skull size={12} className="text-(--danger)" />
-              Угинати
-            </label>
-            <input type="number" value={poolData.dead_count ?? 0}
-              onChange={(e) => updatePool(activePool, 'dead_count', e.target.value)}
-              className="input-base" placeholder="0" />
-          </div>
+        {/* Dead (рибите земени од базен се внесуваат при Преработка → Нова серија) */}
+        <div>
+          <label className="block text-xs font-semibold text-(--text-secondary) mb-1.5 flex items-center gap-1.5"
+            style={{ fontFamily: 'Sora, sans-serif' }}>
+            <Skull size={12} className="text-(--danger)" />
+            Угинати
+          </label>
+          <input type="number" min="0" value={poolData.dead_count ?? 0}
+            onChange={(e) => updatePool(activePool, 'dead_count', e.target.value)}
+            className="input-base" placeholder="0" />
+          <p className="text-[10px] text-(--text-muted) mt-1.5">
+            Рибите земени од базенот за преработка се евидентираат при креирање серија во Преработка.
+          </p>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
 const { checkAndCreateAlerts } = require('../services/alertService');
 const { validateRecordBody, validateId, sanitizeString } = require('../middleware/validate');
+const { getPoolCount, getProcessedByPool } = require('../lib/poolFish');
 
 const router = express.Router();
 
@@ -180,12 +181,19 @@ router.get('/:id', authMiddleware, validateId, async (req, res) => {
       pool.query('SELECT * FROM alerts WHERE daily_record_id = $1 ORDER BY created_at', [id]),
     ]);
 
+    // Риби земени за преработка на тој датум (од сериите) — информативно по базен
+    const recDate = record.rows[0].date;
+    const dateStr = recDate instanceof Date
+      ? `${recDate.getFullYear()}-${String(recDate.getMonth() + 1).padStart(2, '0')}-${String(recDate.getDate()).padStart(2, '0')}`
+      : String(recDate).slice(0, 10);
+    const processed = await getProcessedByPool(pool, dateStr);
+
     res.json({
       record: record.rows[0],
       water_control: water.rows[0] || null,
       filtration_checks: filtration.rows[0] || null,
       fish_visual: fishVisual.rows[0] || null,
-      pool_feeding: feeding.rows,
+      pool_feeding: feeding.rows.map(pf => ({ ...pf, processed_count: processed[pf.pool_number] || 0 })),
       activities: activities.rows[0] || null,
       alerts: alerts.rows,
     });
@@ -248,24 +256,19 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
     // 5. Pool feeding (6 pools)
     if (pool_feeding && Array.isArray(pool_feeding)) {
       for (const pf of pool_feeding) {
-        // Get current fish count from inventory for this pool
-        const invResult = await client.query(
-          'SELECT current_count FROM pool_fish_inventory WHERE pool_number = $1',
-          [pf.pool_number]
-        );
-        const currentCount = invResult.rows.length > 0 ? invResult.rows[0].current_count : 0;
+        // Снимка на тековниот број риби (мерење − угинати − преработка) во моментот на записот
+        const currentCount = await getPoolCount(client, pf.pool_number);
 
+        // Продадени риби веќе не се внесуваат во чеклистата — се следат преку сериите за преработка
         await client.query(
           `INSERT INTO pool_feeding (daily_record_id, pool_number, fish_count, avg_weight_gr, sold_count, dead_count, food_type, food_quantity_gr)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           VALUES ($1, $2, $3, $4, 0, $5, $6, $7)`,
           [recordId, pf.pool_number, currentCount, pf.avg_weight_gr,
-           pf.sold_count, pf.dead_count, pf.food_type, pf.food_quantity_gr]
+           pf.dead_count, pf.food_type, pf.food_quantity_gr]
         );
 
-        // Deduct dead + sold from fish inventory
-        const dead = parseInt(pf.dead_count) || 0;
-        const sold = parseInt(pf.sold_count) || 0;
-        const totalRemoved = dead + sold;
+        // Deduct dead from fish inventory table (used by ML predictions)
+        const totalRemoved = parseInt(pf.dead_count) || 0;
         if (totalRemoved > 0) {
           await client.query(
             `UPDATE pool_fish_inventory SET current_count = current_count - $1, updated_at = NOW() WHERE pool_number = $2`,
@@ -357,6 +360,7 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
       const oldSold = parseInt(of_.sold_count) || 0;
       oldFeedingMap[of_.pool_number] = {
         fish_count: of_.fish_count,
+        sold_count: oldSold,
         oldRemoved: oldDead + oldSold,
       };
       // Rollback food consumption
@@ -426,18 +430,20 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
         const preservedFishCount = oldData ? oldData.fish_count : 0;
 
         const newDead = parseInt(pf.dead_count) || 0;
-        const newSold = parseInt(pf.sold_count) || 0;
-        const newRemoved = newDead + newSold;
+        // Продадени веќе не се внесуваат (се следат преку сериите за преработка);
+        // кај стари записи вредноста се зачувува како историја
+        const keptSold = oldData ? oldData.sold_count : 0;
+        const newRemoved = newDead + keptSold;
         const oldRemoved = oldData ? oldData.oldRemoved : 0;
 
         await client.query(
           `INSERT INTO pool_feeding (daily_record_id, pool_number, fish_count, avg_weight_gr, sold_count, dead_count, food_type, food_quantity_gr)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [id, pf.pool_number, preservedFishCount, toNum(pf.avg_weight_gr),
-           newSold, newDead, pf.food_type || null, qty]
+           keptSold, newDead, pf.food_type || null, qty]
         );
 
-        // Apply inventory delta: only the difference between old and new dead+sold
+        // Apply inventory delta: only the difference between old and new removed count
         const delta = newRemoved - oldRemoved;
         if (delta !== 0) {
           await client.query(

@@ -111,17 +111,18 @@ export default function RecordDetail() {
       const poolRows = pf.map(p => {
         const startCount = parseInt(p.fish_count) || 0;
         const dead = parseInt(p.dead_count) || 0;
-        const sold = parseInt(p.sold_count) || 0;
+        const sold = parseInt(p.sold_count) || 0; // стари записи
+        const processed = (parseInt(p.processed_count) || 0) + sold; // од сериите за преработка
         const actual = startCount - dead - sold;
         const avgW = parseFloat(p.avg_weight_gr) || 0;
         const totalKg = actual > 0 && avgW > 0 ? (actual * avgW / 1000).toFixed(1) : '–';
-        return `<div class="pool-block"><strong>Базен ${p.pool_number}</strong>${row('Број риби', actual)}${row('Просечна тежина', p.avg_weight_gr != null ? p.avg_weight_gr + ' gr' : '–')}${row('Вкупна тежина', totalKg !== '–' ? totalKg + ' кг' : '–')}${row('Продадени', sold || '–')}${row('Угинати', dead || '–')}</div>`;
+        return `<div class="pool-block"><strong>Базен ${p.pool_number}</strong>${row('Број риби', actual)}${row('Просечна тежина', p.avg_weight_gr != null ? p.avg_weight_gr + ' gr' : '–')}${row('Вкупна тежина', totalKg !== '–' ? totalKg + ' кг' : '–')}${row('Преработени', processed || '–')}${row('Угинати', dead || '–')}</div>`;
       }).join('');
       const totalFish = pf.reduce((s, p) => s + ((parseInt(p.fish_count)||0)-(parseInt(p.dead_count)||0)-(parseInt(p.sold_count)||0)), 0);
       const totalKg = pf.reduce((s, p) => { const a = (parseInt(p.fish_count)||0)-(parseInt(p.dead_count)||0)-(parseInt(p.sold_count)||0); return s + (a * (parseFloat(p.avg_weight_gr)||0) / 1000); }, 0).toFixed(1);
       const totalDead = pf.reduce((s, p) => s + (parseInt(p.dead_count)||0), 0);
-      const totalSold = pf.reduce((s, p) => s + (parseInt(p.sold_count)||0), 0);
-      html += section('4. Евиденција на базени', poolRows + `<div class="total">Риби: ${totalFish} | Вкупно: ${totalKg} кг | Продадени: ${totalSold} | Угинати: ${totalDead}</div>`);
+      const totalProcessed = pf.reduce((s, p) => s + (parseInt(p.processed_count)||0) + (parseInt(p.sold_count)||0), 0);
+      html += section('4. Евиденција на базени', poolRows + `<div class="total">Риби: ${totalFish} | Вкупно: ${totalKg} кг | Преработени: ${totalProcessed} | Угинати: ${totalDead}</div>`);
     }
     if (act) {
       let rows = row('Сортирање', act.sorting_date ? new Date(act.sorting_date).toLocaleDateString('mk-MK') : '–');
@@ -224,7 +225,8 @@ ${html}
     return s + (actual * (parseFloat(p.avg_weight_gr)||0) / 1000);
   }, 0);
   const totalDead = pool_feeding.reduce((s, p) => s + (parseInt(p.dead_count)||0), 0);
-  const totalSold = pool_feeding.reduce((s, p) => s + (parseInt(p.sold_count)||0), 0);
+  // Преработени = риби земени од базенот за серии тој ден (+ „продадени" од стари записи)
+  const totalProcessed = pool_feeding.reduce((s, p) => s + (parseInt(p.processed_count)||0) + (parseInt(p.sold_count)||0), 0);
 
   // Prepare meals data
   const mealTypes = ['breakfast', 'lunch', 'dinner'];
@@ -415,7 +417,7 @@ ${html}
                   <th className="text-right font-semibold py-1 px-1.5">Риби</th>
                   <th className="text-right font-semibold py-1 px-1.5">Тежина</th>
                   <th className="text-right font-semibold py-1 px-1.5">Вкупно кг</th>
-                  <th className="text-right font-semibold py-1 px-1.5">Прод.</th>
+                  <th className="text-right font-semibold py-1 px-1.5">Прераб.</th>
                   <th className="text-right font-semibold py-1 px-1.5">Угин.</th>
                 </tr>
               </thead>
@@ -424,6 +426,7 @@ ${html}
                   const startCount = parseInt(pf.fish_count) || 0;
                   const dead = parseInt(pf.dead_count) || 0;
                   const sold = parseInt(pf.sold_count) || 0;
+                  const processed = (parseInt(pf.processed_count) || 0) + sold;
                   const actualCount = startCount - dead - sold;
                   const avgW = parseFloat(pf.avg_weight_gr) || 0;
                   const totalKgPool = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : null;
@@ -433,7 +436,7 @@ ${html}
                       <td className="py-1.5 px-1.5 text-right font-medium">{actualCount}</td>
                       <td className="py-1.5 px-1.5 text-right">{avgW > 0 ? `${avgW} gr` : '–'}</td>
                       <td className="py-1.5 px-1.5 text-right font-medium">{totalKgPool != null ? `${totalKgPool.toFixed(1)}` : '–'}</td>
-                      <td className="py-1.5 px-1.5 text-right">{sold || '–'}</td>
+                      <td className="py-1.5 px-1.5 text-right">{processed || '–'}</td>
                       <td className="py-1.5 px-1.5 text-right">{dead || '–'}</td>
                     </tr>
                   );
@@ -445,7 +448,7 @@ ${html}
                   <td className="py-1.5 px-1.5 text-right">{totalFish}</td>
                   <td className="py-1.5 px-1.5"></td>
                   <td className="py-1.5 px-1.5 text-right">{totalKg.toFixed(1)}</td>
-                  <td className="py-1.5 px-1.5 text-right">{totalSold || '–'}</td>
+                  <td className="py-1.5 px-1.5 text-right">{totalProcessed || '–'}</td>
                   <td className="py-1.5 px-1.5 text-right">{totalDead || '–'}</td>
                 </tr>
               </tfoot>

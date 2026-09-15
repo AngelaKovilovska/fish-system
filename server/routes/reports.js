@@ -416,6 +416,7 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
         const startCount = parseInt(pf.fish_count) || 0;
         const dead = parseInt(pf.dead_count) || 0;
         const sold = parseInt(pf.sold_count) || 0;
+        const processed = (parseInt(pf.processed_count) || 0) + sold;
         const actualCount = startCount - dead - sold;
         const avgW = parseFloat(pf.avg_weight_gr) || 0;
         const poolKg = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : 0;
@@ -423,13 +424,13 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
         rows.push([`Базен ${pf.pool_number} - Број риби`, actualCount]);
         rows.push([`Базен ${pf.pool_number} - Просечна тежина`, pf.avg_weight_gr != null ? `${pf.avg_weight_gr} gr` : '–']);
         rows.push([`Базен ${pf.pool_number} - Вкупна тежина`, poolKg > 0 ? `${poolKg.toFixed(1)} кг` : '–']);
-        rows.push([`Базен ${pf.pool_number} - Продадени`, sold || '–']);
+        rows.push([`Базен ${pf.pool_number} - Преработени`, processed || '–']);
         rows.push([`Базен ${pf.pool_number} - Угинати`, dead || '–']);
       }
       rows.push(['', '']);
       rows.push(['Збир - Вкупно риби', data.totals.total_fish]);
       rows.push(['Збир - Вкупна тежина', `${totalKgAll.toFixed(1)} кг`]);
-      rows.push(['Збир - Вкупно продадени', data.totals.total_sold]);
+      rows.push(['Збир - Вкупно преработени', data.totals.total_processed]);
       rows.push(['Збир - Вкупно угинати', data.totals.total_dead]);
     }
 
@@ -557,12 +558,13 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
 
     // 4. Pool status + Feeding - table
     if (data.pool_feeding.length > 0) {
-      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупна тежина', 'Продадени', 'Угинати'];
+      const feedHeaders = ['Базен', 'Риби', 'Тежина (gr)', 'Вкупна тежина', 'Преработени', 'Угинати'];
       let pdfTotalKg = 0;
       const feedRows = data.pool_feeding.map(pf => {
         const startCount = parseInt(pf.fish_count) || 0;
         const dead = parseInt(pf.dead_count) || 0;
         const sold = parseInt(pf.sold_count) || 0;
+        const processed = (parseInt(pf.processed_count) || 0) + sold;
         const actualCount = startCount - dead - sold;
         const avgW = parseFloat(pf.avg_weight_gr) || 0;
         const poolKg = actualCount > 0 && avgW > 0 ? (actualCount * avgW / 1000) : 0;
@@ -570,7 +572,7 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
         return [
           pf.pool_number, actualCount, pf.avg_weight_gr ?? '–',
           poolKg > 0 ? `${poolKg.toFixed(1)}` : '–',
-          sold || '–', dead || '–',
+          processed || '–', dead || '–',
         ];
       });
       pdfSections.push({ heading: '4. ЕВИДЕНЦИЈА НА БАЗЕНИ', table: { headers: feedHeaders, rows: feedRows } });
@@ -578,7 +580,7 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
         keyvalue: [
           { label: 'Вкупно риби', value: `${data.totals.total_fish}` },
           { label: 'Вкупна тежина', value: `${pdfTotalKg.toFixed(1)} кг` },
-          { label: 'Вкупно продадени', value: `${data.totals.total_sold}` },
+          { label: 'Вкупно преработени', value: `${data.totals.total_processed}` },
           { label: 'Вкупно угинати', value: `${data.totals.total_dead}`, status: data.totals.total_dead > 0 ? 'danger' : null },
         ],
       });
@@ -681,7 +683,7 @@ async function buildAndSendDailyReport(recordId, recipientEmail) {
       const feedingItems = [
         { label: 'Вкупно риби', value: data.totals.total_fish },
         { label: 'Вкупна тежина', value: `${emailTotalKg.toFixed(1)} кг` },
-        { label: 'Вкупно продадени', value: data.totals.total_sold },
+        { label: 'Вкупно преработени', value: data.totals.total_processed },
         { label: 'Вкупно угинати', value: data.totals.total_dead, danger: data.totals.total_dead > 0 },
       ];
       emailSections.push({ type: 'keyvalue', heading: '4. Евиденција на базени - Збир', items: feedingItems });

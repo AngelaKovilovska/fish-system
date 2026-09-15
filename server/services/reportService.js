@@ -1,4 +1,5 @@
 const pool = require('../db/connection');
+const { getProcessedByPool } = require('../lib/poolFish');
 const path = require('path');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
@@ -48,7 +49,7 @@ async function getDailyReportData(recordId) {
     pool.query('SELECT * FROM alerts WHERE daily_record_id = $1', [recordId]),
   ]);
 
-  const feedingRows = feeding.rows;
+  let feedingRows = feeding.rows;
   const recordDate = record.rows[0]?.date;
 
   // Fetch pool_meals for this date (new per-meal feeding system)
@@ -59,6 +60,9 @@ async function getDailyReportData(recordId) {
     const dateStr = typeof recordDate === 'string' && recordDate.length === 10
       ? recordDate
       : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    // Преработени риби по базен (од сериите за преработка на тој датум)
+    const processed = await getProcessedByPool(pool, dateStr);
+    feedingRows = feedingRows.map(f => ({ ...f, processed_count: processed[f.pool_number] || 0 }));
     const mealsResult = await pool.query(
       `SELECT pm.*, u.full_name as fed_by_name
        FROM pool_meals pm
@@ -122,7 +126,8 @@ async function getDailyReportData(recordId) {
       const sold = parseInt(f.sold_count || 0);
       return sum + (start - dead - sold);
     }, 0),
-    total_sold: feedingRows.reduce((sum, f) => sum + parseInt(f.sold_count || 0), 0),
+    // Преработени = риби земени за серии тој ден (+ „продадени" од стари записи)
+    total_processed: feedingRows.reduce((sum, f) => sum + parseInt(f.processed_count || 0) + parseInt(f.sold_count || 0), 0),
     total_dead: feedingRows.reduce((sum, f) => sum + parseInt(f.dead_count || 0), 0),
     food_types,
   };

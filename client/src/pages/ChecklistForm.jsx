@@ -46,7 +46,7 @@ export default function ChecklistForm() {
     water_control: {},
     filtration_checks: {},
     fish_visual: {},
-    pool_feeding: POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
+    pool_feeding: POOL_NUMBERS.map(n => ({ pool_number: n, dead_count: 0 })),
   });
 
   const [formData, setFormData] = useState(makeEmptyForm);
@@ -92,10 +92,10 @@ export default function ChecklistForm() {
           pool_feeding: pool_feeding.length > 0
             ? pool_feeding.map(pf => ({
                 pool_number: pf.pool_number, fish_count: pf.fish_count ?? '',
-                avg_weight_gr: pf.avg_weight_gr ?? '', sold_count: pf.sold_count ?? 0,
+                avg_weight_gr: pf.avg_weight_gr ?? '',
                 dead_count: pf.dead_count ?? 0,
               }))
-            : POOL_NUMBERS.map(n => ({ pool_number: n, sold_count: 0, dead_count: 0 })),
+            : POOL_NUMBERS.map(n => ({ pool_number: n, dead_count: 0 })),
         });
       })
       .catch(err => setError('Грешка при вчитување: ' + err.message))
@@ -265,7 +265,7 @@ export default function ChecklistForm() {
     try {
       const feedingWithDefaults = formData.pool_feeding.map(pf => {
         const measurement = poolMeasurements.find(m => m.pool_number === pf.pool_number);
-        return { ...pf, avg_weight_gr: (pf.avg_weight_gr !== '' && pf.avg_weight_gr != null) ? pf.avg_weight_gr : (measurement?.projected_weight_gr ?? measurement?.avg_weight_gr ?? null), sold_count: pf.sold_count || 0, dead_count: pf.dead_count || 0 };
+        return { ...pf, avg_weight_gr: (pf.avg_weight_gr !== '' && pf.avg_weight_gr != null) ? pf.avg_weight_gr : (measurement?.projected_weight_gr ?? measurement?.avg_weight_gr ?? null), dead_count: pf.dead_count || 0 };
       });
       const payload = { ...formData, pool_feeding: feedingWithDefaults };
       let result;

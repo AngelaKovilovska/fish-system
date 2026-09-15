@@ -74,6 +74,7 @@ export default function ProductionNew() {
   /* form (stepper) */
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [editingOrig, setEditingOrig] = useState(null); // { source_pool, fish_count } на серијата што се уредува
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ production_date: todayStr(), source_pool: '', fish_count: '', total_weight_kg: '', notes: '' });
   const [items, setItems] = useState([]);
@@ -108,14 +109,16 @@ export default function ProductionNew() {
   function poolInfo(n) {
     const p = poolData.find(x => x.pool_number === parseInt(n));
     const m = poolMeasurements.find(x => x.pool_number === parseInt(n));
-    const fc = p ? p.current_count : (m ? m.fish_count : 0);
+    let fc = p ? p.current_count : (m ? m.fish_count : 0);
+    // При уредување, рибите од оваа серија веќе се одземени од базенот — врати ги за приказ
+    if (editingOrig && editingOrig.source_pool === parseInt(n)) fc += editingOrig.fish_count;
     const aw = m ? parseFloat(m.projected_avg_weight || m.avg_weight_gr || 0) : 0;
     return { fishCount: fc, avgWeight: aw, totalMass: fc * aw / 1000 };
   }
 
   /* ═══ form actions ═══ */
   function startNew() {
-    setEditingId(null);
+    setEditingId(null); setEditingOrig(null);
     setForm({ production_date: todayStr(), source_pool: '', fish_count: '', total_weight_kg: '', notes: '' });
     setItems(productTypes.map(pt => ({ product_type_id: pt.id, quantity_kg: '' })));
     setStep(1); setShowForm(true); setShowSettings(false);
@@ -125,6 +128,7 @@ export default function ProductionNew() {
 
   function startEdit(batch) {
     setEditingId(batch.id);
+    setEditingOrig({ source_pool: parseInt(batch.source_pool) || 0, fish_count: parseInt(batch.fish_count) || 0 });
     setForm({
       production_date: batch.production_date ? batch.production_date.slice(0, 10) : todayStr(),
       source_pool: String(batch.source_pool || ''),
@@ -142,7 +146,7 @@ export default function ProductionNew() {
     setTimeout(() => formTopRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }
 
-  function cancelForm() { setShowForm(false); setEditingId(null); setStep(1); setError(''); }
+  function cancelForm() { setShowForm(false); setEditingId(null); setEditingOrig(null); setStep(1); setError(''); }
 
   function goNext() {
     if (step === 1 && !form.source_pool) { setError('Изберете базен'); return; }
@@ -175,7 +179,7 @@ export default function ProductionNew() {
         const r = await api.createProductionBatch(payload);
         setSuccess(`Серијата е зачувана${r?.lot_number ? ` — ${r.lot_number}` : ''}`);
       }
-      setShowForm(false); setEditingId(null); setStep(1);
+      setShowForm(false); setEditingId(null); setEditingOrig(null); setStep(1);
       await loadData();
       setTimeout(() => setSuccess(''), 5000);
     } catch (e) { setError(e.message || 'Грешка'); }

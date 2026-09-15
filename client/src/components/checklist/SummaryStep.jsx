@@ -46,13 +46,11 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
     const inv = fishInventory?.find(fi => fi.pool_number === num);
     const hasFish = inv && inv.current_count > 0;
     const dead = parseInt(pf.dead_count) || 0;
-    const sold = parseInt(pf.sold_count) || 0;
     const weight = pf.avg_weight_gr;
-    return { num, hasFish, fishCount: inv?.current_count || 0, dead, sold, weight, hasChanges: dead > 0 || sold > 0 || (weight !== '' && weight != null) };
+    return { num, hasFish, fishCount: inv?.current_count || 0, dead, weight, hasChanges: dead > 0 || (weight !== '' && weight != null) };
   }).filter(p => p.hasFish);
 
   const totalDead = poolEntries.reduce((s, p) => s + p.dead, 0);
-  const totalSold = poolEntries.reduce((s, p) => s + p.sold, 0);
 
   // Section header component
   const SectionHeader = ({ icon: Icon, title, badge, badgeColor, stepIndex }) => (
@@ -183,7 +181,7 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
       <div className="rounded-(--r-lg) border border-(--border) overflow-hidden">
         <SectionHeader
           icon={Fish} title="Базени" stepIndex={3}
-          badge={totalDead > 0 ? `${totalDead} угинати` : totalSold > 0 ? `${totalSold} продадени` : `${poolEntries.length} активни`}
+          badge={totalDead > 0 ? `${totalDead} угинати` : `${poolEntries.length} активни`}
           badgeColor={totalDead > 0 ? 'red' : 'blue'}
         />
         <div className="px-3 pb-3">
@@ -196,9 +194,6 @@ export default function SummaryStep({ formData, norms, fishInventory, onGoToStep
                 <div className="flex items-center gap-3">
                   {p.weight && (
                     <span className="text-(--text-primary) tabular-nums">{p.weight}g</span>
-                  )}
-                  {p.sold > 0 && (
-                    <span className="text-amber-600 tabular-nums">-{p.sold} прод.</span>
                   )}
                   {p.dead > 0 && (
                     <span className="text-(--danger) tabular-nums">-{p.dead} угин.</span>
