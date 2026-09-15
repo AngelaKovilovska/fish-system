@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -20,9 +21,9 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "ml-matrix": "^6.12.2",
+    "pdf-lib": "^1.17.1",
     "pdfkit": "^0.17.2",
     "pg": "^8.19.0",
-    "puppeteer-core": "^23.11.1",
     "sib-api-v3-sdk": "^8.5.0",
     "xlsx": "^0.18.5"
   },

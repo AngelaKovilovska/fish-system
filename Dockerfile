@@ -10,11 +10,6 @@ RUN npm run build
 # Stage 2: Production server
 FROM node:20-alpine
 
-# Headless Chromium for server-side PDF rendering
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
-ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
 # Create non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 

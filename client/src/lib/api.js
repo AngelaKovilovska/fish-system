@@ -44,17 +44,12 @@ export async function downloadFile(url, fileName) {
   setTimeout(() => URL.revokeObjectURL(href), 2000);
 }
 
-// Render a document HTML to PDF on the server; returns a Blob
-export async function renderDocumentPdf(html) {
-  const res = await fetch(`${API_BASE}/documents/pdf`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ html }),
-  });
+// Официјален PDF документ за продажба (фактура / комерцијален / декларација) — Blob
+export async function fetchDocumentPdf(type, saleId) {
+  const res = await fetch(`${API_BASE}/documents/${type}/${saleId}`, { credentials: 'include' });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'Грешка при генерирање на PDF');
+    throw new Error(data.error || 'Грешка при генерирање на документот');
   }
   return res.blob();
 }
