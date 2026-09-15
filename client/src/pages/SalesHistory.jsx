@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api, documentUrl } from '../lib/api';
 import {
@@ -220,10 +221,11 @@ export default function SalesHistory() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Document Preview Modal */}
-      {previewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="bg-(--surface) rounded-xl shadow-2xl flex flex-col" style={{ width: '90vw', maxWidth: '900px', height: '85vh' }}>
+      {/* Document Preview Modal — portal во body за да не зависи од transform на родители */}
+      {previewDoc && createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.65)' }}
+          onClick={e => { if (e.target === e.currentTarget) closePreview(); }}>
+          <div className="bg-(--surface) rounded-xl shadow-2xl flex flex-col" style={{ width: 'min(96vw, 1100px)', height: 'min(94vh, 1200px)' }}>
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-(--border)">
               <h3 className="font-semibold text-sm">{DOC_LABELS[previewDoc.docType]}</h3>
@@ -250,7 +252,8 @@ export default function SalesHistory() {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
