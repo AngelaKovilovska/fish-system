@@ -24,6 +24,8 @@
  *   - Ott et al. (2025). Journal of Fish Biology. DOI:10.1111/jfb.70065
  */
 
+const { getPoolCounts } = require('../lib/poolFish');
+
 const PARAMETERS = [
   'temperature', 'ph', 'total_alkalinity', 'hardness',
   'nitrates', 'nitrites', 'total_chlorine', 'ammonium',
@@ -762,19 +764,14 @@ async function analyzeWaterPrediction(dbPool) {
     );
     const totalFedGr = parseFloat(feedResult.rows[0]?.total_gr) || 0;
 
-    // Земи AI препорака за споредба
-    const recResult = await dbPool.query(`
-      SELECT SUM(pfi.current_count) as total_fish
-      FROM pool_fish_inventory pfi
-      WHERE pfi.current_count > 0
-    `);
-    const totalFish = parseInt(recResult.rows[0]?.total_fish) || 0;
+    // Вкупно риби (единствена пресметка по базен)
+    const totalFish = (await getPoolCounts(dbPool)).reduce((s, r) => s + (parseInt(r.current_count) || 0), 0);
     // Груба проценка: 2-4% BW/ден, просечно 3%
     // Ова е приближна проценка — точната вредност доаѓа од AI модулот
     if (totalFedGr > 0 && totalFish > 0) {
       feedingData = {
         totalFedKg: Math.round(totalFedGr / 10) / 100,
-        feedVsRecommended: null, // Ќе се пополни подоцна ако имаме AI препорака
+        feedVsRecommended: null, // Ќе се пополни подоцна ако имаме ML препорака
       };
     }
   } catch (e) {

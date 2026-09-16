@@ -10,6 +10,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const { getPoolCounts, getPoolCount } = require('../lib/poolFish');
 const { validatePoolNumber } = require('../middleware/validate');
 const {
   calculatePoolRecommendation,
@@ -36,10 +37,8 @@ const router = express.Router();
  */
 router.get('/recommendations', authMiddleware, async (req, res) => {
   try {
-    // 1. Get current fish inventory (source of truth for fish count)
-    const inventoryRes = await pool.query(
-      'SELECT pool_number, current_count FROM pool_fish_inventory ORDER BY pool_number'
-    );
+    // 1. Тековен број на риби по базен (единствена пресметка: мерење − угинати − преработка)
+    const inventoryRes = { rows: await getPoolCounts(pool) };
 
     // 2. Get latest measurement per pool (W0, fish_count at measurement, measured date)
     const measurementsRes = await pool.query(`
@@ -257,11 +256,8 @@ router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, 
       return res.status(400).json({ error: 'Невалиден број на базен (1-8)' });
     }
 
-    // Get inventory
-    const invRes = await pool.query(
-      'SELECT current_count FROM pool_fish_inventory WHERE pool_number = $1',
-      [poolNumber]
-    );
+    // Тековен број на риби (единствена пресметка)
+    const invRes = { rows: [{ current_count: await getPoolCount(pool, poolNumber) }] };
 
     // Get latest measurement (W0, fish count at measurement, measured date)
     const measRes = await pool.query(
@@ -421,10 +417,8 @@ router.get('/feeding-table', authMiddleware, (req, res) => {
  */
 router.get('/stock-projection', authMiddleware, async (req, res) => {
   try {
-    // 1. Get current fish data per pool
-    const inventoryRes = await pool.query(
-      'SELECT pool_number, current_count FROM pool_fish_inventory ORDER BY pool_number'
-    );
+    // 1. Тековен број на риби по базен (единствена пресметка)
+    const inventoryRes = { rows: await getPoolCounts(pool) };
 
     const measurementsRes = await pool.query(`
       SELECT DISTINCT ON (pool_number)
