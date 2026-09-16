@@ -154,11 +154,15 @@ async function adjustToTotal(client, productTypeId, targetQty) {
   await syncInventory(client, productTypeId);
 }
 
-// Колку е продадено од LOT-овите на една серија
+// Колку е продадено од LOT-от на една серија (од вистинските продажби)
 async function soldFromBatch(client, batchId) {
   const r = await client.query(
-    `SELECT product_type_id, lot_number, initial_kg - quantity_kg AS sold
-     FROM product_lots WHERE batch_id = $1 AND initial_kg - quantity_kg > 0.005`,
+    `SELECT si.product_type_id, si.lot_number, SUM(si.quantity_kg) AS sold
+     FROM sale_items si
+     JOIN production_batches pb ON pb.lot_number = si.lot_number
+     WHERE pb.id = $1
+     GROUP BY si.product_type_id, si.lot_number
+     HAVING SUM(si.quantity_kg) > 0.005`,
     [batchId]
   );
   return r.rows;
@@ -178,22 +182,45 @@ async function setBatchLots(client, { batchId, lotNumber, productionDate, items 
   const expiry = addMonths(prodDate, SHELF_LIFE_MONTHS);
   const touched = new Set();
 
+  // Стар LOT број на серијата (ако се преименува, продажбите сè уште го носат стариот)
+  const oldLotRow = await client.query('SELECT lot_number FROM production_batches WHERE id = $1', [batchId]);
+  const oldLot = oldLotRow.rows[0]?.lot_number || lotNumber;
+
   // remove / update existing
   for (const row of existing.rows) {
-    const sold = parseFloat(row.initial_kg) - parseFloat(row.quantity_kg);
+    const oldInitial = parseFloat(row.initial_kg) || 0;
+    const oldQty = parseFloat(row.quantity_kg) || 0;
     const newQty = wanted.get(row.product_type_id) || 0;
+
+    // Вистински продадено од овој LOT за овој тип (од продажбите, не од разликата почетна−тековна,
+    // бидејќи разликата може да дојде и од попис)
+    const soldRow = await client.query(
+      `SELECT COALESCE(SUM(si.quantity_kg), 0) AS sold,
+              STRING_AGG(DISTINCT COALESCE(s.invoice_number, s.dispatch_number, '#' || s.id::text), ', ') AS refs
+       FROM sale_items si JOIN sales s ON s.id = si.sale_id
+       WHERE si.product_type_id = $1 AND si.lot_number IN ($2, $3)`,
+      [row.product_type_id, oldLot, lotNumber]
+    );
+    const sold = parseFloat(soldRow.rows[0].sold) || 0;
     if (newQty + 1e-9 < sold) {
       const pt = await client.query('SELECT code FROM product_types WHERE id = $1', [row.product_type_id]);
-      const err = new Error(`Од LOT ${lotNumber} веќе се продадени ${sold.toFixed(2)} кг ${pt.rows[0]?.code || ''} — количината не може да е помала`);
+      const err = new Error(
+        `Од LOT ${oldLot} има продажба од ${sold.toFixed(2)} кг ${pt.rows[0]?.code || ''}` +
+        (soldRow.rows[0].refs ? ` (${soldRow.rows[0].refs})` : '') +
+        ` — прво измени ја или избриши ја продажбата, па потоа серијата`
+      );
       err.status = 400; throw err;
     }
-    if (newQty <= 0 && sold <= 0.005) {
+    // Останати одземања (попис и сл.) што не се продажба — се пренесуваат
+    const otherDeductions = Math.max(0, oldInitial - oldQty - sold);
+    if (newQty <= 0) {
       await client.query('DELETE FROM product_lots WHERE id = $1', [row.id]);
     } else {
+      const newAvail = Math.max(0, newQty - sold - otherDeductions);
       await client.query(
         `UPDATE product_lots SET lot_number = $2, production_date = $3, expiry_date = $4,
            initial_kg = $5, quantity_kg = $6, updated_at = NOW() WHERE id = $1`,
-        [row.id, lotNumber, prodDate, expiry, newQty, newQty - sold]
+        [row.id, lotNumber, prodDate, expiry, newQty, newAvail]
       );
     }
     touched.add(row.product_type_id);

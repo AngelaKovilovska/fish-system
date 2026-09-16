@@ -84,6 +84,7 @@ export default function ProductionNew() {
   const [editPrices, setEditPrices] = useState({});
 
   const formTopRef = useRef(null);
+  const formErrorRef = useRef(null);
 
   /* ═══ load ═══ */
   useEffect(() => { loadData(); }, []);
@@ -182,7 +183,10 @@ export default function ProductionNew() {
       setShowForm(false); setEditingId(null); setEditingOrig(null); setStep(1);
       await loadData();
       setTimeout(() => setSuccess(''), 5000);
-    } catch (e) { setError(e.message || 'Грешка'); }
+    } catch (e) {
+      setError(e.message || 'Грешка');
+      setTimeout(() => formErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    }
     finally { setSaving(false); }
   }
 
@@ -286,7 +290,7 @@ export default function ProductionNew() {
       </div>
 
       {/* alerts */}
-      {error && <div className="alert alert-error mb-4 animate-in flex items-center gap-2"><AlertCircle size={16} className="flex-shrink-0" /> {error}</div>}
+      {error && !showForm && <div className="alert alert-error mb-4 animate-in flex items-center gap-2"><AlertCircle size={16} className="flex-shrink-0" /> {error}</div>}
       {success && <div className="alert alert-success mb-4 animate-in flex items-center gap-2"><Check size={16} className="flex-shrink-0" /> {success}</div>}
 
       {/* ═══ SETTINGS ═══ */}
@@ -425,6 +429,11 @@ export default function ProductionNew() {
                   );
                 })}
               </div>
+              {error && (
+                <div className="alert alert-error mt-4 mb-3 animate-in flex items-center gap-2" ref={formErrorRef}>
+                  <AlertCircle size={16} className="flex-shrink-0" /> {error}
+                </div>
+              )}
               <div className="flex justify-between mt-5">
                 <button onClick={cancelForm} className="btn-ghost text-sm flex items-center gap-1.5"><X size={16} /> Откажи</button>
                 <button onClick={goNext} className="btn-primary text-sm flex items-center gap-1.5">Следно <ChevronRight size={16} /></button>
@@ -498,6 +507,11 @@ export default function ProductionNew() {
                 </div>
               </div>
 
+              {error && (
+                <div className="alert alert-error mt-4 mb-3 animate-in flex items-center gap-2" ref={formErrorRef}>
+                  <AlertCircle size={16} className="flex-shrink-0" /> {error}
+                </div>
+              )}
               <div className="flex justify-between mt-5">
                 <button onClick={goBack} className="btn-ghost text-sm flex items-center gap-1.5"><ChevronLeft size={16} /> Назад</button>
                 <button onClick={goNext} className="btn-primary text-sm flex items-center gap-1.5">Следно <ChevronRight size={16} /></button>
@@ -556,6 +570,11 @@ export default function ProductionNew() {
                 </div>
               )}
 
+              {error && (
+                <div className="alert alert-error mt-4 mb-3 animate-in flex items-center gap-2" ref={formErrorRef}>
+                  <AlertCircle size={16} className="flex-shrink-0" /> {error}
+                </div>
+              )}
               <div className="flex justify-between mt-5">
                 <button onClick={goBack} className="btn-ghost text-sm flex items-center gap-1.5"><ChevronLeft size={16} /> Назад</button>
                 <button onClick={goNext} className="btn-primary text-sm flex items-center gap-1.5">Следно <ChevronRight size={16} /></button>
@@ -623,6 +642,11 @@ export default function ProductionNew() {
                   className="input-base text-sm" rows="2" placeholder="Дополнителни информации..." />
               </div>
 
+              {error && (
+                <div className="alert alert-error mt-4 mb-3 animate-in flex items-center gap-2" ref={formErrorRef}>
+                  <AlertCircle size={16} className="flex-shrink-0" /> {error}
+                </div>
+              )}
               <div className="flex justify-between">
                 <button onClick={goBack} className="btn-ghost text-sm flex items-center gap-1.5"><ChevronLeft size={16} /> Назад</button>
                 <button onClick={handleSave} disabled={saving} className="btn-primary text-sm flex items-center gap-1.5 px-5">
