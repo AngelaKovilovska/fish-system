@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import { lazyPage } from './lib/lazyPage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -7,27 +8,27 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 
 // Lazy-loaded pages
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ChecklistForm = lazy(() => import('./pages/ChecklistForm'));
-const ChecklistHistory = lazy(() => import('./pages/ChecklistHistory'));
-const RecordDetail = lazy(() => import('./pages/RecordDetail'));
-const Reports = lazy(() => import('./pages/Reports'));
-const ManageNorms = lazy(() => import('./pages/admin/ManageNorms'));
-const ManageUsers = lazy(() => import('./pages/admin/ManageUsers'));
-const ManagePoolMeasurements = lazy(() => import('./pages/admin/ManagePoolMeasurements'));
-const ManageFoodInventory = lazy(() => import('./pages/admin/ManageFoodInventory'));
-const AdminHub = lazy(() => import('./pages/admin/AdminHub'));
-const MealForm = lazy(() => import('./pages/MealForm'));
-const MealHistory = lazy(() => import('./pages/MealHistory'));
-const AICalculator = lazy(() => import('./pages/AICalculator'));
-const EntryHub = lazy(() => import('./pages/EntryHub'));
-const ProductionHub = lazy(() => import('./pages/ProductionHub'));
-const ProductionNew = lazy(() => import('./pages/ProductionNew'));
-const SalesNew = lazy(() => import('./pages/SalesNew'));
-const SalesHistory = lazy(() => import('./pages/SalesHistory'));
-const InventoryHub = lazy(() => import('./pages/InventoryHub'));
-const FoodInventoryPage = lazy(() => import('./pages/FoodInventoryPage'));
-const ProductInventoryPage = lazy(() => import('./pages/ProductInventoryPage'));
+const Dashboard = lazyPage(() => import('./pages/Dashboard'));
+const ChecklistForm = lazyPage(() => import('./pages/ChecklistForm'));
+const ChecklistHistory = lazyPage(() => import('./pages/ChecklistHistory'));
+const RecordDetail = lazyPage(() => import('./pages/RecordDetail'));
+const Reports = lazyPage(() => import('./pages/Reports'));
+const ManageNorms = lazyPage(() => import('./pages/admin/ManageNorms'));
+const ManageUsers = lazyPage(() => import('./pages/admin/ManageUsers'));
+const ManagePoolMeasurements = lazyPage(() => import('./pages/admin/ManagePoolMeasurements'));
+const ManageFoodInventory = lazyPage(() => import('./pages/admin/ManageFoodInventory'));
+const AdminHub = lazyPage(() => import('./pages/admin/AdminHub'));
+const MealForm = lazyPage(() => import('./pages/MealForm'));
+const MealHistory = lazyPage(() => import('./pages/MealHistory'));
+const AICalculator = lazyPage(() => import('./pages/AICalculator'));
+const EntryHub = lazyPage(() => import('./pages/EntryHub'));
+const ProductionHub = lazyPage(() => import('./pages/ProductionHub'));
+const ProductionNew = lazyPage(() => import('./pages/ProductionNew'));
+const SalesNew = lazyPage(() => import('./pages/SalesNew'));
+const SalesHistory = lazyPage(() => import('./pages/SalesHistory'));
+const InventoryHub = lazyPage(() => import('./pages/InventoryHub'));
+const FoodInventoryPage = lazyPage(() => import('./pages/FoodInventoryPage'));
+const ProductInventoryPage = lazyPage(() => import('./pages/ProductInventoryPage'));
 
 function PageLoader() {
   return (

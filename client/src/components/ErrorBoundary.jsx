@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { isChunkLoadError, reloadOnceForNewVersion } from '../lib/lazyPage';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,10 +13,13 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+    // Стара верзија на апликацијата по деплој → освежи за нова верзија (само еднаш)
+    if (isChunkLoadError(error)) reloadOnceForNewVersion();
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    // Целосно освежување — ако грешката е од застарена верзија, „ресет“ на состојбата не помага
+    window.location.reload();
   };
 
   render() {
