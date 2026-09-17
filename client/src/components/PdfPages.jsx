@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // Прикажува PDF како слики (canvas) — за телефони, каде iframe не рендерира PDF.
 // pdf.js се вчитува само кога е потребно (динамичен import), за да не го оптоварува основниот bundle.
-export default function PdfPages({ url }) {
+export default function PdfPages({ data }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState('loading'); // loading | done | error
   const [message, setMessage] = useState('');
@@ -18,10 +18,8 @@ export default function PdfPages({ url }) {
         const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-        const res = await fetch(url, { credentials: 'include' });
-        if (!res.ok) throw new Error('Документот не може да се вчита');
-        const data = await res.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data }).promise;
+        // pdf.js го „троши“ бафер-от (transfer) → работи со копија
+        const pdf = await pdfjs.getDocument({ data: data.slice(0) }).promise;
         if (cancelled || !container) return;
 
         container.innerHTML = '';
@@ -52,7 +50,7 @@ export default function PdfPages({ url }) {
     })();
 
     return () => { cancelled = true; };
-  }, [url]);
+  }, [data]);
 
   return (
     <div className="w-full h-full overflow-auto">

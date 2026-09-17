@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import PdfPages from '../components/PdfPages';
-import { printPdfViaImages } from '../lib/printPdf';
+import { IS_IOS, fetchPdfBytes, canSharePdf, sharePdf, printPdfViaImages } from '../lib/printPdf';
 import { useNavigate } from 'react-router-dom';
 import { api, documentUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -169,7 +169,10 @@ export default function SalesHistory() {
       const sale = await api.getSale(saleId);
       const invoiceNum = sale.invoice_number || sale.dispatch_number || saleId;
       const fileName = `${DOC_LABELS[docType]}_${invoiceNum}`.replace(/[\s/\\:*?"<>|]/g, '_');
-      setPreviewDoc({ url: documentUrl(docType, saleId), docType, fileName });
+      const url = documentUrl(docType, saleId);
+      // На телефон PDF-от се вчитува однапред (за приказ преку pdf.js и за Сподели/Печати без чекање)
+      const bytes = IS_MOBILE ? await fetchPdfBytes(url) : null;
+      setPreviewDoc({ url, docType, fileName, bytes });
     } catch (err) {
       setError('Грешка при отворање: ' + err.message);
     }
@@ -184,8 +187,13 @@ export default function SalesHistory() {
     // и се отвора дијалогот за печатење на уредот
     if (IS_MOBILE) {
       if (printing) return;
+      // iPhone/iPad: печатење на веб-страница секогаш се смалува → системски лист „Сподели“ → „Печати“ (вистинска големина)
+      if (IS_IOS && canSharePdf()) {
+        sharePdf(previewDoc.bytes, previewDoc.fileName, DOC_LABELS[previewDoc.docType]).catch(() => {});
+        return;
+      }
       setPrinting(true);
-      try { await printPdfViaImages(previewDoc.url); }
+      try { await printPdfViaImages(previewDoc.bytes); }
       catch (err) { setError('Печатењето не успеа: ' + err.message); }
       finally { setPrinting(false); }
       return;
@@ -264,7 +272,7 @@ export default function SalesHistory() {
             {/* Preview iframe */}
             <div className="flex-1 overflow-hidden p-3">
               {IS_MOBILE ? (
-                <PdfPages url={previewDoc.url} />
+                <PdfPages data={previewDoc.bytes} />
               ) : (
                 <iframe
                   ref={previewFrameRef}
