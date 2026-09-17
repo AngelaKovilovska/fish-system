@@ -159,6 +159,10 @@ export default function SalesHistory() {
 
   // Отвори официјален PDF (пополнет урнек) во preview — директно од API (иста домена)
   async function openPreview(saleId, docType) {
+    // Телефони не прикажуваат PDF во iframe → отвори во нов таб (системски PDF прегледувач,
+    // со „Сподели/Печати“ во вистинска големина). Мора да е во истиот клик, без await, за iOS.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches;
+    if (isMobile) { window.open(documentUrl(docType, saleId), '_blank'); return; }
     try {
       const sale = await api.getSale(saleId);
       const invoiceNum = sale.invoice_number || sale.dispatch_number || saleId;

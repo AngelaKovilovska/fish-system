@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { PDFDocument, rgb } = require('pdf-lib');
+const { PDFDocument, PDFName, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const { addMonths, dateFromLot } = require('./inventory');
 
@@ -24,6 +24,8 @@ function readCached(key, file) {
 async function openTemplate(name) {
   const doc = await PDFDocument.load(readCached(`tpl:${name}`, path.join(TEMPLATES_DIR, `${name}.pdf`)));
   doc.registerFontkit(fontkit);
+  // Печати во вистинска големина (без „fit to page“ смалување)
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
   const font = await doc.embedFont(readCached('font:regular', path.join(FONTS_DIR, 'Candara.ttf')), { subset: true });
   const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
   const page = doc.getPages()[0];
