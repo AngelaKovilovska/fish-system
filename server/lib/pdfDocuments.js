@@ -137,7 +137,7 @@ async function buildInvoice(sale) {
   draw(ctx, money(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
   draw(ctx, money(total), { x: AMT_R, top: 603.3, size: 10, align: 'right' });
   draw(ctx, money(rounding), { x: AMT_R, top: 620.7, size: 10, align: 'right' });
-  draw(ctx, money(payable), { x: AMT_R, top: 638.2, size: 11, font: B, align: 'right' });
+  draw(ctx, money(payable), { x: AMT_R, top: 638.2, size: 10, font: B, align: 'right', maxWidth: 84 });
 
   // ЛОТ (бело на сина лента, по „ЛОТ:“ x=86.9–109.9, top 620.6–631.6)
   draw(ctx, lots.join(', '), { x: 114, top: 629.6, size: 10, font: B, color: WHITE, maxWidth: 78 });
