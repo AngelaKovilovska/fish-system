@@ -47,11 +47,6 @@ function money(v) {
   const sign = int.startsWith('-') ? '-' : '';
   return `${sign}${groupInt(int.replace('-', ''))},${dec} ден.`;
 }
-// 12584.25 → „12.584 ден.“ (без децимали, заокружено)
-function money0(v) {
-  const n = Math.round(parseFloat(v) || 0);
-  return `${n < 0 ? '-' : ''}${groupInt(String(Math.abs(n)))} ден.`;
-}
 function str(v) { return v == null ? '' : String(v); }
 
 // Draw text using TOP-origin coordinates (како во pdfplumber): `top` е baseline од горе.
@@ -96,12 +91,13 @@ async function buildInvoice(sale) {
   const B = ctx.bold;
 
   // Купувач блок (вредности десно од вертикалната линија x=100.3); редови: 152.4 / 177.1 / 201.8 / 226.5 / 251.1
+  // Вредностите се вертикално на средина на редот (baseline ≈ средина + 3.5)
   const VX = 106;
-  draw(ctx, sale.buyer_name, { x: VX, top: 173.5, size: 10.5, font: B, maxWidth: 295 });
-  draw(ctx, sale.buyer_address, { x: VX, top: 198.3, size: 10, maxWidth: 295 });
-  draw(ctx, sale.buyer_edb, { x: VX, top: 223, size: 10, maxWidth: 295 });
+  draw(ctx, sale.buyer_name, { x: VX, top: 168.5, size: 11.5, font: B, maxWidth: 295 });
+  draw(ctx, sale.buyer_address, { x: VX, top: 193, size: 10, maxWidth: 295 });
+  draw(ctx, sale.buyer_edb, { x: VX, top: 217.6, size: 10, maxWidth: 295 });
   const contact = [sale.buyer_contact, sale.buyer_phone].filter(Boolean).join(' · ');
-  draw(ctx, contact, { x: VX, top: 247.6, size: 10, maxWidth: 295 });
+  draw(ctx, contact, { x: VX, top: 242.3, size: 10, maxWidth: 295 });
 
   // Начин на плаќање — само за готово/гратис, над „ИСПРАТНИЦА / ФАКТУРА“
   const CX = 515.5; // центар на линиите за број/датум (458.8–572.2)
@@ -124,8 +120,8 @@ async function buildInvoice(sale) {
     const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
     draw(ctx, num(it.quantity_kg), { x: QTY_R, top: base, size: 11, align: 'right' });
-    draw(ctx, money0(it.price_per_kg), { x: PRICE_R, top: base, size: 11, align: 'right' });
-    draw(ctx, money0(it.amount), { x: AMT_R, top: base, size: 11, align: 'right' });
+    draw(ctx, money(it.price_per_kg), { x: PRICE_R, top: base, size: 11, align: 'right' });
+    draw(ctx, money(it.amount), { x: AMT_R, top: base, size: 11, align: 'right' });
   });
 
   // Износи (редови 572.6 / 589.6 / 606.6 / 623.6 / 640.6, натписи десно порамнети на x=469.7)
@@ -137,11 +133,11 @@ async function buildInvoice(sale) {
   const total = parseFloat(sale.total) || 0;
   const payable = Math.round(total);            // ЗА ПЛАЌАЊЕ — цел денар
   const rounding = payable - total;             // Порамнување на дени
-  draw(ctx, money0(sale.subtotal), { x: AMT_R, top: 569.5, size: 10, align: 'right' });
-  draw(ctx, money0(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
-  draw(ctx, money0(total), { x: AMT_R, top: 603.3, size: 10, align: 'right' });
+  draw(ctx, money(sale.subtotal), { x: AMT_R, top: 569.5, size: 10, align: 'right' });
+  draw(ctx, money(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
+  draw(ctx, money(total), { x: AMT_R, top: 603.3, size: 10, align: 'right' });
   draw(ctx, money(rounding), { x: AMT_R, top: 620.7, size: 10, align: 'right' });
-  draw(ctx, money0(payable), { x: AMT_R, top: 638.2, size: 11, font: B, align: 'right' });
+  draw(ctx, money(payable), { x: AMT_R, top: 638.2, size: 11, font: B, align: 'right' });
 
   // ЛОТ (бело на сина лента, по „ЛОТ:“ x=86.9–109.9, top 620.6–631.6)
   draw(ctx, lots.join(', '), { x: 114, top: 629.6, size: 10, font: B, color: WHITE, maxWidth: 78 });
