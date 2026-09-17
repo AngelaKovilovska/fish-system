@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import PdfPages from '../components/PdfPages';
+import { printPdfViaImages } from '../lib/printPdf';
 import { useNavigate } from 'react-router-dom';
 import { api, documentUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -51,6 +52,7 @@ export default function SalesHistory() {
 
   // Document preview modal: { url (API), docType, fileName }
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [printing, setPrinting] = useState(false);
   const previewFrameRef = useRef(null);
 
   // Buyer editing
@@ -176,10 +178,18 @@ export default function SalesHistory() {
   function closePreview() { setPreviewDoc(null); }
 
   // Печати го истиот PDF
-  function handlePreviewPrint() {
+  async function handlePreviewPrint() {
     if (!previewDoc) return;
-    // На телефон iframe/print не работи → отвори во системскиот PDF прегледувач (Печати / Сподели, вистинска големина)
-    if (IS_MOBILE) { window.open(previewDoc.url, '_blank'); return; }
+    // На телефон iframe со PDF не може да печати → страниците се исцртуваат како слики (А4, без маргини)
+    // и се отвора дијалогот за печатење на уредот
+    if (IS_MOBILE) {
+      if (printing) return;
+      setPrinting(true);
+      try { await printPdfViaImages(previewDoc.url); }
+      catch (err) { setError('Печатењето не успеа: ' + err.message); }
+      finally { setPrinting(false); }
+      return;
+    }
     try {
       previewFrameRef.current.contentWindow.focus();
       previewFrameRef.current.contentWindow.print();
@@ -238,8 +248,10 @@ export default function SalesHistory() {
             <div className="flex items-center justify-between px-5 py-3 border-b border-(--border)">
               <h3 className="font-semibold text-sm">{DOC_LABELS[previewDoc.docType]}</h3>
               <div className="flex items-center gap-2">
-                <button onClick={handlePreviewPrint} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
-                  <Printer size={14} /> Печати
+                <button onClick={handlePreviewPrint} disabled={printing} className="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5">
+                  {printing
+                    ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Подготовка…</>
+                    : <><Printer size={14} /> Печати</>}
                 </button>
                 <button onClick={handlePreviewDownload} className="btn-ghost text-xs flex items-center gap-1.5 px-3 py-1.5">
                   <Download size={14} /> Симни
