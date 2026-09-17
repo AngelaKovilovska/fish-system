@@ -40,12 +40,17 @@ function fmtDate(d) {
   return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
 }
 function num(v, dec = 2) { return (parseFloat(v) || 0).toFixed(dec); }
+function groupInt(int) { return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 // 12584.25 → „12.584,25 ден.“
 function money(v) {
   const [int, dec] = num(v).split('.');
   const sign = int.startsWith('-') ? '-' : '';
-  const grouped = int.replace('-', '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `${sign}${grouped},${dec} ден.`;
+  return `${sign}${groupInt(int.replace('-', ''))},${dec} ден.`;
+}
+// 12584.25 → „12.584 ден.“ (без децимали, заокружено)
+function money0(v) {
+  const n = Math.round(parseFloat(v) || 0);
+  return `${n < 0 ? '-' : ''}${groupInt(String(Math.abs(n)))} ден.`;
 }
 function str(v) { return v == null ? '' : String(v); }
 
@@ -84,54 +89,62 @@ function saleFacts(sale) {
 }
 
 // ═══════════════ ФАКТУРА / ИСПРАТНИЦА ═══════════════
+// Координати од урнекот „ФАКТУРА - ИСПРАТНИЦА Clario НОВО.pdf“ (top-origin, pt)
 async function buildInvoice(sale) {
   const ctx = await openTemplate('invoice');
   const { items, lots } = saleFacts(sale);
   const B = ctx.bold;
 
-  // Купувач блок (вредности десно од вертикалната линија x=100.3)
+  // Купувач блок (вредности десно од вертикалната линија x=100.3); редови: 152.4 / 177.1 / 201.8 / 226.5 / 251.1
   const VX = 106;
   draw(ctx, sale.buyer_name, { x: VX, top: 173.5, size: 10.5, font: B, maxWidth: 295 });
   draw(ctx, sale.buyer_address, { x: VX, top: 198.3, size: 10, maxWidth: 295 });
+  draw(ctx, sale.buyer_edb, { x: VX, top: 223, size: 10, maxWidth: 295 });
   const contact = [sale.buyer_contact, sale.buyer_phone].filter(Boolean).join(' · ');
-  draw(ctx, contact, { x: VX, top: 223, size: 10, maxWidth: 295 });
-  draw(ctx, sale.buyer_edb, { x: VX, top: 247.6, size: 10, maxWidth: 295 });
+  draw(ctx, contact, { x: VX, top: 247.6, size: 10, maxWidth: 295 });
 
   // Начин на плаќање — само за готово/гратис, над „ИСПРАТНИЦА / ФАКТУРА“
-  const CX = 519.5;
+  const CX = 515.5; // центар на линиите за број/датум (458.8–572.2)
   const PAY_LABELS = { 'готово': 'ПЛАТЕНО ВО ГОТОВО', 'гратис': 'ГРАТИС' };
   const payLabel = PAY_LABELS[String(sale.payment_method || '').toLowerCase()];
   if (payLabel) draw(ctx, payLabel, { x: CX, top: 143, size: 10, font: B, align: 'center' });
 
-  // Број и датум (центрирано над линиите)
+  // Број (линија 222.8) и датум (линија 251.1)
   draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 12, font: B, align: 'center' });
   draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 12, font: B, align: 'center' });
 
   // Ставки — линии на овие „top“ позиции; првиот ред се прескокнува (ставките почнуваат од вториот)
-  const ROWS = [328.5, 356.9, 385.2, 413.6, 441.9, 470.3, 498.6, 527.0, 555.3];
+  // Колони: Производ 39.5–286.2 | Количина 286.2–374.8 | Ед.цена 374.8–472.3 | Вкупно 472.3–562.1
+  const ROWS = [328.5, 356.9, 385.2, 413.6, 441.9, 470.3, 498.6, 527.0, 555.6];
   const FIRST_ROW = 1;
+  const QTY_R = 369.5, PRICE_R = 467, AMT_R = 557;
   items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
     const base = ROWS[i + FIRST_ROW] - 8.5;
     // Формат: Риба (Clarias gariepinus) - РСГ
     const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
-    draw(ctx, num(it.quantity_kg), { x: 369, top: base, size: 11, align: 'right' });
-    draw(ctx, money(it.price_per_kg), { x: 467, top: base, size: 11, align: 'right' });
-    draw(ctx, money(it.amount), { x: 567, top: base, size: 11, align: 'right' });
+    draw(ctx, num(it.quantity_kg), { x: QTY_R, top: base, size: 11, align: 'right' });
+    draw(ctx, money0(it.price_per_kg), { x: PRICE_R, top: base, size: 11, align: 'right' });
+    draw(ctx, money0(it.amount), { x: AMT_R, top: base, size: 11, align: 'right' });
   });
 
-  // Износ / ДДВ / Се вкупно
+  // Износи (редови 572.6 / 589.6 / 606.6 / 623.6 / 640.6, натписи десно порамнети на x=469.7)
   const vatRate = parseFloat(sale.vat_rate) || 5;
   if (Math.abs(vatRate - 5) > 0.01) {
-    whiteBox(ctx, { x0: 427, x1: 466, top: 591.5, bottom: 605.5 });
-    draw(ctx, `ДДВ ${num(vatRate, 0)}%:`, { x: 464.5, top: 601.6, size: 10, align: 'right' });
+    whiteBox(ctx, { x0: 438, x1: 471, top: 576.5, bottom: 588.5 });
+    draw(ctx, `ДДВ ${num(vatRate, 0)}%:`, { x: 469.7, top: 586.4, size: 9, align: 'right' });
   }
-  draw(ctx, money(sale.subtotal), { x: 567, top: 575.8, size: 11, align: 'right' });
-  draw(ctx, money(sale.vat_amount), { x: 567, top: 602.6, size: 11, align: 'right' });
-  draw(ctx, money(sale.total), { x: 567, top: 629.8, size: 12, font: B, align: 'right' });
+  const total = parseFloat(sale.total) || 0;
+  const payable = Math.round(total);            // ЗА ПЛАЌАЊЕ — цел денар
+  const rounding = payable - total;             // Порамнување на дени
+  draw(ctx, money0(sale.subtotal), { x: AMT_R, top: 569.5, size: 10, align: 'right' });
+  draw(ctx, money0(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
+  draw(ctx, money0(total), { x: AMT_R, top: 603.3, size: 10, align: 'right' });
+  draw(ctx, money(rounding), { x: AMT_R, top: 620.7, size: 10, align: 'right' });
+  draw(ctx, money0(payable), { x: AMT_R, top: 638.2, size: 11, font: B, align: 'right' });
 
-  // ЛОТ (бело на сина лента, по „ЛОТ:“)
-  draw(ctx, lots.join(', '), { x: 114, top: 629.3, size: 10, font: B, color: WHITE, maxWidth: 78 });
+  // ЛОТ (бело на сина лента, по „ЛОТ:“ x=86.9–109.9, top 620.6–631.6)
+  draw(ctx, lots.join(', '), { x: 114, top: 629.6, size: 10, font: B, color: WHITE, maxWidth: 78 });
 
   return ctx.doc.save();
 }
