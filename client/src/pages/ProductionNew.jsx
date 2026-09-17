@@ -215,7 +215,8 @@ export default function ProductionNew() {
   /* ═══ computed ═══ */
   const totalProcessed = items.reduce((s, i) => s + (parseFloat(i.quantity_kg) || 0), 0);
   const rawWeight = parseFloat(form.total_weight_kg) || 0;
-  const yieldPct = rawWeight > 0 ? ((totalProcessed / rawWeight) * 100).toFixed(1) : '0';
+  // Рандман по тип на производ = кг производ / жива тежина
+  const yieldFor = (kg) => (rawWeight > 0 ? ((parseFloat(kg) || 0) / rawWeight) * 100 : 0);
   const pi = form.source_pool ? poolInfo(form.source_pool) : null;
 
   function ptColor(idx) { return PRODUCT_COLORS[idx % PRODUCT_COLORS.length]; }
@@ -533,7 +534,7 @@ export default function ProductionNew() {
                   if (!pt) return null;
                   const c = ptColor(idx);
                   const val = parseFloat(item.quantity_kg) || 0;
-                  const pct = rawWeight > 0 ? Math.min((val / rawWeight) * 100, 100) : 0;
+                  const pct = yieldFor(val);
                   return (
                     <div key={pt.id} className="card !p-0 overflow-hidden">
                       {/* color accent bar */}
@@ -543,7 +544,7 @@ export default function ProductionNew() {
                           style={{ background: c.light, color: c.bg }}>{pt.code}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-(--text-primary)">{pt.name}</p>
-                          {val > 0 && <p className="text-[10px] text-(--text-muted) mt-0.5">{pct.toFixed(0)}% од вкупно</p>}
+                          {val > 0 && <p className="text-[10px] text-(--text-muted) mt-0.5">Рандман {pct.toFixed(1)}%</p>}
                         </div>
                         <div className="w-24 flex-shrink-0">
                           <input type="number" step="0.01" min="0" value={item.quantity_kg}
@@ -564,10 +565,13 @@ export default function ProductionNew() {
                     <p className="text-lg font-bold text-(--text-primary)">{totalProcessed.toFixed(2)} кг</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide">Рандман</p>
-                    <p className={`text-lg font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--primary)'}`}>{yieldPct}%</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase tracking-wide">Жива тежина</p>
+                    <p className={`text-lg font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--text-primary)'}`}>{rawWeight.toFixed(2)} кг</p>
                   </div>
                 </div>
+              )}
+              {totalProcessed > rawWeight && rawWeight > 0 && (
+                <p className="text-xs text-(--danger) mt-2">Обработената количина е поголема од живата тежина — провери ги внесовите.</p>
               )}
 
               {error && (
@@ -609,8 +613,8 @@ export default function ProductionNew() {
                     <p className="text-xl font-bold text-(--text-primary)">{parseFloat(form.total_weight_kg).toFixed(1)}<span className="text-sm"> кг</span></p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-(--text-muted) uppercase">Рандман</p>
-                    <p className={`text-xl font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--primary)'}`}>{yieldPct}%</p>
+                    <p className="text-[10px] text-(--text-muted) uppercase">Обработено</p>
+                    <p className={`text-xl font-bold ${totalProcessed > rawWeight ? 'text-(--danger)' : 'text-(--primary)'}`}>{totalProcessed.toFixed(1)}<span className="text-sm"> кг</span></p>
                   </div>
                 </div>
 
@@ -624,7 +628,8 @@ export default function ProductionNew() {
                       <div key={item.product_type_id} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.bg }} />
                         <span className="text-sm text-(--text-secondary) flex-1">{pt?.code} — {pt?.name}</span>
-                        <span className="text-sm font-bold text-(--text-primary)">{parseFloat(item.quantity_kg).toFixed(2)} кг</span>
+                        <span className="text-[11px] text-(--text-muted) tabular-nums">{yieldFor(item.quantity_kg).toFixed(1)}%</span>
+                        <span className="text-sm font-bold text-(--text-primary) w-20 text-right">{parseFloat(item.quantity_kg).toFixed(2)} кг</span>
                       </div>
                     );
                   })}
@@ -828,10 +833,23 @@ export default function ProductionNew() {
                                     <p className="text-sm font-bold text-(--primary)">{tkg.toFixed(1)} кг</p>
                                   </div>
                                   <div className="text-center">
-                                    <p className="text-[10px] text-(--text-muted) uppercase">Рандман</p>
-                                    <p className="text-sm font-bold">{parseFloat(batch.total_weight_kg) > 0 ? ((tkg / parseFloat(batch.total_weight_kg)) * 100).toFixed(1) : 0}%</p>
+                                    <p className="text-[10px] text-(--text-muted) uppercase">Риби</p>
+                                    <p className="text-sm font-bold text-(--text-primary)">{batch.fish_count}</p>
                                   </div>
                                 </div>
+                                {bi.length > 0 && parseFloat(batch.total_weight_kg) > 0 && (
+                                  <div className="rounded-xl px-3 py-2 mb-3 text-xs" style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border)' }}>
+                                    <p className="text-[10px] text-(--text-muted) uppercase mb-1">Рандман по производ</p>
+                                    <div className="space-y-0.5">
+                                      {bi.map(item => (
+                                        <div key={item.id} className="flex justify-between">
+                                          <span className="text-(--text-secondary)">{item.code} — {item.name}</span>
+                                          <span className="font-semibold tabular-nums">{((parseFloat(item.quantity_kg) / parseFloat(batch.total_weight_kg)) * 100).toFixed(1)}%</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="flex gap-2">
                                   <button onClick={() => startEdit(batch)} className="btn-ghost text-xs flex items-center gap-1"><Pencil size={13} /> Измени</button>
                                   <button onClick={() => handleDelete(batch.id)} className="btn-ghost text-xs text-(--danger) ml-auto flex items-center gap-1"><Trash2 size={13} /> Избриши</button>

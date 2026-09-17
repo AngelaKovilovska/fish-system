@@ -366,18 +366,19 @@ export default function Reports() {
 
     if (activeReport === 'production') {
       const { batches, productTotals, totalFish, totalRawKg, totalProcessedKg } = previewData;
-      const randman = totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : '–';
+      // Рандман по производ = кг производ / вкупна сурова (жива) маса
+      const yieldOf = (kg) => (totalRawKg > 0 ? ((kg / totalRawKg) * 100).toFixed(1) + '%' : '–');
       const productRows = Object.entries(productTotals).sort((a, b) => b[1] - a[1]).map(([name, kg]) =>
-        `<tr><td>${name}</td><td class="r"><strong>${kg.toFixed(2)}</strong></td></tr>`
+        `<tr><td>${name}</td><td class="r"><strong>${kg.toFixed(2)}</strong></td><td class="r">${yieldOf(kg)}</td></tr>`
       ).join('');
       const batchRows = (batches || []).map(b => {
         const bKg = (b.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         const products = (b.items || []).map(i => `${i.name}: ${parseFloat(i.quantity_kg).toFixed(2)} kg`).join(', ');
         return `<tr><td>${b.lot_number}</td><td>${fmtDate(b.production_date)}</td><td>Б${b.source_pool || '–'}</td><td class="r">${b.fish_count}</td><td class="r">${parseFloat(b.total_weight_kg).toFixed(1)}</td><td class="r">${bKg.toFixed(1)}</td><td>${products}</td></tr>`;
       }).join('');
-      tableHTML = `<p class="total">Серии: ${batches.length} | Риби: ${totalFish.toLocaleString()} | Сурова: ${totalRawKg.toFixed(1)} kg | Преработено: ${totalProcessedKg.toFixed(1)} kg | Рандман: ${randman}%</p>
+      tableHTML = `<p class="total">Серии: ${batches.length} | Риби: ${totalFish.toLocaleString()} | Сурова: ${totalRawKg.toFixed(1)} kg | Преработено: ${totalProcessedKg.toFixed(1)} kg</p>
         <h3 style="margin-top:16px">Вкупно по производ</h3>
-        <table><thead><tr><th>Производ</th><th class="r">Количина (kg)</th></tr></thead><tbody>${productRows}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${totalProcessedKg.toFixed(2)}</strong></td></tr></tbody></table>
+        <table><thead><tr><th>Производ</th><th class="r">Количина (kg)</th><th class="r">Рандман</th></tr></thead><tbody>${productRows}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${totalProcessedKg.toFixed(2)}</strong></td><td></td></tr></tbody></table>
         <h3 style="margin-top:16px">Детали по серија</h3>
         <table><thead><tr><th>ЛОТ</th><th>Датум</th><th>Базен</th><th class="r">Риби</th><th class="r">Сурова (kg)</th><th class="r">Прераб. (kg)</th><th>Производи</th></tr></thead><tbody>${batchRows}</tbody></table>`;
     }
@@ -868,7 +869,8 @@ ${tableHTML}
     if (activeReport === 'production') {
       const batches = previewData.batches || [];
       const { productTotals, totalFish, totalRawKg, totalProcessedKg } = previewData;
-      const randman = totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : '–';
+      // Рандман по производ = кг производ / вкупна сурова (жива) маса
+      const yieldOf = (kg) => (totalRawKg > 0 ? ((kg / totalRawKg) * 100).toFixed(1) + '%' : '–');
 
       return (
         <div className="space-y-4">
@@ -891,8 +893,8 @@ ${tableHTML}
               <div className="text-sm font-bold text-(--text-primary)">{totalRawKg.toFixed(1)} kg</div>
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
-              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Рандман</div>
-              <div className="text-sm font-bold text-(--primary)">{randman}%</div>
+              <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Преработено</div>
+              <div className="text-sm font-bold text-(--primary)">{totalProcessedKg.toFixed(1)} kg</div>
             </div>
           </div>
 
@@ -903,17 +905,19 @@ ${tableHTML}
                 <p className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно по производ</p>
               </div>
               <table className="table-modern">
-                <thead><tr><th>Производ</th><th className="text-right">Количина (kg)</th></tr></thead>
+                <thead><tr><th>Производ</th><th className="text-right">Количина (kg)</th><th className="text-right">Рандман</th></tr></thead>
                 <tbody>
                   {Object.entries(productTotals).sort((a, b) => b[1] - a[1]).map(([name, kg]) => (
                     <tr key={name}>
                       <td className="font-medium">{name}</td>
                       <td className="text-right font-bold text-(--primary)">{kg.toFixed(2)}</td>
+                      <td className="text-right tabular-nums">{yieldOf(kg)}</td>
                     </tr>
                   ))}
                   <tr className="border-t-2 border-(--border)">
                     <td className="font-bold">Вкупно преработено</td>
                     <td className="text-right font-bold text-(--success)">{totalProcessedKg.toFixed(2)} kg</td>
+                    <td></td>
                   </tr>
                 </tbody>
               </table>

@@ -157,12 +157,14 @@ router.post('/production', authMiddleware, async (req, res) => {
         parseFloat(b.total_weight_kg || 0).toFixed(2),
         (b.items || []).map(i => `${i.code} ${parseFloat(i.quantity_kg).toFixed(2)} kg`).join(', '),
       ]);
-      const totalsRows = Object.entries(productTotals).map(([name, kg]) => [name, kg.toFixed(2)]);
+      // Рандман по производ = кг производ / вкупна сурова (жива) маса
+      const yieldOf = (kg) => (totalRawKg > 0 ? `${((kg / totalRawKg) * 100).toFixed(1)}%` : '-');
+      const totalsRows = Object.entries(productTotals).map(([name, kg]) => [name, kg.toFixed(2), yieldOf(kg)]);
 
       const excelBuffer = generateExcel('Преработка', headers, tableRows);
       const pdfBuffer = await generatePDF(`Преработка (${fmtDate(from)} - ${fmtDate(to)})`, [
-        { lines: [`Серии: ${batches.length}`, `Вкупно риби: ${totalFish}`, `Сурова маса: ${totalRawKg.toFixed(2)} kg`, `Преработено: ${totalProcessedKg.toFixed(2)} kg`, `Искористеност: ${totalRawKg > 0 ? ((totalProcessedKg / totalRawKg) * 100).toFixed(1) : 0}%`] },
-        { table: { headers: ['Производ', 'Количина (кг)'], rows: totalsRows } },
+        { lines: [`Серии: ${batches.length}`, `Вкупно риби: ${totalFish}`, `Сурова маса: ${totalRawKg.toFixed(2)} kg`, `Преработено: ${totalProcessedKg.toFixed(2)} kg`] },
+        { table: { headers: ['Производ', 'Количина (кг)', 'Рандман'], rows: totalsRows } },
         { table: { headers, rows: tableRows } },
       ]);
 
@@ -181,7 +183,7 @@ router.post('/production', authMiddleware, async (req, res) => {
               { label: 'Сурова маса', value: `${totalRawKg.toFixed(2)} kg` },
               { label: 'Преработено', value: `${totalProcessedKg.toFixed(2)} kg` },
             ]},
-            { type: 'keyvalue', heading: 'По производ', items: Object.entries(productTotals).map(([name, kg]) => ({ label: name, value: `${kg.toFixed(2)} kg` })) },
+            { type: 'keyvalue', heading: 'По производ (кг · рандман)', items: Object.entries(productTotals).map(([name, kg]) => ({ label: name, value: `${kg.toFixed(2)} kg · ${yieldOf(kg)}` })) },
           ],
           footerNote: 'Детален извештај е во прилог (Excel и PDF).',
         }),
