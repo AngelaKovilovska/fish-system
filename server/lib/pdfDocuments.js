@@ -106,7 +106,7 @@ async function buildInvoice(sale) {
   if (payLabel) draw(ctx, payLabel, { x: CX, top: 143, size: 10, font: B, align: 'center' });
 
   // Број (линија 222.8) и датум (линија 251.1)
-  draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 12, font: B, align: 'center' });
+  draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 13, font: B, align: 'center' });
   draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 12, font: B, align: 'center' });
 
   // Ставки — линии на овие „top“ позиции; првиот ред се прескокнува (ставките почнуваат од вториот)
@@ -115,7 +115,7 @@ async function buildInvoice(sale) {
   const FIRST_ROW = 1;
   const QTY_R = 369.5, PRICE_R = 467, AMT_R = 557;
   items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
-    const base = ROWS[i + FIRST_ROW] - 8.5;
+    const base = ROWS[i + FIRST_ROW] - 10.5; // вертикално на средина на редот (ред = 28.4)
     // Формат: Риба (Clarias gariepinus) - РСГ
     const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
