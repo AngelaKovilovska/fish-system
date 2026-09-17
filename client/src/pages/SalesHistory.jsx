@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import PdfPages from '../components/PdfPages';
 import { useNavigate } from 'react-router-dom';
 import { api, documentUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -11,6 +12,9 @@ import {
 import { formatDateShortMK } from '../lib/utils';
 
 // Статус на плаќање → { label, cls }
+// Телефон/таблет: iframe не рендерира PDF → прикажуваме страници преку pdf.js
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches;
+
 function paymentBadge(sale) {
   if (sale.payment_status === 'платено') {
     return { label: sale.paid_at ? `Платено ${formatDateShortMK(sale.paid_at)}` : 'Платено', cls: 'pill-success' };
@@ -159,10 +163,6 @@ export default function SalesHistory() {
 
   // Отвори официјален PDF (пополнет урнек) во preview — директно од API (иста домена)
   async function openPreview(saleId, docType) {
-    // Телефони не прикажуваат PDF во iframe → отвори во нов таб (системски PDF прегледувач,
-    // со „Сподели/Печати“ во вистинска големина). Мора да е во истиот клик, без await, за iOS.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches;
-    if (isMobile) { window.open(documentUrl(docType, saleId), '_blank'); return; }
     try {
       const sale = await api.getSale(saleId);
       const invoiceNum = sale.invoice_number || sale.dispatch_number || saleId;
@@ -178,6 +178,8 @@ export default function SalesHistory() {
   // Печати го истиот PDF
   function handlePreviewPrint() {
     if (!previewDoc) return;
+    // На телефон iframe/print не работи → отвори во системскиот PDF прегледувач (Печати / Сподели, вистинска големина)
+    if (IS_MOBILE) { window.open(previewDoc.url, '_blank'); return; }
     try {
       previewFrameRef.current.contentWindow.focus();
       previewFrameRef.current.contentWindow.print();
@@ -249,13 +251,17 @@ export default function SalesHistory() {
             </div>
             {/* Preview iframe */}
             <div className="flex-1 overflow-hidden p-3">
-              <iframe
-                ref={previewFrameRef}
-                src={previewDoc.url}
-                title="preview"
-                className="w-full h-full rounded-lg border border-(--border)"
-                style={{ background: '#fff' }}
-              />
+              {IS_MOBILE ? (
+                <PdfPages url={previewDoc.url} />
+              ) : (
+                <iframe
+                  ref={previewFrameRef}
+                  src={previewDoc.url}
+                  title="preview"
+                  className="w-full h-full rounded-lg border border-(--border)"
+                  style={{ background: '#fff' }}
+                />
+              )}
             </div>
           </div>
         </div>,
@@ -402,10 +408,10 @@ export default function SalesHistory() {
                     <div className="flex items-start justify-between cursor-pointer"
                       onClick={() => setExpandedSale(isExpanded ? null : sale.id)}>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-(--text-primary)" style={{ fontFamily: 'Sora, sans-serif' }}>
-                            {sale.invoice_number}
-                          </h3>
+                        <h3 className="text-sm font-bold text-(--text-primary) whitespace-nowrap" style={{ fontFamily: 'Sora, sans-serif' }}>
+                          {sale.invoice_number}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           <span className="pill pill-blue text-[9px]">{sale.payment_method}</span>
                           {(() => { const b = paymentBadge(sale); return <span className={`pill ${b.cls} text-[9px]`}>{b.label}</span>; })()}
                         </div>
@@ -413,9 +419,9 @@ export default function SalesHistory() {
                           {sale.buyer_name} • {formatDateShortMK(sale.sale_date)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                         <div className="text-right">
-                          <span className="text-sm font-bold text-(--primary)">{parseFloat(sale.total).toFixed(0)} ден</span>
+                          <span className="text-sm font-bold text-(--primary) whitespace-nowrap">{Math.round(parseFloat(sale.total)).toLocaleString('mk-MK')} ден</span>
                           <p className="text-[10px] text-(--text-muted)">{totalKg.toFixed(1)} кг</p>
                         </div>
                         {isExpanded ? <ChevronUp size={14} className="text-(--text-muted)" /> : <ChevronDown size={14} className="text-(--text-muted)" />}
