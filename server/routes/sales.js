@@ -73,7 +73,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const sale = await pool.query(
       `SELECT s.*, b.name as buyer_name, b.address as buyer_address,
-              b.edb as buyer_edb, b.contact_person as buyer_contact,
+              b.edb as buyer_edb, b.is_individual as buyer_is_individual, b.contact_person as buyer_contact,
               b.phone as buyer_phone, b.email as buyer_email,
               u.full_name as created_by_name
        FROM sales s

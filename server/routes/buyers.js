@@ -32,13 +32,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/buyers - create new buyer
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, address, edb, contact_person, phone, email } = req.body;
+    const { name, address, edb, contact_person, phone, email, is_individual } = req.body;
     if (!name) return res.status(400).json({ error: 'Потребно е име на купувач' });
 
     const result = await pool.query(
-      `INSERT INTO buyers (name, address, edb, contact_person, phone, email)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [name, address || null, edb || null, contact_person || null, phone || null, email || null]
+      `INSERT INTO buyers (name, address, edb, contact_person, phone, email, is_individual)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [name, address || null, edb || null, contact_person || null, phone || null, email || null, !!is_individual]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -50,13 +50,13 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/buyers/:id - update buyer
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { name, address, edb, contact_person, phone, email } = req.body;
+    const { name, address, edb, contact_person, phone, email, is_individual } = req.body;
     if (!name) return res.status(400).json({ error: 'Потребно е име на купувач' });
 
     const result = await pool.query(
-      `UPDATE buyers SET name=$1, address=$2, edb=$3, contact_person=$4, phone=$5, email=$6, updated_at=NOW()
+      `UPDATE buyers SET name=$1, address=$2, edb=$3, contact_person=$4, phone=$5, email=$6, is_individual=$8, updated_at=NOW()
        WHERE id=$7 RETURNING *`,
-      [name, address || null, edb || null, contact_person || null, phone || null, email || null, req.params.id]
+      [name, address || null, edb || null, contact_person || null, phone || null, email || null, req.params.id, !!is_individual]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Купувачот не е пронајден' });
     res.json(result.rows[0]);

@@ -36,7 +36,7 @@ export default function SalesNew() {
   const [success, setSuccess] = useState('');
 
   /* buyer */
-  const [buyer, setBuyer] = useState({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '' });
+  const [buyer, setBuyer] = useState({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '', is_individual: false });
   const [buyerSuggestions, setBuyerSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1); // тастатура: ↑ ↓ Enter во листата купувачи
@@ -85,7 +85,7 @@ export default function SalesNew() {
         setEditSale(sale);
         setSelectedBuyerId(sale.buyer_id);
         setBuyer({
-          name: sale.buyer_name || '', edb: sale.buyer_edb || '', address: sale.buyer_address || '',
+          name: sale.buyer_name || '', edb: sale.buyer_edb || '', address: sale.buyer_address || '', is_individual: !!sale.buyer_is_individual,
           contact_person: sale.buyer_contact || '', phone: sale.buyer_phone || '', email: sale.buyer_email || '',
         });
         setForm({
@@ -141,6 +141,7 @@ export default function SalesNew() {
     setBuyer({
       name: b.name, edb: b.edb || '', address: b.address || '',
       contact_person: b.contact_person || '', phone: b.phone || '', email: b.email || '',
+      is_individual: !!b.is_individual,
     });
     setSelectedBuyerId(b.id);
     setShowSuggestions(false);
@@ -148,7 +149,7 @@ export default function SalesNew() {
   }
 
   function clearBuyer() {
-    setBuyer({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '' });
+    setBuyer({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '', is_individual: false });
     setSelectedBuyerId(null);
   }
 
@@ -212,6 +213,9 @@ export default function SalesNew() {
       if (!buyerId) {
         const created = await api.createBuyer(buyer);
         buyerId = created.id;
+      } else {
+        // Постоечки купувач — промените во податоците (пр. физичко лице, телефон) се зачувуваат во шифрарникот
+        await api.updateBuyer(buyerId, buyer).catch(() => {});
       }
       const payload = {
         ...form,
@@ -290,13 +294,22 @@ export default function SalesNew() {
 
           {/* name + autocomplete */}
           <div className="relative mb-3" ref={suggestRef}>
-            <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Име на фирма</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase">{buyer.is_individual ? 'Име и презиме' : 'Име на фирма'}</label>
+              <button type="button"
+                onClick={() => setBuyer({ ...buyer, is_individual: !buyer.is_individual, edb: buyer.is_individual ? buyer.edb : '' })}
+                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${buyer.is_individual
+                  ? 'bg-(--primary) text-white border-(--primary)'
+                  : 'bg-transparent text-(--text-muted) border-(--border) hover:border-(--primary)'}`}>
+                Физичко лице
+              </button>
+            </div>
             <div className="flex gap-2">
               <input type="text" value={buyer.name}
                 onChange={e => handleBuyerNameChange(e.target.value)}
                 onFocus={() => { if (buyerSuggestions.length > 0) setShowSuggestions(true); }}
                 onKeyDown={handleBuyerKeyDown}
-                className="input-base text-sm flex-1" placeholder="Започнете да пишувате..." autoComplete="off" />
+                className="input-base text-sm flex-1" placeholder={buyer.is_individual ? 'Име и презиме...' : 'Започнете да пишувате...'} autoComplete="off" />
               {buyer.name && (
                 <button type="button" onClick={clearBuyer} className="btn-ghost p-2 text-(--text-muted)"><X size={14} /></button>
               )}
@@ -308,6 +321,7 @@ export default function SalesNew() {
                     ref={el => { if (el && i === highlightIdx) el.scrollIntoView({ block: 'nearest' }); }}
                     className={`w-full text-left px-3 py-2.5 text-sm transition-colors border-b border-(--border) last:border-0 ${i === highlightIdx ? 'bg-(--surface-elevated)' : 'hover:bg-(--surface-elevated)'}`}>
                     <span className="font-medium text-(--text-primary)">{b.name}</span>
+                    {b.is_individual && <span className="text-[10px] text-(--text-muted) ml-2">физичко лице</span>}
                     {b.edb && <span className="text-[10px] text-(--text-muted) ml-2">ЕДБ: {b.edb}</span>}
                     {b.address && <p className="text-[10px] text-(--text-muted) mt-0.5">{b.address}</p>}
                   </button>
@@ -318,16 +332,20 @@ export default function SalesNew() {
 
           {/* buyer details */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">ЕДБ</label>
-              <input type="text" value={buyer.edb} onChange={e => setBuyer({ ...buyer, edb: e.target.value })}
-                className="input-base text-sm" placeholder="1234567890123" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Контакт лице</label>
-              <input type="text" value={buyer.contact_person} onChange={e => setBuyer({ ...buyer, contact_person: e.target.value })}
-                className="input-base text-sm" placeholder="Име Презиме" />
-            </div>
+            {!buyer.is_individual && (
+              <>
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">ЕДБ</label>
+                  <input type="text" value={buyer.edb} onChange={e => setBuyer({ ...buyer, edb: e.target.value })}
+                    className="input-base text-sm" placeholder="1234567890123" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Контакт лице</label>
+                  <input type="text" value={buyer.contact_person} onChange={e => setBuyer({ ...buyer, contact_person: e.target.value })}
+                    className="input-base text-sm" placeholder="Име Презиме" />
+                </div>
+              </>
+            )}
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Адреса</label>
               <input type="text" value={buyer.address} onChange={e => setBuyer({ ...buyer, address: e.target.value })}

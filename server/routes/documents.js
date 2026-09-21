@@ -9,7 +9,7 @@ const FILE_LABELS = { invoice: 'Фактура', commercial: 'Комерција
 
 async function loadSale(id) {
   const sale = await pool.query(
-    `SELECT s.*, b.name AS buyer_name, b.address AS buyer_address, b.edb AS buyer_edb,
+    `SELECT s.*, b.name AS buyer_name, b.address AS buyer_address, b.edb AS buyer_edb, b.is_individual AS buyer_is_individual,
             b.contact_person AS buyer_contact, b.phone AS buyer_phone, b.email AS buyer_email
      FROM sales s LEFT JOIN buyers b ON b.id = s.buyer_id
      WHERE s.id = $1`,

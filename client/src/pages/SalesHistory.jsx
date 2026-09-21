@@ -139,7 +139,7 @@ export default function SalesHistory() {
   // Buyer CRUD
   function startEditBuyer(b) {
     setEditingBuyer(b.id);
-    setBuyerForm({ name: b.name, edb: b.edb || '', address: b.address || '', contact_person: b.contact_person || '', phone: b.phone || '', email: b.email || '' });
+    setBuyerForm({ name: b.name, edb: b.edb || '', address: b.address || '', contact_person: b.contact_person || '', phone: b.phone || '', email: b.email || '', is_individual: !!b.is_individual });
   }
 
   async function saveBuyer() {
@@ -569,6 +569,12 @@ export default function SalesHistory() {
                           className="input-base text-sm" placeholder="Телефон" />
                         <input type="email" value={buyerForm.email} onChange={e => setBuyerForm({ ...buyerForm, email: e.target.value })}
                           className="input-base text-sm col-span-2" placeholder="Email" />
+                        <label className="col-span-2 flex items-center gap-2 text-xs text-(--text-secondary) cursor-pointer">
+                          <input type="checkbox" checked={!!buyerForm.is_individual}
+                            onChange={e => setBuyerForm({ ...buyerForm, is_individual: e.target.checked, edb: e.target.checked ? '' : buyerForm.edb })}
+                            className="w-4 h-4 rounded accent-(--primary)" />
+                          Физичко лице
+                        </label>
                       </div>
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => setEditingBuyer(null)} className="btn-ghost text-xs flex items-center gap-1">
@@ -587,7 +593,7 @@ export default function SalesHistory() {
                         {b.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-(--text-primary)">{b.name}</p>
+                        <p className="text-sm font-bold text-(--text-primary)">{b.name}{b.is_individual && <span className="pill pill-blue text-[9px] ml-2">физичко лице</span>}</p>
                         {b.edb && <p className="text-[10px] text-(--text-muted)">ЕДБ: {b.edb}</p>}
                         {b.address && <p className="text-[10px] text-(--text-muted)">{b.address}</p>}
                         {b.phone && <p className="text-[10px] text-(--text-muted)">{b.phone}</p>}
