@@ -126,7 +126,8 @@ async function buildInvoice(sale) {
 
   // Износи (редови 572.6 / 589.6 / 606.6 / 623.6 / 640.6, натписи десно порамнети на x=469.7)
   const vatRate = Number.isFinite(parseFloat(sale.vat_rate)) ? parseFloat(sale.vat_rate) : 5; // 0 = без ДДВ (готово/гратис)
-  if (Math.abs(vatRate - 5) > 0.01) {
+  const noVat = vatRate <= 0.001;
+  if (!noVat && Math.abs(vatRate - 5) > 0.01) {
     whiteBox(ctx, { x0: 438, x1: 471, top: 576.5, bottom: 588.5 });
     draw(ctx, `ДДВ ${num(vatRate, 0)}%:`, { x: 469.7, top: 586.4, size: 9, align: 'right' });
   }
@@ -134,7 +135,8 @@ async function buildInvoice(sale) {
   const payable = Math.round(total);            // ЗА ПЛАЌАЊЕ — цел денар
   const rounding = payable - total;             // Порамнување на дени
   draw(ctx, money(sale.subtotal), { x: AMT_R, top: 569.5, size: 10, align: 'right' });
-  draw(ctx, money(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
+  // Без ДДВ (готово/гратис) → колоната останува празна
+  if (!noVat) draw(ctx, money(sale.vat_amount), { x: AMT_R, top: 586.4, size: 10, align: 'right' });
   draw(ctx, money(total), { x: AMT_R, top: 603.3, size: 10, align: 'right' });
   draw(ctx, money(rounding), { x: AMT_R, top: 620.7, size: 10, align: 'right' });
   draw(ctx, money(payable), { x: AMT_R, top: 638.2, size: 10, font: B, align: 'right', maxWidth: 84 });
