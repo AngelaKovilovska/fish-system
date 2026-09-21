@@ -2,54 +2,10 @@ const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const inv = require('../lib/inventory');
+const docNum = require('../lib/documentNumbers');
 
 const router = express.Router();
 
-// Generate invoice number: ФА-YYYYMMDD-NNN
-async function generateInvoiceNumber() {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  const prefix = `ФА-${dateStr}`;
-
-  const result = await pool.query(
-    `SELECT invoice_number FROM sales
-     WHERE invoice_number LIKE $1
-     ORDER BY invoice_number DESC LIMIT 1`,
-    [`${prefix}-%`]
-  );
-
-  let seq = 1;
-  if (result.rows.length > 0) {
-    const last = result.rows[0].invoice_number;
-    const lastSeq = parseInt(last.split('-').pop());
-    if (!isNaN(lastSeq)) seq = lastSeq + 1;
-  }
-
-  return `${prefix}-${String(seq).padStart(3, '0')}`;
-}
-
-// Generate dispatch number: ИС-YYYYMMDD-NNN
-async function generateDispatchNumber() {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  const prefix = `ИС-${dateStr}`;
-
-  const result = await pool.query(
-    `SELECT dispatch_number FROM sales
-     WHERE dispatch_number LIKE $1
-     ORDER BY dispatch_number DESC LIMIT 1`,
-    [`${prefix}-%`]
-  );
-
-  let seq = 1;
-  if (result.rows.length > 0) {
-    const last = result.rows[0].dispatch_number;
-    const lastSeq = parseInt(last.split('-').pop());
-    if (!isNaN(lastSeq)) seq = lastSeq + 1;
-  }
-
-  return `${prefix}-${String(seq).padStart(3, '0')}`;
-}
 
 // GET /api/sales - list all sales
 router.get('/', authMiddleware, async (req, res) => {
@@ -175,8 +131,10 @@ router.post('/', authMiddleware, async (req, res) => {
       item.lot_number = lot;
     }
 
-    const invoice_number = await generateInvoiceNumber();
-    const dispatch_number = await generateDispatchNumber();
+    // Броеви на документи: серија според начин на плаќање + испратница, датум = датум на продажба
+    const saleDateForNum = sale_date || new Date().toISOString().slice(0, 10);
+    const invoice_number = await docNum.nextNumber(client, docNum.seriesForPayment(payment_method), saleDateForNum);
+    const dispatch_number = await docNum.nextNumber(client, 'dispatch', saleDateForNum);
 
     // Calculate totals
     let subtotal = 0;
@@ -321,11 +279,18 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (['готово', 'гратис'].includes(newMethod) && paymentStatus !== 'платено') {
       paymentStatus = 'платено'; paidAt = newSaleDate;
     }
+    // Ако се смени серијата (фактура ↔ готово ↔ гратис), продажбата добива нов број од новата серија
+    let invoiceNumber = existing.rows[0].invoice_number;
+    const oldSeries = docNum.seriesForPayment(existing.rows[0].payment_method);
+    const newSeries = docNum.seriesForPayment(newMethod);
+    if (oldSeries !== newSeries) {
+      invoiceNumber = await docNum.nextNumber(client, newSeries, newSaleDate);
+    }
     const result = await client.query(
       `UPDATE sales SET buyer_id = $1, sale_date = $2, due_date = $3, payment_method = $4,
          lot_number = $5, transport_vehicle = $6, product_temp = $7,
          subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12,
-         payment_status = $14, paid_at = $15, updated_at = NOW()
+         payment_status = $14, paid_at = $15, invoice_number = $16, updated_at = NOW()
        WHERE id = $13 RETURNING *`,
       [
         buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
@@ -333,7 +298,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         lot_number || items.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
         subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
-        paymentStatus, paidAt
+        paymentStatus, paidAt, invoiceNumber
       ]
     );
 
