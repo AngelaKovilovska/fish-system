@@ -103,7 +103,7 @@ async function buildInvoice(sale) {
   const CX = 515.5; // центар на линиите за број/датум (458.8–572.2)
   const PAY_LABELS = { 'готово': 'ПЛАТЕНО ВО ГОТОВО', 'гратис': 'ГРАТИС' };
   const payLabel = PAY_LABELS[String(sale.payment_method || '').toLowerCase()];
-  if (payLabel) draw(ctx, payLabel, { x: CX, top: 143, size: 10, font: B, align: 'center' });
+  if (payLabel) draw(ctx, payLabel, { x: CX, top: 141, size: 13, font: B, align: 'center', maxWidth: 118 });
 
   // Број (линија 222.8) и датум (линија 251.1)
   draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 13, font: B, align: 'center' });
