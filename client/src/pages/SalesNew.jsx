@@ -39,6 +39,7 @@ export default function SalesNew() {
   const [buyer, setBuyer] = useState({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '' });
   const [buyerSuggestions, setBuyerSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1); // тастатура: ↑ ↓ Enter во листата купувачи
   const [selectedBuyerId, setSelectedBuyerId] = useState(null);
   const suggestRef = useRef(null);
 
@@ -116,9 +117,24 @@ export default function SalesNew() {
       const matches = buyers.filter(b => b.name.toLowerCase().includes(value.toLowerCase()));
       setBuyerSuggestions(matches);
       setShowSuggestions(matches.length > 0);
+      setHighlightIdx(matches.length > 0 ? 0 : -1);
     } else {
       setShowSuggestions(false);
     }
+  }
+
+  // Тастатура во полето за купувач: ↓/↑ движење, Enter избор, Esc затвора
+  function handleBuyerKeyDown(e) {
+    if (!showSuggestions || buyerSuggestions.length === 0) {
+      if (e.key === 'ArrowDown' && buyerSuggestions.length > 0) { setShowSuggestions(true); setHighlightIdx(0); e.preventDefault(); }
+      return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => (i + 1) % buyerSuggestions.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => (i <= 0 ? buyerSuggestions.length - 1 : i - 1)); }
+    else if (e.key === 'Enter') {
+      if (highlightIdx >= 0) { e.preventDefault(); selectBuyer(buyerSuggestions[highlightIdx]); }
+    }
+    else if (e.key === 'Escape') { setShowSuggestions(false); setHighlightIdx(-1); }
   }
 
   function selectBuyer(b) {
@@ -128,6 +144,7 @@ export default function SalesNew() {
     });
     setSelectedBuyerId(b.id);
     setShowSuggestions(false);
+    setHighlightIdx(-1);
   }
 
   function clearBuyer() {
@@ -278,6 +295,7 @@ export default function SalesNew() {
               <input type="text" value={buyer.name}
                 onChange={e => handleBuyerNameChange(e.target.value)}
                 onFocus={() => { if (buyerSuggestions.length > 0) setShowSuggestions(true); }}
+                onKeyDown={handleBuyerKeyDown}
                 className="input-base text-sm flex-1" placeholder="Започнете да пишувате..." autoComplete="off" />
               {buyer.name && (
                 <button type="button" onClick={clearBuyer} className="btn-ghost p-2 text-(--text-muted)"><X size={14} /></button>
@@ -285,9 +303,10 @@ export default function SalesNew() {
             </div>
             {showSuggestions && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-(--surface) border border-(--border) rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
-                {buyerSuggestions.map(b => (
-                  <button key={b.id} type="button" onClick={() => selectBuyer(b)}
-                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-(--surface-elevated) transition-colors border-b border-(--border) last:border-0">
+                {buyerSuggestions.map((b, i) => (
+                  <button key={b.id} type="button" onClick={() => selectBuyer(b)} onMouseEnter={() => setHighlightIdx(i)}
+                    ref={el => { if (el && i === highlightIdx) el.scrollIntoView({ block: 'nearest' }); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors border-b border-(--border) last:border-0 ${i === highlightIdx ? 'bg-(--surface-elevated)' : 'hover:bg-(--surface-elevated)'}`}>
                     <span className="font-medium text-(--text-primary)">{b.name}</span>
                     {b.edb && <span className="text-[10px] text-(--text-muted) ml-2">ЕДБ: {b.edb}</span>}
                     {b.address && <p className="text-[10px] text-(--text-muted) mt-0.5">{b.address}</p>}
