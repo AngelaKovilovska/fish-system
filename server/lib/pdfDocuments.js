@@ -148,10 +148,34 @@ async function buildInvoice(sale) {
 }
 
 // ═══════════════ ДЕКЛАРАЦИЈА ═══════════════
+// Урнекот е мала етикета (66×87 mm) горе-лево на А4. Се прикажува ДУПЛО поголема (132×174 mm):
+// страницата од урнекот се вградува и се црта со скала 2, задржувајќи го истото горно-лево место (72pt, 74pt).
+const DECL_SCALE = 2;
+const DECL_ORIGIN = { x: 72, top: 74 }; // горен-лев агол на етикетата во урнекот (pt)
+
 async function buildDeclaration(sale) {
-  const ctx = await openTemplate('declaration');
   const { totalKg, firstLot, lotDate, expiry } = saleFacts(sale);
-  const X = 161.5, SZ = 6.5, MAXW = 88;
+
+  const tpl = await PDFDocument.load(readCached('tpl:declaration', path.join(TEMPLATES_DIR, 'declaration.pdf')));
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
+  const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
+
+  const [tplPage] = tpl.getPages();
+  const embedded = await doc.embedPage(tplPage);
+  const W = tplPage.getWidth(), H = tplPage.getHeight();
+  const page = doc.addPage([W, H]);
+
+  // Точка (x, top) од урнекот → (S·x + dx, S·top + dtop) така што аголот на етикетата останува на исто место
+  const S = DECL_SCALE;
+  const dx = DECL_ORIGIN.x - S * DECL_ORIGIN.x;
+  const dtop = DECL_ORIGIN.top - S * DECL_ORIGIN.top;
+  // pdf-lib црта со долно-лев origin: y_new = H - (S·top + dtop); за целата страница top=0 → y = H - dtop - S·H
+  page.drawPage(embedded, { x: dx, y: H - dtop - S * H, xScale: S, yScale: S });
+
+  const ctx = { page, font: bold, bold, H };
+  const X = S * 161.5 + dx, SZ = 6.5 * S, MAXW = 88 * S;
   const rows = [
     [219.6, `${num(totalKg)} кг`],
     [231.2, fmtDate(lotDate)],
@@ -159,8 +183,8 @@ async function buildDeclaration(sale) {
     [254.3, fmtDate(expiry)],
     [265.8, firstLot],
   ];
-  for (const [top, val] of rows) draw(ctx, val, { x: X, top, size: SZ, font: ctx.bold, color: BLACK, maxWidth: MAXW });
-  return ctx.doc.save();
+  for (const [top, val] of rows) draw(ctx, val, { x: X, top: S * top + dtop, size: SZ, font: bold, color: BLACK, maxWidth: MAXW });
+  return doc.save();
 }
 
 // ═══════════════ КОМЕРЦИЈАЛЕН ДОКУМЕНТ (Службен весник) ═══════════════
