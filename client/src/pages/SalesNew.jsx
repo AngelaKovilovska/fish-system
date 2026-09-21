@@ -341,7 +341,6 @@ export default function SalesNew() {
 
           <div className="space-y-3">
             {items.map((item, idx) => {
-              const inv = inventory.find(i => i.product_type_id === parseInt(item.product_type_id));
               const lineTotal = (parseFloat(item.quantity_kg) || 0) * (parseFloat(item.price_per_kg) || 0);
               return (
                 <div key={idx} className="bg-(--surface-elevated) rounded-(--r-sm) p-3 border border-(--border)">
@@ -360,7 +359,7 @@ export default function SalesNew() {
                       className="btn-ghost p-1.5 text-(--danger) flex-shrink-0"><Trash2 size={13} /></button>
                   </div>
 
-                  {inv && (() => {
+                  {item.product_type_id && (() => {
                     const lots = lotsFor(item.product_type_id);
                     const sel = lots.find(l => l.lot_number === item.lot_number);
                     return (
