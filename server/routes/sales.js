@@ -121,6 +121,8 @@ router.post('/', authMiddleware, async (req, res) => {
     for (const item of items) {
       const qty = parseFloat(item.quantity_kg) || 0;
       if (qty <= 0) continue;
+      // Ставка без LOT (стара продажба внесена дополнително) — не се одзема залиха
+      if (item.no_lot) { item.lot_number = null; continue; }
       let lot = (item.lot_number || lot_number || '').trim();
       if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
       if (!lot) {
@@ -182,8 +184,8 @@ router.post('/', authMiddleware, async (req, res) => {
         [saleId, item.product_type_id, item.lot_number || null, qty, price, amount]
       );
 
-      // Deduct from LOT inventory (verifies availability, row-locked)
-      if (qty > 0) {
+      // Deduct from LOT inventory (verifies availability, row-locked); без LOT → не се одзема
+      if (qty > 0 && item.lot_number) {
         await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
       }
     }
@@ -228,6 +230,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       'SELECT product_type_id, lot_number, quantity_kg FROM sale_items WHERE sale_id = $1', [req.params.id]
     );
     for (const it of oldItems.rows) {
+      if (!it.lot_number) continue; // ставка без LOT — залихата не била одземена
       await inv.returnToLot(client, { productTypeId: it.product_type_id, lotNumber: it.lot_number, qty: it.quantity_kg });
     }
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
@@ -236,6 +239,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     for (const item of items) {
       const qty = parseFloat(item.quantity_kg) || 0;
       if (qty <= 0) continue;
+      // Ставка без LOT (стара продажба внесена дополнително) — не се одзема залиха
+      if (item.no_lot) { item.lot_number = null; continue; }
       let lot = (item.lot_number || lot_number || '').trim();
       if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
       if (!lot) {
@@ -268,7 +273,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [req.params.id, item.product_type_id, item.lot_number || null, qty, price, qty * price]
       );
-      await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
+      if (item.lot_number) await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
     }
 
     // 5. Update sale header (готово/гратис → автоматски платено)
@@ -345,6 +350,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     );
 
     for (const item of items.rows) {
+      if (!item.lot_number) continue; // ставка без LOT — залихата не била одземена
       await inv.returnToLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty: item.quantity_kg });
     }
 
