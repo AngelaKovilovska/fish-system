@@ -174,7 +174,10 @@ export default function SalesNew() {
 
   /* totals */
   const subtotal = items.reduce((s, i) => s + (parseFloat(i.quantity_kg) || 0) * (parseFloat(i.price_per_kg) || 0), 0);
-  const vatAmount = Math.round(subtotal * vatRate) / 100;
+  // Готово/гратис → без ДДВ
+  const noVat = ['готово', 'гратис'].includes(form.payment_method);
+  const effectiveVatRate = noVat ? 0 : vatRate;
+  const vatAmount = Math.round(subtotal * effectiveVatRate) / 100;
   const total = subtotal + vatAmount;
   const dueDate = addDays(form.sale_date, 7);
 
@@ -416,12 +419,16 @@ export default function SalesNew() {
             <div className="flex justify-between items-center text-xs text-(--text-secondary)">
               <span className="flex items-center gap-1.5">
                 ДДВ:
-                <select value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value))}
-                  className="text-xs font-semibold bg-(--surface-elevated) border border-(--border) rounded-md px-1.5 py-0.5 text-(--primary) cursor-pointer">
-                  <option value={5}>5%</option>
-                  <option value={10}>10%</option>
-                  <option value={18}>18%</option>
-                </select>
+                {noVat ? (
+                  <span className="text-[11px] text-(--text-muted)">не се пресметува ({form.payment_method})</span>
+                ) : (
+                  <select value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value))}
+                    className="text-xs font-semibold bg-(--surface-elevated) border border-(--border) rounded-md px-1.5 py-0.5 text-(--primary) cursor-pointer">
+                    <option value={5}>5%</option>
+                    <option value={10}>10%</option>
+                    <option value={18}>18%</option>
+                  </select>
+                )}
               </span>
               <span>{vatAmount.toFixed(2)} ден</span>
             </div>

@@ -186,13 +186,12 @@ router.post('/', authMiddleware, async (req, res) => {
       subtotal += qty * price;
     }
 
-    const vat_rate = [5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : 5.00;
-    const vat_amount = Math.round(subtotal * vat_rate) / 100;
-    const total = subtotal + vat_amount;
-
-    // Create sale (готово/гратис = платено на денот)
+    // Готово/гратис = платено на денот и БЕЗ ДДВ
     const method = payment_method || 'фактура';
     const isPaidNow = ['готово', 'гратис'].includes(method);
+    const vat_rate = isPaidNow ? 0 : ([5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : 5.00);
+    const vat_amount = Math.round(subtotal * vat_rate) / 100;
+    const total = subtotal + vat_amount;
     const saleDateVal = sale_date || new Date().toISOString().slice(0, 10);
     const saleResult = await client.query(
       `INSERT INTO sales (invoice_number, dispatch_number, buyer_id, sale_date, due_date,
@@ -294,7 +293,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     for (const item of items) {
       subtotal += (parseFloat(item.quantity_kg) || 0) * (parseFloat(item.price_per_kg) || 0);
     }
-    const vat_rate = [5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : parseFloat(existing.rows[0].vat_rate) || 5;
+    // Готово/гратис = без ДДВ
+    const methodForVat = payment_method || existing.rows[0].payment_method;
+    const noVat = ['готово', 'гратис'].includes(methodForVat);
+    const vat_rate = noVat ? 0 : ([5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : parseFloat(existing.rows[0].vat_rate) || 5);
     const vat_amount = Math.round(subtotal * vat_rate) / 100;
     const total = subtotal + vat_amount;
 

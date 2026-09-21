@@ -485,7 +485,7 @@ export default function SalesHistory() {
                           </div>
                           <div>
                             <span className="text-(--text-muted)">ДДВ: </span>
-                            <span className="font-medium">{sale.vat_rate}% ({parseFloat(sale.vat_amount).toFixed(0)} ден)</span>
+                            <span className="font-medium">{parseFloat(sale.vat_rate) > 0 ? `${parseFloat(sale.vat_rate)}% (${parseFloat(sale.vat_amount).toFixed(0)} ден)` : 'без ДДВ'}</span>
                           </div>
                           {sale.lot_number && (
                             <div>

@@ -125,7 +125,7 @@ async function buildInvoice(sale) {
   });
 
   // Износи (редови 572.6 / 589.6 / 606.6 / 623.6 / 640.6, натписи десно порамнети на x=469.7)
-  const vatRate = parseFloat(sale.vat_rate) || 5;
+  const vatRate = Number.isFinite(parseFloat(sale.vat_rate)) ? parseFloat(sale.vat_rate) : 5; // 0 = без ДДВ (готово/гратис)
   if (Math.abs(vatRate - 5) > 0.01) {
     whiteBox(ctx, { x0: 438, x1: 471, top: 576.5, bottom: 588.5 });
     draw(ctx, `ДДВ ${num(vatRate, 0)}%:`, { x: 469.7, top: 586.4, size: 9, align: 'right' });
