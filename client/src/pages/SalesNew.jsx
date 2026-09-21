@@ -413,7 +413,7 @@ export default function SalesNew() {
                   <div className="grid grid-cols-2 gap-2 ml-7">
                     <div>
                       <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Количина (кг)</label>
-                      <input type="number" step="0.01" min="0" value={item.quantity_kg}
+                      <input type="number" step="any" min="0" value={item.quantity_kg}
                         onChange={e => updateItem(idx, 'quantity_kg', e.target.value)}
                         className="input-base text-sm" placeholder="0.00" />
                     </div>

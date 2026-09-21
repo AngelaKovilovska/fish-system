@@ -150,7 +150,7 @@ export default function ProductInventoryPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
-                      <input type="number" step="0.01" min="0"
+                      <input type="number" step="any" min="0"
                         value={popisValues[item.product_type_id] ?? ''}
                         onChange={e => setPopisValues({ ...popisValues, [item.product_type_id]: e.target.value })}
                         className="input-base w-full text-sm" placeholder="Нова количина (кг)" />

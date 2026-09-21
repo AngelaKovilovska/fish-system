@@ -40,6 +40,8 @@ function fmtDate(d) {
   return `${String(x.getDate()).padStart(2, '0')}.${String(x.getMonth() + 1).padStart(2, '0')}.${x.getFullYear()}`;
 }
 function num(v, dec = 2) { return (parseFloat(v) || 0).toFixed(dec); }
+// Количина во кг: 2 децимали, или 3 ако третата не е нула (11.215)
+function qty(v) { const n = parseFloat(v) || 0; return Math.abs(Math.round(n * 1000) - Math.round(n * 100) * 10) >= 1 ? n.toFixed(3) : n.toFixed(2); }
 function groupInt(int) { return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 // 12584.25 → „12.584,25 ден.“
 function money(v) {
@@ -119,7 +121,7 @@ async function buildInvoice(sale) {
     // Формат: Риба (Clarias gariepinus) - РСГ
     const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
     draw(ctx, name, { x: 45, top: base, size: 11, maxWidth: 236 });
-    draw(ctx, num(it.quantity_kg), { x: QTY_R, top: base, size: 11, align: 'right' });
+    draw(ctx, qty(it.quantity_kg), { x: QTY_R, top: base, size: 11, align: 'right' });
     draw(ctx, money(it.price_per_kg), { x: PRICE_R, top: base, size: 11, align: 'right' });
     draw(ctx, money(it.amount), { x: AMT_R, top: base, size: 11, align: 'right' });
   });
@@ -177,7 +179,7 @@ async function buildDeclaration(sale) {
   const ctx = { page, font: bold, bold, H };
   const X = S * 161.5 + dx, SZ = 6.5 * S, MAXW = 88 * S;
   const rows = [
-    [219.6, `${num(totalKg)} кг`],
+    [219.6, `${qty(totalKg)} кг`],
     [231.2, fmtDate(lotDate)],
     [242.7, fmtDate(lotDate)],
     [254.3, fmtDate(expiry)],
@@ -207,7 +209,7 @@ async function buildCommercial(sale) {
 
   field(303.8, 463.1, 109.3, 121.6, sale.dispatch_number, { bold: true });   // Сериски број на КД
   field(303.8, 463.0, 145.9, 158.2, sale.invoice_number, { bold: true });    // Архивски број (фактура)
-  field(256.0, 335.7, 229.9, 242.1, num(totalKg), { bold: true });           // 1.2 количина
+  field(256.0, 335.7, 229.9, 242.1, qty(totalKg), { bold: true });           // 1.2 количина
   // 1.3 „Вакуум пакување“ — веќе впишано, само се трга жолтото (текст + подвлекување се исцртуваат повторно)
   field(258.1, 346, 259.5, 271.6, 'Вакуум пакување', { bold: true });
   ctx.page.drawLine({ start: { x: 260.1, y: ctx.H - 270.2 }, end: { x: 260.1 + ctx.bold.widthOfTextAtSize('Вакуум пакување', 10), y: ctx.H - 270.2 }, thickness: 0.6, color: BLACK });

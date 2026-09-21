@@ -547,7 +547,7 @@ export default function ProductionNew() {
                           {val > 0 && <p className="text-[10px] text-(--text-muted) mt-0.5">Рандман {pct.toFixed(1)}%</p>}
                         </div>
                         <div className="w-24 flex-shrink-0">
-                          <input type="number" step="0.01" min="0" value={item.quantity_kg}
+                          <input type="number" step="any" min="0" value={item.quantity_kg}
                             onChange={e => { const u = [...items]; u[idx] = { ...u[idx], quantity_kg: e.target.value }; setItems(u); }}
                             className="input-base text-base font-semibold text-right py-2" placeholder="0" />
                         </div>
