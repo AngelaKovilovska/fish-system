@@ -114,7 +114,16 @@ export default function SalesNew() {
     setBuyer({ ...buyer, name: value });
     setSelectedBuyerId(null);
     if (value.length >= 2) {
-      const matches = buyers.filter(b => b.name.toLowerCase().includes(value.toLowerCase()));
+      // Совпаѓање по почеток на збор (пр. „Фа“ → „Фамаком“, не „Кафана“); прво имињата што почнуваат со текстот
+      const q = value.trim().toLowerCase();
+      const norm = (str) => (str || '').toLowerCase();
+      const wordStart = (name) => norm(name).split(/[\s(),.\-–"„“]+/).some(w => w.startsWith(q));
+      const matches = buyers
+        .filter(b => wordStart(b.name))
+        .sort((x, y) => {
+          const xs = norm(x.name).startsWith(q) ? 0 : 1, ys = norm(y.name).startsWith(q) ? 0 : 1;
+          return xs - ys || norm(x.name).localeCompare(norm(y.name), 'mk');
+        });
       setBuyerSuggestions(matches);
       setShowSuggestions(matches.length > 0);
       setHighlightIdx(matches.length > 0 ? 0 : -1);
@@ -319,8 +328,8 @@ export default function SalesNew() {
                 {buyerSuggestions.map((b, i) => (
                   <button key={b.id} type="button" onClick={() => selectBuyer(b)} onMouseEnter={() => setHighlightIdx(i)}
                     ref={el => { if (el && i === highlightIdx) el.scrollIntoView({ block: 'nearest' }); }}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors border-b border-(--border) last:border-0 ${i === highlightIdx ? 'bg-(--surface-elevated)' : 'hover:bg-(--surface-elevated)'}`}>
-                    <span className="font-medium text-(--text-primary)">{b.name}</span>
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors border-b border-(--border) last:border-0 border-l-2 ${i === highlightIdx ? 'bg-(--primary-muted) border-l-(--primary)' : 'border-l-transparent hover:bg-(--surface-elevated)'}`}>
+                    <span className={`font-medium ${i === highlightIdx ? 'text-(--primary)' : 'text-(--text-primary)'}`}>{b.name}</span>
                     {b.is_individual && <span className="text-[10px] text-(--text-muted) ml-2">физичко лице</span>}
                     {b.edb && <span className="text-[10px] text-(--text-muted) ml-2">ЕДБ: {b.edb}</span>}
                     {b.address && <p className="text-[10px] text-(--text-muted) mt-0.5">{b.address}</p>}
