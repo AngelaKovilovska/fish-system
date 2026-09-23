@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, downloadFile } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
-import { fmtDate } from '../lib/utils';
+import { fmtDate, fmtInt } from '../lib/utils';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -376,7 +376,7 @@ export default function Reports() {
         const products = (b.items || []).map(i => `${i.name}: ${parseFloat(i.quantity_kg).toFixed(2)} kg`).join(', ');
         return `<tr><td>${b.lot_number}</td><td>${fmtDate(b.production_date)}</td><td>Б${b.source_pool || '–'}</td><td class="r">${b.fish_count}</td><td class="r">${parseFloat(b.total_weight_kg).toFixed(1)}</td><td class="r">${bKg.toFixed(1)}</td><td>${products}</td></tr>`;
       }).join('');
-      tableHTML = `<p class="total">Серии: ${batches.length} | Риби: ${totalFish.toLocaleString()} | Сурова: ${totalRawKg.toFixed(1)} kg | Преработено: ${totalProcessedKg.toFixed(1)} kg</p>
+      tableHTML = `<p class="total">Серии: ${batches.length} | Риби: ${fmtInt(totalFish)} | Сурова: ${totalRawKg.toFixed(1)} kg | Преработено: ${totalProcessedKg.toFixed(1)} kg</p>
         <h3 style="margin-top:16px">Вкупно по производ</h3>
         <table><thead><tr><th>Производ</th><th class="r">Количина (kg)</th><th class="r">Рандман</th></tr></thead><tbody>${productRows}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${totalProcessedKg.toFixed(2)}</strong></td><td></td></tr></tbody></table>
         <h3 style="margin-top:16px">Детали по серија</h3>
@@ -886,7 +886,7 @@ ${tableHTML}
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Риби</div>
-              <div className="text-sm font-bold text-(--text-primary)">{totalFish.toLocaleString()}</div>
+              <div className="text-sm font-bold text-(--text-primary)">{fmtInt(totalFish)}</div>
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Сурова</div>
@@ -1195,7 +1195,7 @@ ${tableHTML}
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+              <div className="text-sm font-bold text-(--primary)">{fmtInt(previewData.grandTotal)} ден</div>
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
@@ -1249,7 +1249,7 @@ ${tableHTML}
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Приход</div>
-              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+              <div className="text-sm font-bold text-(--primary)">{fmtInt(previewData.grandTotal)} ден</div>
             </div>
           </div>
           <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
@@ -1293,7 +1293,7 @@ ${tableHTML}
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-              <div className="text-sm font-bold text-(--primary)">{(previewData.grandTotal / 1000).toFixed(1)}к ден</div>
+              <div className="text-sm font-bold text-(--primary)">{fmtInt(previewData.grandTotal)} ден</div>
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Месеци</div>
@@ -1301,7 +1301,7 @@ ${tableHTML}
             </div>
             <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
               <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Просек/мес</div>
-              <div className="text-sm font-bold text-(--text-primary)">{(avgMonthly / 1000).toFixed(1)}к</div>
+              <div className="text-sm font-bold text-(--text-primary)">{fmtInt(avgMonthly)}</div>
             </div>
           </div>
           <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">

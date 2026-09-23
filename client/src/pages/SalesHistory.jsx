@@ -10,7 +10,7 @@ import {
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
   TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
-import { formatDateShortMK } from '../lib/utils';
+import { formatDateShortMK, fmtInt } from '../lib/utils';
 
 // Статус на плаќање → { label, cls }
 // Телефон/таблет: iframe не рендерира PDF → прикажуваме страници преку pdf.js
@@ -335,7 +335,7 @@ export default function SalesHistory() {
               <div className="rounded-(--r-md) bg-(--surface) border border-(--border) p-2.5 text-center">
                 <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Вкупно</div>
-                <div className="text-base font-bold text-(--primary)">{(stats.totalAmount / 1000).toFixed(1)}к ден</div>
+                <div className="text-base font-bold text-(--primary)">{fmtInt(stats.totalAmount)} ден</div>
               </div>
               <div className="rounded-(--r-md) bg-(--surface) border border-(--border) p-2.5 text-center">
                 <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
@@ -347,7 +347,7 @@ export default function SalesHistory() {
                 <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-0.5"
                   style={{ fontFamily: 'Sora, sans-serif' }}>Неплатено</div>
                 <div className={`text-base font-bold ${stats.unpaidCount > 0 ? 'text-(--danger)' : 'text-(--text-primary)'}`}>
-                  {(stats.unpaidAmount / 1000).toFixed(1)}к ден
+                  {fmtInt(stats.unpaidAmount)} ден
                 </div>
                 <div className="text-[9px] text-(--text-muted)">{stats.unpaidCount} факт.</div>
               </button>

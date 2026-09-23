@@ -63,3 +63,9 @@ export function productStockWarnings(inventory, expiringDays = 14) {
   }
   return out.sort((a, b) => (a.level === 'danger' ? 0 : 1) - (b.level === 'danger' ? 0 : 1));
 }
+
+// Цел број со точка на илјадарки: 280200 → „280.200“ (без скратување на „к“)
+export function fmtInt(v) {
+  const n = Math.round(parseFloat(v) || 0);
+  return `${n < 0 ? '-' : ''}${String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+}
