@@ -102,14 +102,15 @@ async function buildInvoice(sale) {
   draw(ctx, contact, { x: VX, top: 242.3, size: 10, maxWidth: 295 });
 
   // Начин на плаќање — само за готово/гратис, над „ИСПРАТНИЦА / ФАКТУРА“
-  const CX = 515.5; // центар на линиите за број/датум (458.8–572.2)
+  const CX = 513.7; // центар на линиите за број/датум/рок (457.0–570.4)
   const PAY_LABELS = { 'готово': 'ПЛАТЕНО ВО ГОТОВО', 'гратис': 'ГРАТИС' };
   const payLabel = PAY_LABELS[String(sale.payment_method || '').toLowerCase()];
-  if (payLabel) draw(ctx, payLabel, { x: CX, top: 141, size: 13, font: B, align: 'center', maxWidth: 118 });
+  if (payLabel) draw(ctx, payLabel, { x: CX, top: 129, size: 13, font: B, align: 'center', maxWidth: 118 });
 
-  // Број (линија 222.8) и датум (линија 251.1)
-  draw(ctx, sale.invoice_number, { x: CX, top: 219, size: 13, font: B, align: 'center' });
-  draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 247.5, size: 12, font: B, align: 'center' });
+  // Број (линија 201.8), датум (226.5) и рок на плаќање (251.1)
+  draw(ctx, sale.invoice_number, { x: CX, top: 198, size: 13, font: B, align: 'center' });
+  draw(ctx, fmtDate(sale.sale_date), { x: CX, top: 222.7, size: 12, font: B, align: 'center' });
+  if (!payLabel) draw(ctx, fmtDate(sale.due_date), { x: CX, top: 247.3, size: 12, font: B, align: 'center' }); // готово/гратис → без рок
 
   // Ставки — линии на овие „top“ позиции; првиот ред се прескокнува (ставките почнуваат од вториот)
   // Колони: Производ 39.5–286.2 | Количина 286.2–374.8 | Ед.цена 374.8–472.3 | Вкупно 472.3–562.1
