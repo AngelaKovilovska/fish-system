@@ -54,6 +54,7 @@ export default function SalesNew() {
 
   /* VAT rate */
   const [vatRate, setVatRate] = useState(5);
+  const [dueDays, setDueDays] = useState(7); // рок за плаќање: 7 (стандардно) или 30 дена
 
   /* items */
   const [items, setItems] = useState([{ product_type_id: '', lot_number: '', quantity_kg: '', price_per_kg: '' }]);
@@ -88,6 +89,11 @@ export default function SalesNew() {
           name: sale.buyer_name || '', edb: sale.buyer_edb || '', address: sale.buyer_address || '', is_individual: !!sale.buyer_is_individual,
           contact_person: sale.buyer_contact || '', phone: sale.buyer_phone || '', email: sale.buyer_email || '',
         });
+        // Рок за плаќање од постоечката продажба (7 или 30 дена)
+        if (sale.sale_date && sale.due_date) {
+          const diff = Math.round((new Date(sale.due_date.slice(0, 10)) - new Date(sale.sale_date.slice(0, 10))) / 86400000);
+          setDueDays(diff >= 30 ? 30 : 7);
+        }
         setForm({
           sale_date: (sale.sale_date || '').slice(0, 10),
           payment_method: sale.payment_method || 'фактура',
@@ -208,7 +214,7 @@ export default function SalesNew() {
   const effectiveVatRate = noVat ? 0 : vatRate;
   const vatAmount = Math.round(subtotal * effectiveVatRate) / 100;
   const total = subtotal + vatAmount;
-  const dueDate = addDays(form.sale_date, 7);
+  const dueDate = addDays(form.sale_date, dueDays);
 
   /* submit */
   async function handleSubmit(e) {
@@ -507,10 +513,11 @@ export default function SalesNew() {
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Рок за плаќање</label>
-              <div className="input-base text-sm bg-(--surface-elevated) !cursor-default opacity-75">
-                {fmtDate(dueDate)}
-              </div>
-              <p className="text-[9px] text-(--text-muted) mt-0.5">Автоматски: +7 дена</p>
+              <select value={dueDays} onChange={e => setDueDays(parseInt(e.target.value))} className="input-base text-sm">
+                <option value={7}>7 дена</option>
+                <option value={30}>30 дена</option>
+              </select>
+              <p className="text-[9px] text-(--text-muted) mt-0.5">До {fmtDate(dueDate)}</p>
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
