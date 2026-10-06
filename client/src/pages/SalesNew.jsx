@@ -177,9 +177,8 @@ export default function SalesNew() {
     if (field === 'product_type_id') {
       const pt = productTypes.find(t => t.id === parseInt(value));
       if (pt && pt.price_per_unit > 0) updated[idx].price_per_kg = pt.price_per_unit;
-      // FIFO: најстар LOT со залиха
-      const lots = lotsFor(value);
-      updated[idx].lot_number = lots[0]?.lot_number || NO_LOT;
+      // Стандардно: автоматски (FIFO низ LOT-овите); без залиха → без LOT
+      updated[idx].lot_number = lotsFor(value).length > 0 ? '' : NO_LOT;
     }
     setItems(updated);
   }
@@ -419,8 +418,9 @@ export default function SalesNew() {
                         <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">
                           LOT / серија <span className="normal-case font-normal">— вкупно на залиха {availableInv(item.product_type_id).toFixed(2)} кг</span>
                         </label>
-                        <select value={item.lot_number || NO_LOT} onChange={e => updateItem(idx, 'lot_number', e.target.value)}
+                        <select value={item.lot_number} onChange={e => updateItem(idx, 'lot_number', e.target.value)}
                           className="input-base text-sm w-full">
+                          {lots.length > 0 && <option value="">— автоматски (најстар LOT прв, па следниот) —</option>}
                           {lots.map(l => (
                             <option key={l.lot_number} value={l.lot_number}>
                               {l.lot_number} · {parseFloat(l.quantity_kg).toFixed(2)} кг{l.expiry_date ? ` · рок ${fmtShort(l.expiry_date)}` : ''}
@@ -431,12 +431,15 @@ export default function SalesNew() {
                         {item.lot_number === NO_LOT && (
                           <p className="text-[11px] text-(--text-muted) mt-1">Ставката не се одзема од залихата — за продажби внесени дополнително.</p>
                         )}
+                        {item.lot_number === '' && lots.length > 0 && parseFloat(item.quantity_kg) > availableInv(item.product_type_id) && (
+                          <p className="text-[11px] text-(--danger) font-medium mt-1">Вкупно на залиха има само {availableInv(item.product_type_id).toFixed(2)} кг</p>
+                        )}
                         {lots.length === 0 && item.lot_number !== NO_LOT && (
                           <p className="text-[11px] text-(--danger) font-medium mt-1">Нема залиха за овој производ</p>
                         )}
                         {sel && parseFloat(item.quantity_kg) > parseFloat(sel.quantity_kg) && (
                           <p className="text-[11px] text-(--danger) font-medium mt-1">
-                            Во LOT {sel.lot_number} има само {parseFloat(sel.quantity_kg).toFixed(2)} кг — поделете во две ставки
+                            Во LOT {sel.lot_number} има само {parseFloat(sel.quantity_kg).toFixed(2)} кг — избери „автоматски“ за да продолжи од следниот LOT
                           </p>
                         )}
                       </div>
@@ -531,7 +534,7 @@ export default function SalesNew() {
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">LOT број</label>
               <div className="input-base text-sm bg-(--surface-elevated) text-(--text-secondary)">
-                {[...new Set(items.map(i => i.lot_number).filter(l => l && l !== NO_LOT))].join(', ') || '— без LOT —'}
+                {[...new Set(items.map(i => i.lot_number).filter(l => l && l !== NO_LOT))].join(', ') || (items.some(i => i.lot_number === '' && i.product_type_id) ? '— автоматски по старост —' : '— без LOT —')}
               </div>
             </div>
             <div>

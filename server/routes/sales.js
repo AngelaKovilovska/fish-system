@@ -6,6 +6,25 @@ const docNum = require('../lib/documentNumbers');
 
 const router = express.Router();
 
+// Ги претвора ставките од формата во ставки по LOT:
+//  - item.no_lot            → lot_number = null (не се одзема залиха)
+//  - item.lot_number избран → тој LOT (целата количина)
+//  - инаку (автоматски)     → FIFO низ LOT-ови: може да се подели во повеќе ставки со ист производ/цена
+async function resolveItemLots(client, items) {
+  const out = [];
+  for (const item of items) {
+    const qty = parseFloat(item.quantity_kg) || 0;
+    if (qty <= 0) continue;
+    const base = { product_type_id: item.product_type_id, price_per_kg: parseFloat(item.price_per_kg) || 0 };
+    if (item.no_lot) { out.push({ ...base, lot_number: null, quantity_kg: qty }); continue; }
+    const explicit = (item.lot_number || '').trim();
+    if (explicit) { out.push({ ...base, lot_number: explicit, quantity_kg: qty }); continue; }
+    const plan = await inv.planFifo(client, item.product_type_id, qty);
+    for (const part of plan) out.push({ ...base, lot_number: part.lot_number, quantity_kg: part.qty });
+  }
+  return out;
+}
+
 
 // GET /api/sales - list all sales
 router.get('/', authMiddleware, async (req, res) => {
@@ -117,21 +136,9 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Resolve LOT for every item (explicit or FIFO) — stock is verified & locked in takeFromLot
-    for (const item of items) {
-      const qty = parseFloat(item.quantity_kg) || 0;
-      if (qty <= 0) continue;
-      // Ставка без LOT (стара продажба внесена дополнително) — не се одзема залиха
-      if (item.no_lot) { item.lot_number = null; continue; }
-      let lot = (item.lot_number || lot_number || '').trim();
-      if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
-      if (!lot) {
-        await client.query('ROLLBACK');
-        const pt = await pool.query('SELECT code FROM product_types WHERE id = $1', [item.product_type_id]);
-        return res.status(400).json({ error: `Нема LOT со доволна залиха за ${pt.rows[0]?.code || 'производот'} (${qty.toFixed(2)} кг)` });
-      }
-      item.lot_number = lot;
-    }
+    // Ставки по LOT: избран LOT → тој; без LOT → не се одзема; автоматски → FIFO низ LOT-ови (најстар прв,
+    // кога ќе се испразни продолжува со следниот). Залихата се заклучува и проверува.
+    const resolved = await resolveItemLots(client, items);
 
     // Броеви на документи: серија според начин на плаќање + испратница, датум = датум на продажба
     const saleDateForNum = sale_date || new Date().toISOString().slice(0, 10);
@@ -162,7 +169,7 @@ router.post('/', authMiddleware, async (req, res) => {
         invoice_number, dispatch_number, buyer_id,
         saleDateVal,
         due_date || null, method,
-        lot_number || items.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
+        lot_number || resolved.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
         product_temp != null ? parseFloat(product_temp) : null,
         subtotal, vat_rate, vat_amount, total,
         notes || null, req.user.id,
@@ -173,7 +180,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const saleId = saleResult.rows[0].id;
 
     // Insert items and deduct from inventory
-    for (const item of items) {
+    for (const item of resolved) {
       const qty = parseFloat(item.quantity_kg) || 0;
       const price = parseFloat(item.price_per_kg) || 0;
       const amount = qty * price;
@@ -235,21 +242,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
 
-    // 2. Resolve LOTs for new items (explicit or FIFO)
-    for (const item of items) {
-      const qty = parseFloat(item.quantity_kg) || 0;
-      if (qty <= 0) continue;
-      // Ставка без LOT (стара продажба внесена дополнително) — не се одзема залиха
-      if (item.no_lot) { item.lot_number = null; continue; }
-      let lot = (item.lot_number || lot_number || '').trim();
-      if (!lot) lot = await inv.pickLotFifo(client, item.product_type_id, qty);
-      if (!lot) {
-        await client.query('ROLLBACK');
-        const pt = await pool.query('SELECT code FROM product_types WHERE id = $1', [item.product_type_id]);
-        return res.status(400).json({ error: `Нема LOT со доволна залиха за ${pt.rows[0]?.code || 'производот'} (${qty.toFixed(2)} кг)` });
-      }
-      item.lot_number = lot;
-    }
+    // 2. Ставки по LOT (избран / без LOT / автоматски FIFO низ повеќе LOT-ови)
+    const resolved = await resolveItemLots(client, items);
 
     // 3. Totals
     let subtotal = 0;
@@ -264,7 +258,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const total = subtotal + vat_amount;
 
     // 4. Insert new items and deduct from LOTs
-    for (const item of items) {
+    for (const item of resolved) {
       const qty = parseFloat(item.quantity_kg) || 0;
       const price = parseFloat(item.price_per_kg) || 0;
       if (qty <= 0) continue;
@@ -300,7 +294,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       [
         buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
         newMethod,
-        lot_number || items.find(i => i.lot_number)?.lot_number || null,
+        lot_number || resolved.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
         subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
         paymentStatus, paidAt, invoiceNumber

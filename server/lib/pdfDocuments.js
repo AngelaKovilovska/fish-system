@@ -117,7 +117,15 @@ async function buildInvoice(sale) {
   const ROWS = [328.5, 356.9, 385.2, 413.6, 441.9, 470.3, 498.6, 527.0, 555.6];
   const FIRST_ROW = 1;
   const QTY_R = 369.5, PRICE_R = 467, AMT_R = 557;
-  items.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
+  // Една линија по производ и цена — ставките поделени по LOT (FIFO) се спојуваат
+  const merged = [];
+  for (const it of items) {
+    const key = `${it.product_type_id}|${parseFloat(it.price_per_kg) || 0}`;
+    const m = merged.find(x => x.key === key);
+    if (m) { m.quantity_kg += parseFloat(it.quantity_kg) || 0; m.amount += parseFloat(it.amount) || 0; }
+    else merged.push({ key, code: it.code, name: it.name, price_per_kg: it.price_per_kg, quantity_kg: parseFloat(it.quantity_kg) || 0, amount: parseFloat(it.amount) || 0 });
+  }
+  merged.slice(0, ROWS.length - FIRST_ROW).forEach((it, i) => {
     const base = ROWS[i + FIRST_ROW] - 10.5; // вертикално на средина на редот (ред = 28.4)
     // Формат: Риба (Clarias gariepinus) - РСГ
     const name = `Риба (Clarias gariepinus) - ${it.code || ''}`;
