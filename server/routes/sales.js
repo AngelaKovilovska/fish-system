@@ -5,7 +5,7 @@ const inv = require('../lib/inventory');
 const docNum = require('../lib/documentNumbers');
 
 const PACKAGING = ['Кеси', 'Кутија', 'Вакуум'];
-const packOf = (v, fallback = 'Вакуум') => (PACKAGING.includes(v) ? v : fallback);
+const packOf = (v, fallback = 'Кеси') => (PACKAGING.includes(v) ? v : fallback);
 
 const router = express.Router();
 

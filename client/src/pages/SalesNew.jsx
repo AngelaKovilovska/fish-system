@@ -49,7 +49,7 @@ export default function SalesNew() {
     payment_method: 'фактура',
     lot_number: '',
     transport_vehicle: '',
-    packaging: 'Вакуум',
+    packaging: 'Кеси',
     notes: '',
   });
 
@@ -100,7 +100,7 @@ export default function SalesNew() {
           payment_method: sale.payment_method || 'фактура',
           lot_number: sale.lot_number || '',
           transport_vehicle: sale.transport_vehicle || '',
-          packaging: sale.packaging || 'Вакуум',
+          packaging: sale.packaging || 'Кеси',
           notes: sale.notes || '',
         });
         setVatRate(parseFloat(sale.vat_rate) || 5);
@@ -542,9 +542,9 @@ export default function SalesNew() {
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Пакување</label>
               <select value={form.packaging} onChange={e => setForm({ ...form, packaging: e.target.value })} className="input-base text-sm">
-                <option value="Вакуум">Вакуум</option>
                 <option value="Кеси">Кеси</option>
                 <option value="Кутија">Кутија</option>
+                <option value="Вакуум">Вакуум</option>
               </select>
             </div>
             <div>

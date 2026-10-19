@@ -220,7 +220,7 @@ async function buildCommercial(sale) {
   field(303.8, 463.0, 145.9, 158.2, sale.invoice_number, { bold: true });    // Архивски број (фактура)
   field(256.0, 335.7, 229.9, 242.1, qty(totalKg), { bold: true });           // 1.2 количина
   // 1.3 Начин на пакување — од продажбата (Кеси / Кутија / Вакуум), подвлечено како во урнекот
-  const packText = `${sale.packaging || 'Вакуум'} пакување`;
+  const packText = `${sale.packaging || 'Кеси'} пакување`;
   field(258.1, 346, 259.5, 271.6, packText, { bold: true });
   ctx.page.drawLine({ start: { x: 260.1, y: ctx.H - 270.2 }, end: { x: 260.1 + Math.min(ctx.bold.widthOfTextAtSize(packText, 10), 84), y: ctx.H - 270.2 }, thickness: 0.6, color: BLACK });
   field(100.8, 185.5, 301.1, 313.4, lots.join(', '), { bold: true });        // LOT
