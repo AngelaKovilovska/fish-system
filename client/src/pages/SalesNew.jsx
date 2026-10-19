@@ -199,6 +199,18 @@ export default function SalesNew() {
     }
     return lots.filter(l => l.quantity_kg > 0);
   }
+  // План за автоматско земање: најстар LOT прв, па следниот — [{ lot_number, qty }]
+  function fifoPlan(productTypeId, qty) {
+    let remaining = parseFloat(qty) || 0;
+    const plan = [];
+    for (const l of lotsFor(productTypeId)) {
+      if (remaining <= 0.0005) break;
+      const take = Math.min(l.quantity_kg, remaining);
+      plan.push({ lot_number: l.lot_number, qty: take, emptied: take >= l.quantity_kg - 0.0005 });
+      remaining -= take;
+    }
+    return { plan, missing: remaining > 0.0005 ? remaining : 0 };
+  }
   function availableInv(productTypeId) {
     return lotsFor(productTypeId).reduce((s, l) => s + l.quantity_kg, 0);
   }
@@ -422,7 +434,7 @@ export default function SalesNew() {
                         </label>
                         <select value={item.lot_number} onChange={e => updateItem(idx, 'lot_number', e.target.value)}
                           className="input-base text-sm w-full">
-                          {lots.length > 0 && <option value="">— автоматски (најстар LOT прв, па следниот) —</option>}
+                          {lots.length > 0 && <option value="">— автоматски по старост —</option>}
                           {lots.map(l => (
                             <option key={l.lot_number} value={l.lot_number}>
                               {l.lot_number} · {parseFloat(l.quantity_kg).toFixed(2)} кг{l.expiry_date ? ` · рок ${fmtShort(l.expiry_date)}` : ''}
@@ -433,9 +445,23 @@ export default function SalesNew() {
                         {item.lot_number === NO_LOT && (
                           <p className="text-[11px] text-(--text-muted) mt-1">Ставката не се одзема од залихата — за продажби внесени дополнително.</p>
                         )}
-                        {item.lot_number === '' && lots.length > 0 && parseFloat(item.quantity_kg) > availableInv(item.product_type_id) && (
-                          <p className="text-[11px] text-(--danger) font-medium mt-1">Вкупно на залиха има само {availableInv(item.product_type_id).toFixed(2)} кг</p>
-                        )}
+                        {item.lot_number === '' && lots.length > 0 && parseFloat(item.quantity_kg) > 0 && (() => {
+                          const { plan, missing } = fifoPlan(item.product_type_id, item.quantity_kg);
+                          return (
+                            <div className="mt-1.5 text-[11px]">
+                              <span className="text-(--text-muted)">Ќе се земе: </span>
+                              {plan.map((p, i) => (
+                                <span key={p.lot_number} className="text-(--text-secondary)">
+                                  {i > 0 && ' + '}
+                                  <span className="font-semibold text-(--text-primary)">{p.lot_number}</span> {p.qty.toFixed(2)} кг{p.emptied ? ' (се празни)' : ''}
+                                </span>
+                              ))}
+                              {missing > 0 && (
+                                <p className="text-(--danger) font-medium mt-0.5">Недостасуваат {missing.toFixed(2)} кг — вкупно на залиха има само {availableInv(item.product_type_id).toFixed(2)} кг</p>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {lots.length === 0 && (
                           <p className="text-[11px] text-(--danger) font-medium mt-1">Нема залиха за овој производ на ниеден LOT</p>
                         )}
