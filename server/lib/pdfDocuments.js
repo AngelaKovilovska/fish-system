@@ -219,9 +219,10 @@ async function buildCommercial(sale) {
   field(303.8, 463.1, 109.3, 121.6, sale.dispatch_number, { bold: true });   // Сериски број на КД
   field(303.8, 463.0, 145.9, 158.2, sale.invoice_number, { bold: true });    // Архивски број (фактура)
   field(256.0, 335.7, 229.9, 242.1, qty(totalKg), { bold: true });           // 1.2 количина
-  // 1.3 „Вакуум пакување“ — веќе впишано, само се трга жолтото (текст + подвлекување се исцртуваат повторно)
-  field(258.1, 346, 259.5, 271.6, 'Вакуум пакување', { bold: true });
-  ctx.page.drawLine({ start: { x: 260.1, y: ctx.H - 270.2 }, end: { x: 260.1 + ctx.bold.widthOfTextAtSize('Вакуум пакување', 10), y: ctx.H - 270.2 }, thickness: 0.6, color: BLACK });
+  // 1.3 Начин на пакување — од продажбата (Кеси / Кутија / Вакуум), подвлечено како во урнекот
+  const packText = `${sale.packaging || 'Вакуум'} пакување`;
+  field(258.1, 346, 259.5, 271.6, packText, { bold: true });
+  ctx.page.drawLine({ start: { x: 260.1, y: ctx.H - 270.2 }, end: { x: 260.1 + Math.min(ctx.bold.widthOfTextAtSize(packText, 10), 84), y: ctx.H - 270.2 }, thickness: 0.6, color: BLACK });
   field(100.8, 185.5, 301.1, 313.4, lots.join(', '), { bold: true });        // LOT
   field(199.7, 309.0, 330.6, 342.9, fmtDate(expiry));                        // 1.5 рок на траење
   field(479.4, 554.3, 330.6, 342.9, sale.dispatch_number);                   // 1.6 пропратен документ
@@ -243,7 +244,72 @@ async function buildCommercial(sale) {
   return ctx.doc.save();
 }
 
-const BUILDERS = { invoice: buildInvoice, declaration: buildDeclaration, commercial: buildCommercial };
+// ═══════════════ ДОКУМЕНТ ЗА ПОТЕКЛО НА РИБАТА (2× А5 на А4) ═══════════════
+// Урнекот зафаќа горна половина од А4 (top 78–426). Се цртаат два примерока: горе и долу, со линија за сечење.
+const ORIGIN_SHIFT = -40;          // првиот примерок се крева за 40pt
+const ORIGIN_HALF = 841.92 / 2;    // вториот е за половина страница подолу
+
+async function buildOrigin(sale) {
+  const { items } = saleFacts(sale);
+  const tpl = await PDFDocument.load(readCached('tpl:origin', path.join(TEMPLATES_DIR, 'origin.pdf')));
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
+  const font = await doc.embedFont(readCached('font:regular', path.join(FONTS_DIR, 'Candara.ttf')), { subset: true });
+  const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
+  const [tplPage] = tpl.getPages();
+  const embedded = await doc.embedPage(tplPage);
+  const W = tplPage.getWidth(), H = tplPage.getHeight();
+  const page = doc.addPage([W, H]);
+
+  // Една линија по производ (ставките поделени по LOT се спојуваат)
+  const merged = [];
+  for (const it of items) {
+    const key = `${it.product_type_id}|${parseFloat(it.price_per_kg) || 0}`;
+    const m = merged.find(x => x.key === key);
+    if (m) { m.quantity_kg += parseFloat(it.quantity_kg) || 0; m.amount += parseFloat(it.amount) || 0; }
+    else merged.push({ key, code: it.code, price_per_kg: it.price_per_kg, quantity_kg: parseFloat(it.quantity_kg) || 0, amount: parseFloat(it.amount) || 0 });
+  }
+
+  for (const copy of [0, 1]) {
+    const dy = ORIGIN_SHIFT + copy * ORIGIN_HALF; // поместување во top-координати
+    page.drawPage(embedded, { x: 0, y: -dy });
+    const ctx = { page, font, bold, H };
+    const T = (top) => top + dy;
+    const SZ = 9;
+
+    draw(ctx, sale.invoice_number, { x: 152, top: T(96), size: SZ, font: bold, color: BLACK, maxWidth: 80 });
+    draw(ctx, fmtDate(sale.sale_date), { x: 440, top: T(96), size: SZ, font: bold, color: BLACK });
+    draw(ctx, sale.buyer_name, { x: 402, top: T(119.5), size: SZ, font: bold, color: BLACK, maxWidth: 160 });
+    draw(ctx, sale.buyer_address, { x: 402, top: T(138), size: SZ, color: BLACK, maxWidth: 160 });
+    // Лице кое врши транспорт — се пополнува рачно
+    draw(ctx, sale.transport_vehicle, { x: 436, top: T(186), size: SZ, color: BLACK, maxWidth: 126 });
+    draw(ctx, sale.buyer_address, { x: 436, top: T(212), size: SZ, color: BLACK, maxWidth: 126 });
+    draw(ctx, fmtDate(sale.sale_date), { x: 436, top: T(231), size: SZ, color: BLACK, maxWidth: 126 });
+
+    // Редови за производи (3 реда: 296.1–313.1, 313.1–330, 330–346.9); првиот во урнекот има впишан текст → се бели
+    whiteBox(ctx, { x0: 36, x1: 231, top: T(298), bottom: T(312) });
+    whiteBox(ctx, { x0: 301, x1: 364, top: T(298), bottom: T(312) });
+    whiteBox(ctx, { x0: 367, x1: 431, top: T(298), bottom: T(312) });
+    const BASES = [307.6, 324.6, 341.5];
+    merged.slice(0, BASES.length).forEach((it, i) => {
+      const base = T(BASES[i]);
+      draw(ctx, `Африкански сом (Clarias gariepinus) - ${it.code || ''}`, { x: 40, top: base, size: SZ, color: BLACK, maxWidth: 190 });
+      draw(ctx, qty(it.quantity_kg), { x: 294, top: base, size: SZ, color: BLACK, align: 'right' });
+      draw(ctx, '1-ва', { x: 332, top: base, size: 10, font: bold, color: BLACK, align: 'center' });
+      draw(ctx, '1', { x: 399, top: base, size: 10, font: bold, color: BLACK, align: 'center' });
+      draw(ctx, money(it.price_per_kg), { x: 494, top: base, size: SZ, color: BLACK, align: 'right', maxWidth: 62 });
+      draw(ctx, money(it.amount), { x: 560, top: base, size: SZ, color: BLACK, align: 'right', maxWidth: 62 });
+    });
+  }
+
+  // Линија за сечење на средина
+  page.drawLine({ start: { x: 20, y: H - ORIGIN_HALF }, end: { x: W - 20, y: H - ORIGIN_HALF }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6), dashArray: [4, 4] });
+
+  return doc.save();
+}
+
+const BUILDERS = { invoice: buildInvoice, declaration: buildDeclaration, commercial: buildCommercial, origin: buildOrigin };
 
 async function buildDocument(type, sale) {
   const fn = BUILDERS[type];

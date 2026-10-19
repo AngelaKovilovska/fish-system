@@ -49,6 +49,7 @@ export default function SalesNew() {
     payment_method: 'фактура',
     lot_number: '',
     transport_vehicle: '',
+    packaging: 'Вакуум',
     notes: '',
   });
 
@@ -99,6 +100,7 @@ export default function SalesNew() {
           payment_method: sale.payment_method || 'фактура',
           lot_number: sale.lot_number || '',
           transport_vehicle: sale.transport_vehicle || '',
+          packaging: sale.packaging || 'Вакуум',
           notes: sale.notes || '',
         });
         setVatRate(parseFloat(sale.vat_rate) || 5);
@@ -536,6 +538,14 @@ export default function SalesNew() {
               <div className="input-base text-sm bg-(--surface-elevated) text-(--text-secondary)">
                 {[...new Set(items.map(i => i.lot_number).filter(l => l && l !== NO_LOT))].join(', ') || (items.some(i => i.lot_number === '' && i.product_type_id) ? '— автоматски по старост —' : '— без LOT —')}
               </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Пакување</label>
+              <select value={form.packaging} onChange={e => setForm({ ...form, packaging: e.target.value })} className="input-base text-sm">
+                <option value="Вакуум">Вакуум</option>
+                <option value="Кеси">Кеси</option>
+                <option value="Кутија">Кутија</option>
+              </select>
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Рег. ознака на возило</label>

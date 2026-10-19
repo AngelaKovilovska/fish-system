@@ -5,7 +5,7 @@ const { buildDocument, DOCUMENT_TYPES } = require('../lib/pdfDocuments');
 
 const router = express.Router();
 
-const FILE_LABELS = { invoice: 'Фактура', commercial: 'Комерцијален', declaration: 'Декларација' };
+const FILE_LABELS = { invoice: 'Фактура', commercial: 'Комерцијален', declaration: 'Декларација', origin: 'Потекло' };
 
 async function loadSale(id) {
   const sale = await pool.query(

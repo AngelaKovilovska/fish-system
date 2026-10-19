@@ -4,6 +4,9 @@ const authMiddleware = require('../middleware/auth');
 const inv = require('../lib/inventory');
 const docNum = require('../lib/documentNumbers');
 
+const PACKAGING = ['Кеси', 'Кутија', 'Вакуум'];
+const packOf = (v, fallback = 'Вакуум') => (PACKAGING.includes(v) ? v : fallback);
+
 const router = express.Router();
 
 // Ги претвора ставките од формата во ставки по LOT:
@@ -125,7 +128,7 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       buyer_id, sale_date, due_date, payment_method,
-      lot_number, transport_vehicle, product_temp,
+      lot_number, transport_vehicle, product_temp, packaging,
       items, notes, vat_rate: requestVatRate
     } = req.body;
 
@@ -163,8 +166,8 @@ router.post('/', authMiddleware, async (req, res) => {
     const saleResult = await client.query(
       `INSERT INTO sales (invoice_number, dispatch_number, buyer_id, sale_date, due_date,
         payment_method, lot_number, transport_vehicle, product_temp,
-        subtotal, vat_rate, vat_amount, total, notes, created_by, payment_status, paid_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
+        subtotal, vat_rate, vat_amount, total, notes, created_by, payment_status, paid_at, packaging)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
       [
         invoice_number, dispatch_number, buyer_id,
         saleDateVal,
@@ -173,7 +176,8 @@ router.post('/', authMiddleware, async (req, res) => {
         product_temp != null ? parseFloat(product_temp) : null,
         subtotal, vat_rate, vat_amount, total,
         notes || null, req.user.id,
-        isPaidNow ? 'платено' : 'неплатено', isPaidNow ? saleDateVal : null
+        isPaidNow ? 'платено' : 'неплатено', isPaidNow ? saleDateVal : null,
+        packOf(packaging)
       ]
     );
 
@@ -215,7 +219,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const {
       buyer_id, sale_date, due_date, payment_method,
-      lot_number, transport_vehicle, product_temp,
+      lot_number, transport_vehicle, product_temp, packaging,
       items, notes, vat_rate: requestVatRate
     } = req.body;
 
@@ -289,7 +293,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       `UPDATE sales SET buyer_id = $1, sale_date = $2, due_date = $3, payment_method = $4,
          lot_number = $5, transport_vehicle = $6, product_temp = $7,
          subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12,
-         payment_status = $14, paid_at = $15, invoice_number = $16, updated_at = NOW()
+         payment_status = $14, paid_at = $15, invoice_number = $16, packaging = $17, updated_at = NOW()
        WHERE id = $13 RETURNING *`,
       [
         buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
@@ -297,7 +301,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         lot_number || resolved.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
         subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
-        paymentStatus, paidAt, invoiceNumber
+        paymentStatus, paidAt, invoiceNumber, packOf(packaging, existing.rows[0].packaging)
       ]
     );
 
