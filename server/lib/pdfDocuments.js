@@ -155,6 +155,10 @@ async function buildInvoice(sale) {
   // ЛОТ (бело на сина лента, по „ЛОТ:“ x=86.9–109.9, top 620.6–631.6)
   draw(ctx, lots.join(', '), { x: 114, top: 629.6, size: 10, font: B, color: WHITE, maxWidth: 78 });
 
+  // Два примерока (за купувачот и за продавачот) — втора идентична страница
+  const [copy] = await ctx.doc.copyPages(ctx.doc, [0]);
+  ctx.doc.addPage(copy);
+
   return ctx.doc.save();
 }
 
