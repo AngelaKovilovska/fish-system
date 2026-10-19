@@ -35,7 +35,18 @@ function aggregateSales(type, sales) {
     const kg = items.reduce((a, i) => a + parseFloat(i.quantity_kg || 0), 0);
     const amount = parseFloat(s.total || 0);
     const unpaid = s.payment_status === 'платено' ? 0 : amount;
-    if (type === 'buyer') bump(s.buyer_name || 'Непознат', kg, amount, unpaid);
+    if (type === 'buyer') {
+      const key = s.buyer_name || 'Непознат';
+      bump(key, kg, amount, unpaid);
+      const m = map.get(key);
+      m.products = m.products || {};
+      for (const i of items) {
+        const c = i.code || i.name || '?';
+        if (!m.products[c]) m.products[c] = { code: c, name: i.name || c, kg: 0, amount: 0 };
+        m.products[c].kg += parseFloat(i.quantity_kg || 0);
+        m.products[c].amount += parseFloat(i.amount || 0);
+      }
+    }
     else if (type === 'period') bump(String(s.sale_date).slice(0, 7), kg, amount, unpaid);
     else if (type === 'product') {
       for (const i of items) {
@@ -45,7 +56,10 @@ function aggregateSales(type, sales) {
       }
     }
   }
-  const rows = [...map.values()].map(r => ({ ...r, avgPrice: r.kg > 0 ? r.amount / r.kg : 0 }));
+  const rows = [...map.values()].map(r => ({
+    ...r, avgPrice: r.kg > 0 ? r.amount / r.kg : 0,
+    products: r.products ? Object.values(r.products).sort((a, b) => b.amount - a.amount) : undefined,
+  }));
   return type === 'period' ? rows.sort((a, b) => a.key.localeCompare(b.key)) : rows.sort((a, b) => b.amount - a.amount);
 }
 
@@ -67,9 +81,16 @@ router.post('/sales', authMiddleware, async (req, res) => {
       const headers = isProduct
         ? [colLabel, 'Ставки', 'Количина (кг)', 'Износ (ден)', 'Ден/кг']
         : [colLabel, 'Продажби', 'Количина (кг)', 'Износ (ден)', 'Ден/кг', 'Неплатено (ден)'];
-      const tableRows = rows.map(r => isProduct
-        ? [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2)]
-        : [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2), r.unpaid.toFixed(2)]);
+      const tableRows = [];
+      for (const r of rows) {
+        tableRows.push(isProduct
+          ? [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2)]
+          : [r.key, r.count, r.kg.toFixed(2), r.amount.toFixed(2), r.avgPrice.toFixed(2), r.unpaid.toFixed(2)]);
+        // По купувач: разбивка по производ (кг, ден)
+        for (const p of (r.products || [])) {
+          tableRows.push([`   ↳ ${p.code} — ${p.name}`, '', p.kg.toFixed(2), p.amount.toFixed(2), p.kg > 0 ? (p.amount / p.kg).toFixed(2) : '', '']);
+        }
+      }
       tableRows.push(isProduct
         ? ['ВКУПНО', tot.count, tot.kg.toFixed(2), tot.amount.toFixed(2), tot.kg > 0 ? (tot.amount / tot.kg).toFixed(2) : '0.00']
         : ['ВКУПНО', tot.count, tot.kg.toFixed(2), tot.amount.toFixed(2), tot.kg > 0 ? (tot.amount / tot.kg).toFixed(2) : '0.00', tot.unpaid.toFixed(2)]);
@@ -95,9 +116,10 @@ router.post('/sales', authMiddleware, async (req, res) => {
               { label: 'Вкупен износ', value: `${tot.amount.toFixed(2)} ден` },
               { label: 'Неплатено', value: `${tot.unpaid.toFixed(2)} ден` },
             ]},
-            { type: 'keyvalue', heading: colLabel, items: rows.slice(0, 15).map(r => ({
-              label: `${r.key} (${r.kg.toFixed(2)} kg)`, value: `${r.amount.toFixed(2)} ден`,
-            }))},
+            { type: 'keyvalue', heading: colLabel, items: rows.slice(0, 15).flatMap(r => [
+              { label: `${r.key} (${r.kg.toFixed(2)} kg)`, value: `${r.amount.toFixed(2)} ден` },
+              ...(r.products || []).map(p => ({ label: `   ↳ ${p.code} (${p.kg.toFixed(2)} kg)`, value: `${p.amount.toFixed(2)} ден` })),
+            ])},
           ],
           footerNote: rows.length > 15 ? `Прикажани 15 од ${rows.length} — целосен список во прилог.` : 'Детален извештај е во прилог (Excel и PDF).',
         }),

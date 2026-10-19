@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { fmtInt } from '../lib/utils';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import {
@@ -251,8 +252,11 @@ export default function ProductionNew() {
   const hasActiveFilters = searchQ || filterPool || filterProduct || filterFrom || filterTo;
 
   /* stats */
-  const totalBatches = batches.length;
-  const totalKgAll = batches.reduce((s, b) => s + (b.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
+  // Збирови за прикажаните (филтрирани) серии
+  const totalBatches = filtered.length;
+  const totalKgAll = filtered.reduce((s, b) => s + (b.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0), 0);
+  const totalFishAll = filtered.reduce((s, b) => s + (parseInt(b.fish_count) || 0), 0);
+  const totalRawAll = filtered.reduce((s, b) => s + (parseFloat(b.total_weight_kg) || 0), 0);
 
   const STEPS = [
     { n: 1, label: 'Базен' }, { n: 2, label: 'Извлекување' },
@@ -683,15 +687,22 @@ export default function ProductionNew() {
             <div className="space-y-3 animate-in">
 
               {/* stats bar */}
-              <div className="rounded-2xl p-3 flex gap-4" style={{ background: 'var(--primary-muted)', border: '1px solid rgba(59,130,246,0.12)' }}>
-                <div className="text-center flex-1">
+              <div className="rounded-2xl p-3 grid grid-cols-4 gap-2" style={{ background: 'var(--primary-muted)', border: '1px solid rgba(59,130,246,0.12)' }}>
+                <div className="text-center">
                   <p className="text-[10px] text-(--text-muted) uppercase">Серии</p>
-                  <p className="text-lg font-bold text-(--primary)">{totalBatches}</p>
+                  <p className="text-base font-bold text-(--primary)">{totalBatches}</p>
                 </div>
-                <div className="w-px bg-(--border)" />
-                <div className="text-center flex-1">
-                  <p className="text-[10px] text-(--text-muted) uppercase">Вкупно обработено</p>
-                  <p className="text-lg font-bold text-(--primary)">{totalKgAll.toFixed(0)} кг</p>
+                <div className="text-center border-l border-(--border)">
+                  <p className="text-[10px] text-(--text-muted) uppercase">Риби</p>
+                  <p className="text-base font-bold text-(--primary)">{fmtInt(totalFishAll)}</p>
+                </div>
+                <div className="text-center border-l border-(--border)">
+                  <p className="text-[10px] text-(--text-muted) uppercase">Жива тежина</p>
+                  <p className="text-base font-bold text-(--primary)">{fmtInt(totalRawAll)} кг</p>
+                </div>
+                <div className="text-center border-l border-(--border)">
+                  <p className="text-[10px] text-(--text-muted) uppercase">Обработено</p>
+                  <p className="text-base font-bold text-(--primary)">{fmtInt(totalKgAll)} кг</p>
                 </div>
               </div>
 

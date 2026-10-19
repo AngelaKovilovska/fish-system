@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, downloadFile } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -206,13 +206,23 @@ export default function Reports() {
             const byBuyer = {};
             for (const s of allSales) {
               const name = s.buyer_name || 'Непознат';
-              if (!byBuyer[name]) byBuyer[name] = { count: 0, totalAmount: 0, totalKg: 0, unpaid: 0 };
+              if (!byBuyer[name]) byBuyer[name] = { count: 0, totalAmount: 0, totalKg: 0, unpaid: 0, products: {} };
               byBuyer[name].count++;
               byBuyer[name].totalAmount += parseFloat(s.total || 0);
               byBuyer[name].totalKg += (s.items || []).reduce((ss, i) => ss + parseFloat(i.quantity_kg || 0), 0);
               if (s.payment_status !== 'платено') byBuyer[name].unpaid += parseFloat(s.total || 0);
+              // Разбивка по производ за купувачот (кг и ден)
+              for (const it of (s.items || [])) {
+                const code = it.code || it.name || '?';
+                const pr = byBuyer[name].products;
+                if (!pr[code]) pr[code] = { code, name: it.name || code, kg: 0, amount: 0 };
+                pr[code].kg += parseFloat(it.quantity_kg || 0);
+                pr[code].amount += parseFloat(it.amount || 0);
+              }
             }
-            const rows = Object.entries(byBuyer).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.totalAmount - a.totalAmount);
+            const rows = Object.entries(byBuyer)
+              .map(([name, d]) => ({ name, ...d, products: Object.values(d.products).sort((a, b) => b.amount - a.amount) }))
+              .sort((a, b) => b.totalAmount - a.totalAmount);
             result.salesByBuyer = { rows, totalSales: allSales.length, grandTotal: rows.reduce((s, r) => s + r.totalAmount, 0), grandKg: rows.reduce((s, r) => s + r.totalKg, 0) };
           }
           {
@@ -425,7 +435,8 @@ export default function Reports() {
     if (viewKey === 'salesByBuyer') {
       const rows = previewData.rows || [];
       const trs = rows.map(r =>
-        `<tr><td>${r.name}</td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r">${r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td><td class="r">${r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td></tr>`
+        `<tr><td><strong>${r.name}</strong></td><td class="r">${r.count}</td><td class="r">${r.totalKg.toFixed(1)}</td><td class="r">${r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td><td class="r"><strong>${r.totalAmount.toFixed(0)}</strong></td><td class="r">${r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td></tr>` +
+        (r.products || []).map(p => `<tr><td style="padding-left:18px;color:#555">↳ ${p.code} — ${p.name}</td><td></td><td class="r">${p.kg.toFixed(2)}</td><td class="r">${p.kg > 0 ? (p.amount / p.kg).toFixed(0) : '–'}</td><td class="r">${p.amount.toFixed(0)}</td><td></td></tr>`).join('')
       ).join('');
       tableHTML = `<table><thead><tr><th>Купувач</th><th class="r">Продажби</th><th class="r">Количина (кг)</th><th class="r">Ден/кг</th><th class="r">Износ (ден)</th><th class="r">Неплатено</th></tr></thead><tbody>${trs}<tr style="border-top:2px solid #1a1a8a"><td><strong>Вкупно</strong></td><td class="r"><strong>${previewData.totalSales}</strong></td><td class="r"><strong>${previewData.grandKg.toFixed(1)}</strong></td><td class="r"><strong>${previewData.grandKg > 0 ? (previewData.grandTotal / previewData.grandKg).toFixed(0) : '–'}</strong></td><td class="r"><strong>${previewData.grandTotal.toFixed(0)}</strong></td><td class="r"><strong>${(() => { const u = rows.reduce((a, r) => a + (r.unpaid || 0), 0); return u > 0 ? u.toFixed(0) : '–'; })()}</strong></td></tr></tbody></table>`;
     }
@@ -1207,14 +1218,26 @@ ${tableHTML}
               <thead><tr><th>Купувач</th><th className="text-right">Продажби</th><th className="text-right">Кг</th><th className="text-right">Ден/кг</th><th className="text-right">Износ (ден)</th><th className="text-right">Неплатено</th></tr></thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="font-medium">{r.name}</td>
-                    <td className="text-right">{r.count}</td>
-                    <td className="text-right">{r.totalKg.toFixed(1)}</td>
-                    <td className="text-right">{r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td>
-                    <td className="text-right font-bold text-(--primary)">{r.totalAmount.toFixed(0)}</td>
-                    <td className={`text-right ${r.unpaid > 0 ? 'text-(--danger) font-semibold' : 'text-(--text-muted)'}`}>{r.unpaid > 0 ? r.unpaid.toFixed(0) : '–'}</td>
-                  </tr>
+                  <Fragment key={i}>
+                    <tr>
+                      <td className="font-semibold">{r.name}</td>
+                      <td className="text-right">{r.count}</td>
+                      <td className="text-right">{r.totalKg.toFixed(1)}</td>
+                      <td className="text-right">{r.totalKg > 0 ? (r.totalAmount / r.totalKg).toFixed(0) : '–'}</td>
+                      <td className="text-right font-bold text-(--primary)">{fmtInt(r.totalAmount)}</td>
+                      <td className={`text-right ${r.unpaid > 0 ? 'text-(--danger) font-semibold' : 'text-(--text-muted)'}`}>{r.unpaid > 0 ? fmtInt(r.unpaid) : '–'}</td>
+                    </tr>
+                    {(r.products || []).map(p => (
+                      <tr key={`${i}-${p.code}`} className="text-[11px] text-(--text-secondary)">
+                        <td className="pl-5">↳ {p.code} — {p.name}</td>
+                        <td></td>
+                        <td className="text-right tabular-nums">{p.kg.toFixed(2)}</td>
+                        <td className="text-right tabular-nums">{p.kg > 0 ? (p.amount / p.kg).toFixed(0) : '–'}</td>
+                        <td className="text-right tabular-nums">{fmtInt(p.amount)}</td>
+                        <td></td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
                 <tr className="border-t-2 border-(--border)">
                   <td className="font-bold">Вкупно</td>

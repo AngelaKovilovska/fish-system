@@ -115,6 +115,63 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// POST /api/food-inventory/census - попис: ја поставува залихата на внесената вредност (admin only)
+// Залиха = Σ набавки − потрошено; пописот се запишува како корекција (разлика) во дневникот
+// со документ „ПОПИС-ГГГГММДД“, па залихата станува точно колку што е преброено.
+router.post('/census', authMiddleware, adminOnly, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { census_date } = req.body;
+    const date = census_date || new Date().toISOString().split('T')[0];
+    const items = (req.body.items || []).filter(it => it.food_type && it.quantity_kg !== '' && it.quantity_kg != null && parseFloat(it.quantity_kg) >= 0);
+    if (items.length === 0) return res.status(400).json({ error: 'Внесете преброена количина за барем еден тип храна' });
+
+    await client.query('BEGIN');
+    const cur = await client.query(`
+      SELECT fi.food_type,
+        COALESCE(p.purchased_kg, 0) - COALESCE(c.consumed_kg, 0) AS stock_kg
+      FROM food_inventory fi
+      LEFT JOIN (SELECT food_type, SUM(change_kg) AS purchased_kg FROM food_inventory_log WHERE reason = 'purchase' GROUP BY food_type) p ON p.food_type = fi.food_type
+      LEFT JOIN (
+        SELECT food_type, SUM(consumed_gr) / 1000.0 AS consumed_kg FROM (
+          SELECT food_type, food_quantity_gr AS consumed_gr FROM pool_meals WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
+          UNION ALL
+          SELECT pf.food_type, pf.food_quantity_gr FROM pool_feeding pf JOIN daily_records dr ON pf.daily_record_id = dr.id
+          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
+            AND NOT EXISTS (SELECT 1 FROM pool_meals pm WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number)
+        ) x GROUP BY food_type
+      ) c ON c.food_type = fi.food_type`);
+    const stockMap = Object.fromEntries(cur.rows.map(r => [r.food_type, parseFloat(r.stock_kg) || 0]));
+    const docNo = `ПОПИС-${date.replace(/-/g, '')}`;
+    let changed = 0;
+    for (const it of items) {
+      const target = parseFloat(it.quantity_kg);
+      const diff = Math.round((target - (stockMap[it.food_type] || 0)) * 1000) / 1000;
+      // Осигурај ред во food_inventory
+      await client.query(
+        `INSERT INTO food_inventory (food_type, quantity_kg, updated_at) VALUES ($1, $2, NOW())
+         ON CONFLICT (food_type) DO UPDATE SET quantity_kg = $2, updated_at = NOW()`,
+        [it.food_type, target]
+      );
+      if (Math.abs(diff) < 0.0005) continue;
+      await client.query(
+        `INSERT INTO food_inventory_log (food_type, change_kg, reason, created_by, purchased_at, supplier, document_number)
+         VALUES ($1, $2, 'purchase', $3, $4, 'Попис', $5)`,
+        [it.food_type, diff, req.user.id, date, docNo]
+      );
+      changed++;
+    }
+    await client.query('COMMIT');
+    res.json({ message: `Пописот е зачуван (${changed} корекции)`, changed });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Food census error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  } finally {
+    client.release();
+  }
+});
+
 // PUT /api/food-inventory/purchase/:id - edit a purchase entry (admin only)
 router.put('/purchase/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   const client = await pool.connect();

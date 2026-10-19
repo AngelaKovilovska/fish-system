@@ -27,6 +27,11 @@ export default function ManageFoodInventory() {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [purchaseItems, setPurchaseItems] = useState([emptyItem()]);
   const [saving, setSaving] = useState(false);
+  // Попис: преброена залиха по тип → ја заменува тековната (набавките се додаваат на остатокот)
+  const [showCensus, setShowCensus] = useState(false);
+  const [censusDate, setCensusDate] = useState(new Date().toISOString().split('T')[0]);
+  const [censusValues, setCensusValues] = useState({});
+  const [censusSaving, setCensusSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryIds, setEditingEntryIds] = useState([]);
@@ -221,10 +226,59 @@ export default function ManageFoodInventory() {
 
       {/* Current stock table with breakdown */}
       <div className="card mb-4 animate-in">
-        <h3 className="section-title text-sm mb-3 flex items-center gap-2">
-          <Package size={15} className="text-(--primary)" />
-          Тековни залихи
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="section-title text-sm flex items-center gap-2">
+            <Package size={15} className="text-(--primary)" />
+            Тековни залихи
+          </h3>
+          <button type="button" onClick={() => { setShowCensus(v => !v); setCensusValues({}); }}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${showCensus ? 'bg-(--primary) text-white border-(--primary)' : 'border-(--border) text-(--text-secondary) hover:border-(--primary)'}`}>
+            Попис
+          </button>
+        </div>
+        {showCensus && (
+          <div className="rounded-(--r-md) border border-(--border) p-3 mb-3 space-y-2" style={{ background: 'var(--primary-muted)' }}>
+            <p className="text-[11px] text-(--text-secondary)">
+              Внеси ја <strong>преброената</strong> количина по тип. Залихата се поставува точно на тие вредности (празно = без промена).
+              Набавките и понатаму се додаваат на остатокот.
+            </p>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-semibold text-(--text-muted) uppercase">Датум</label>
+              <input type="date" value={censusDate} onChange={e => setCensusDate(e.target.value)} className="input-base text-xs !py-1 w-auto" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {inventory.map(item => (
+                <div key={item.food_type} className="flex items-center gap-2">
+                  <span className="text-xs text-(--text-secondary) flex-1 truncate">{item.food_type}
+                    <span className="text-(--text-muted)"> · сега {parseFloat(item.quantity_kg).toFixed(2)} kg</span>
+                  </span>
+                  <input type="number" step="any" min="0" placeholder="кг" value={censusValues[item.food_type] ?? ''}
+                    onChange={e => setCensusValues({ ...censusValues, [item.food_type]: e.target.value })}
+                    className="input-base text-sm !py-1 w-24 text-right" />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowCensus(false)} className="btn-ghost text-xs">Откажи</button>
+              <button type="button" disabled={censusSaving} className="btn-primary text-xs !px-4"
+                onClick={async () => {
+                  const items = Object.entries(censusValues).filter(([, v]) => v !== '' && v != null).map(([food_type, v]) => ({ food_type, quantity_kg: parseFloat(v) }));
+                  if (items.length === 0) { setMessage('Внеси барем една преброена количина'); return; }
+                  if (!confirm(`Пописот ќе ја постави залихата на внесените вредности за ${items.length} тип(а). Продолжи?`)) return;
+                  setCensusSaving(true);
+                  try {
+                    const r = await api.foodCensus({ census_date: censusDate, items });
+                    setMessage(r.message || 'Пописот е зачуван');
+                    setShowCensus(false); setCensusValues({});
+                    await load();
+                  } catch (e) { setMessage(e.message); }
+                  finally { setCensusSaving(false); }
+                }}>
+                {censusSaving ? 'Се зачувува…' : 'Зачувај попис'}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="hidden lg:block">
           <table className="table-modern">
             <thead>
@@ -725,8 +779,8 @@ export default function ManageFoodInventory() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`font-bold ${isPurchase ? 'text-(--success)' : 'text-(--danger)'}`}>
-                          {isPurchase ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
+                        <span className={`font-bold ${isPurchase && parseFloat(entry.change_kg) >= 0 ? 'text-(--success)' : 'text-(--danger)'}`}>
+                          {isPurchase && parseFloat(entry.change_kg) >= 0 ? '+' : '-'}{Math.abs(parseFloat(entry.change_kg)).toFixed(2)} kg
                         </span>
                         {isPurchase && entry.id && (
                           <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
