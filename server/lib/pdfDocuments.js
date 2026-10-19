@@ -25,7 +25,7 @@ async function openTemplate(name) {
   const doc = await PDFDocument.load(readCached(`tpl:${name}`, path.join(TEMPLATES_DIR, `${name}.pdf`)));
   doc.registerFontkit(fontkit);
   // Печати во вистинска големина (без „fit to page“ смалување)
-  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None'), Duplex: PDFName.of('Simplex') }));
   const font = await doc.embedFont(readCached('font:regular', path.join(FONTS_DIR, 'Candara.ttf')), { subset: true });
   const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
   const page = doc.getPages()[0];
@@ -174,7 +174,7 @@ async function buildDeclaration(sale) {
   const tpl = await PDFDocument.load(readCached('tpl:declaration', path.join(TEMPLATES_DIR, 'declaration.pdf')));
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None'), Duplex: PDFName.of('Simplex') }));
   const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
 
   const [tplPage] = tpl.getPages();
@@ -258,7 +258,7 @@ async function buildOrigin(sale) {
   const tpl = await PDFDocument.load(readCached('tpl:origin', path.join(TEMPLATES_DIR, 'origin.pdf')));
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None') }));
+  doc.catalog.set(PDFName.of('ViewerPreferences'), doc.context.obj({ PrintScaling: PDFName.of('None'), Duplex: PDFName.of('Simplex') }));
   const font = await doc.embedFont(readCached('font:regular', path.join(FONTS_DIR, 'Candara.ttf')), { subset: true });
   const bold = await doc.embedFont(readCached('font:bold', path.join(FONTS_DIR, 'Candara-Bold.ttf')), { subset: true });
   const [tplPage] = tpl.getPages();
