@@ -436,8 +436,8 @@ export default function SalesNew() {
                         {item.lot_number === '' && lots.length > 0 && parseFloat(item.quantity_kg) > availableInv(item.product_type_id) && (
                           <p className="text-[11px] text-(--danger) font-medium mt-1">Вкупно на залиха има само {availableInv(item.product_type_id).toFixed(2)} кг</p>
                         )}
-                        {lots.length === 0 && item.lot_number !== NO_LOT && (
-                          <p className="text-[11px] text-(--danger) font-medium mt-1">Нема залиха за овој производ</p>
+                        {lots.length === 0 && (
+                          <p className="text-[11px] text-(--danger) font-medium mt-1">Нема залиха за овој производ на ниеден LOT</p>
                         )}
                         {sel && parseFloat(item.quantity_kg) > parseFloat(sel.quantity_kg) && (
                           <p className="text-[11px] text-(--danger) font-medium mt-1">
