@@ -48,6 +48,28 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
+  // Позиција на календарот: залепен под (или над) полето, се следи при скролање/менување големина
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      if (!ref.current) return;
+      const r = ref.current.getBoundingClientRect();
+      const pop = popRef.current;
+      const w = pop ? pop.offsetWidth : 540, h = pop ? pop.offsetHeight : 380;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const left = Math.max(8, Math.min(r.left, vw - w - 8));
+      let top = r.bottom + 4;
+      if (top + h > vh - 8) top = r.top - h - 4;          // нема место долу → над полето
+      if (top < 8) top = Math.max(8, Math.min(r.bottom + 4, vh - h - 8)); // ни горе → стегни во екранот
+      setPos({ top, left });
+    };
+    update();
+    const t = setTimeout(update, 0);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => { clearTimeout(t); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
+  }, [open, view]);
+
   const from = value?.from || '', to = value?.to || '';
 
   const pick = (d) => {
@@ -108,15 +130,7 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
 
   return (
     <div className={`relative ${className}`} ref={ref}>
-      <button type="button" onClick={() => {
-          if (!open && ref.current) {
-            const r = ref.current.getBoundingClientRect();
-            const width = Math.min(window.innerWidth - 16, 540);
-            const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
-            setPos({ top: r.bottom + 4, left });
-          }
-          setOpen(o => !o); setPending(null);
-        }}
+      <button type="button" onClick={() => { setOpen(o => !o); setPending(null); }}
         className="input-base text-sm w-full flex items-center gap-2 text-left">
         <Calendar size={14} className="text-(--primary) flex-shrink-0" />
         <span className={`flex-1 truncate ${!from && !to ? 'text-(--text-muted)' : ''}`}>{dateRangeLabel({ from, to }, emptyLabel)}</span>
