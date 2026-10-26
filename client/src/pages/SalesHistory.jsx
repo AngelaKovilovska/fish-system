@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import PdfPages from '../components/PdfPages';
+import DateRangePicker, { dateRangeLabel } from '../components/DateRangePicker';
 import { IS_IOS, fetchPdfBytes, canSharePdf, sharePdf, printPdfViaImages } from '../lib/printPdf';
 import { useNavigate } from 'react-router-dom';
 import { api, documentUrl } from '../lib/api';
@@ -27,11 +28,6 @@ function paymentBadge(sale) {
   return { label: 'Неплатено', cls: 'pill-warning' };
 }
 
-const MK_MONTHS = [
-  'Сите месеци', 'Јануари', 'Февруари', 'Март', 'Април', 'Мај', 'Јуни',
-  'Јули', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември',
-];
-
 export default function SalesHistory() {
   const navigate = useNavigate();
   const goBack = useBack('/production');
@@ -45,7 +41,6 @@ export default function SalesHistory() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterMonth, setFilterMonth] = useState(0); // 0 = all
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
@@ -84,14 +79,6 @@ export default function SalesHistory() {
     // Sort newest first
     result.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
 
-    // Filter by month
-    if (filterMonth > 0) {
-      result = result.filter(s => {
-        const d = new Date(s.sale_date);
-        return d.getMonth() + 1 === filterMonth;
-      });
-    }
-
     // Датум од–до
     if (filterFrom) result = result.filter(s => String(s.sale_date).slice(0, 10) >= filterFrom);
     if (filterTo) result = result.filter(s => String(s.sale_date).slice(0, 10) <= filterTo);
@@ -120,7 +107,7 @@ export default function SalesHistory() {
     }
 
     return result;
-  }, [sales, filterMonth, filterFrom, filterTo, filterBuyer, filterProduct, filterMethod, filterPaid, searchQuery]);
+  }, [sales, filterFrom, filterTo, filterBuyer, filterProduct, filterMethod, filterPaid, searchQuery]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -230,13 +217,12 @@ export default function SalesHistory() {
 
   function clearFilters() {
     setSearchQuery('');
-    setFilterMonth(0);
     setFilterFrom(''); setFilterTo('');
     setFilterBuyer(''); setFilterProduct(''); setFilterMethod('');
     setFilterPaid('all');
   }
 
-  const hasActiveFilters = searchQuery || filterMonth > 0 || filterFrom || filterTo || filterBuyer || filterProduct || filterMethod || filterPaid !== 'all';
+  const hasActiveFilters = searchQuery || filterFrom || filterTo || filterBuyer || filterProduct || filterMethod || filterPaid !== 'all';
   const productCodes = useMemo(() => [...new Set(sales.flatMap(s => (s.items || []).map(i => i.code)).filter(Boolean))].sort(), [sales]);
 
   // Збир по производ за филтрираните продажби (кг и денари) — корисно кога е избран купувач
@@ -404,11 +390,8 @@ export default function SalesHistory() {
                 <div className="bg-(--surface) border border-(--border) rounded-(--r-md) p-3 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Месец</label>
-                      <select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))}
-                        className="input-base text-xs">
-                        {MK_MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                      </select>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Датум (ден или период)</label>
+                      <DateRangePicker value={{ from: filterFrom, to: filterTo }} onChange={({ from, to }) => { setFilterFrom(from); setFilterTo(to); }} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
@@ -417,16 +400,6 @@ export default function SalesHistory() {
                         <option value="">Сите купувачи</option>
                         {buyerNames.map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Од датум</label>
-                      <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="input-base text-xs" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">До датум</label>
-                      <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="input-base text-xs" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
@@ -464,11 +437,11 @@ export default function SalesHistory() {
           )}
 
           {/* Збир по производ за избраниот купувач / филтер */}
-          {(filterBuyer || filterMonth > 0 || filterFrom || filterTo || filterProduct || filterMethod || filterPaid !== 'all') && productSummary.length > 0 && (
+          {(filterBuyer || filterFrom || filterTo || filterProduct || filterMethod || filterPaid !== 'all') && productSummary.length > 0 && (
             <div className="rounded-(--r-md) border border-(--border) overflow-hidden mb-3 animate-in">
               <div className="px-3 py-2 bg-(--surface) flex items-center justify-between">
                 <p className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  По производ{filterBuyer ? ` — ${filterBuyer}` : ''}{filterMonth > 0 ? ` · ${MK_MONTHS[filterMonth]}` : ''}
+                  По производ{filterBuyer ? ` — ${filterBuyer}` : ''}{(filterFrom || filterTo) ? ` · ${dateRangeLabel({ from: filterFrom, to: filterTo })}` : ''}
                 </p>
                 <span className="text-[10px] text-(--text-muted)">{filteredSales.length} факт.</span>
               </div>
