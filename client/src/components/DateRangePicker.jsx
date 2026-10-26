@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 // Едно поле за датум: избор на еден ден (два пати ист ден) или период од–до, како на booking.
@@ -37,10 +38,12 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
   const base = value?.from ? new Date(value.from) : today;
   const [view, setView] = useState({ y: base.getFullYear(), m: base.getMonth() });
   const ref = useRef(null);
+  const popRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setPending(null); } };
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target) && !(popRef.current && popRef.current.contains(e.target))) { setOpen(false); setPending(null); } };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
@@ -105,7 +108,15 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
 
   return (
     <div className={`relative ${className}`} ref={ref}>
-      <button type="button" onClick={() => { setOpen(o => !o); setPending(null); }}
+      <button type="button" onClick={() => {
+          if (!open && ref.current) {
+            const r = ref.current.getBoundingClientRect();
+            const width = Math.min(window.innerWidth - 16, 540);
+            const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+            setPos({ top: r.bottom + 4, left });
+          }
+          setOpen(o => !o); setPending(null);
+        }}
         className="input-base text-sm w-full flex items-center gap-2 text-left">
         <Calendar size={14} className="text-(--primary) flex-shrink-0" />
         <span className={`flex-1 truncate ${!from && !to ? 'text-(--text-muted)' : ''}`}>{dateRangeLabel({ from, to }, emptyLabel)}</span>
@@ -114,8 +125,9 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
         )}
       </button>
 
-      {open && (
-        <div className="absolute z-50 mt-1 left-0 bg-(--surface) border border-(--border) rounded-xl shadow-2xl p-3" style={{ minWidth: 270 }}>
+      {open && createPortal(
+        <div ref={popRef} className="fixed z-[1100] border border-(--border) rounded-xl shadow-2xl p-3"
+          style={{ top: pos.top, left: pos.left, minWidth: 270, maxWidth: 'calc(100vw - 16px)', background: 'var(--surface)', maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' }}>
           {presets && (
             <div className="flex flex-wrap gap-1 mb-2">
               {[['today', 'Денес'], ['month', 'Овој месец'], ['prevMonth', 'Минат месец'], ['d30', '30 дена'], ['year', 'Година'], ...(allowEmpty ? [['all', 'Сите']] : [])].map(([k, l]) => (
@@ -132,7 +144,8 @@ export default function DateRangePicker({ value, onChange, allowEmpty = true, cl
             {renderMonth(view.y, view.m)}
             <div className="hidden md:block">{renderMonth(next.y, next.m)}</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
