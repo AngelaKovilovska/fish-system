@@ -82,6 +82,8 @@ export default function SalesAnalytics({ kind, from, to }) {
   const [selProduct, setSelProduct] = useState('');
   const [payMethod, setPayMethod] = useState('');
   const [payStatus, setPayStatus] = useState('');
+  // Филтри на страницата „Продажби“
+  const [sf, setSf] = useState({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' });
 
   useEffect(() => {
     if (!from || !to) return;
@@ -105,6 +107,7 @@ export default function SalesAnalytics({ kind, from, to }) {
   // PDF на меморандум со тековните филтри
   const pdfParams = () => {
     const p = { from, to };
+    if (kind === 'sales') { for (const [k, v] of Object.entries(sf)) if (v) p[k] = v; }
     if (kind === 'buyers' && selBuyer) p.buyer_id = selBuyer;
     if (kind === 'products' && selProduct) p.product_type_id = selProduct;
     if (kind === 'payments') { if (payMethod) p.payment_method = payMethod; if (payStatus) p.paid = payStatus; }
@@ -184,19 +187,68 @@ export default function SalesAnalytics({ kind, from, to }) {
 
   // ═══════════ ПРОДАЖБИ (период / еден ден) ═══════════
   if (kind === 'sales') {
+    // Примени ги филтрите (купувач, производ, начин, статус) на тековниот и претходниот период
+    const applyF = (list) => list
+      .filter(s => !sf.buyer_id || String(s.buyer_id) === String(sf.buyer_id))
+      .filter(s => !sf.payment_method || s.payment_method === sf.payment_method)
+      .filter(s => !sf.paid || (sf.paid === 'paid' ? s.payment_status === 'платено' : s.payment_status !== 'платено'))
+      .map(s => {
+        if (!sf.product_type_id) return s;
+        const items = (s.items || []).filter(i => String(i.product_type_id) === String(sf.product_type_id));
+        return items.length ? { ...s, items, total: items.reduce((a, i) => a + parseFloat(i.amount || 0), 0) } : null;
+      })
+      .filter(Boolean);
+    const fcur = applyF(cur), fprev = applyF(prev);
+    const fKg = sumKg(fcur), fAmt = sumAmt(fcur), fpKg = sumKg(fprev), fpAmt = sumAmt(fprev);
+    const buyerOpts = [...new Map(cur.map(s => [s.buyer_id, s.buyer_name])).entries()].filter(([id]) => id).sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'mk'));
+    const productOpts = [...new Map(cur.flatMap(s => (s.items || []).map(i => [i.product_type_id, i.code])) ).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+    const hasF = Object.values(sf).some(Boolean);
     const byMonth = {};
-    for (const s of cur) { const m = String(s.sale_date).slice(0, 7); byMonth[m] = byMonth[m] || { month: m, count: 0, kg: 0, amount: 0 }; byMonth[m].count++; byMonth[m].kg += sumKg([s]); byMonth[m].amount += parseFloat(s.total || 0); }
+    for (const s of fcur) { const m = String(s.sale_date).slice(0, 7); byMonth[m] = byMonth[m] || { month: m, count: 0, kg: 0, amount: 0 }; byMonth[m].count++; byMonth[m].kg += sumKg([s]); byMonth[m].amount += parseFloat(s.total || 0); }
     const months = Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month));
     return (
       <div className="space-y-3 animate-in">
         <p className="text-xs text-(--text-muted)">Период: {periodLabel} · споредба со {prevLabel}</p>
+        <div className="card !p-3 space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
+              <select value={sf.buyer_id} onChange={e => setSf({ ...sf, buyer_id: e.target.value })} className="input-base text-xs">
+                <option value="">Сите</option>
+                {buyerOpts.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
+              <select value={sf.product_type_id} onChange={e => setSf({ ...sf, product_type_id: e.target.value })} className="input-base text-xs">
+                <option value="">Сите</option>
+                {productOpts.map(([id, code]) => <option key={id} value={id}>{code}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
+              <select value={sf.payment_method} onChange={e => setSf({ ...sf, payment_method: e.target.value })} className="input-base text-xs">
+                <option value="">Сите</option><option value="фактура">Фактура</option><option value="готово">Готово</option><option value="гратис">Гратис</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Статус</label>
+              <select value={sf.paid} onChange={e => setSf({ ...sf, paid: e.target.value })} className="input-base text-xs">
+                <option value="">Сите</option><option value="paid">Платено</option><option value="unpaid">Неплатено</option>
+              </select>
+            </div>
+          </div>
+          {hasF && (
+            <button type="button" onClick={() => setSf({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' })} className="btn-ghost text-[11px] text-(--danger)">Тргни филтри</button>
+          )}
+        </div>
         <div className="grid grid-cols-3 gap-2">
-          <StatCard label="Продажби" value={cur.length} delta={<Delta cur={cur.length} prev={prev.length} />} />
-          <StatCard label="Количина" value={`${curKg.toFixed(1)} кг`} delta={<Delta cur={curKg} prev={prevKg} suffix=" кг" />} />
-          <StatCard label="Износ" value={`${fmtInt(curAmt)} ден`} delta={<Delta cur={curAmt} prev={prevAmt} suffix=" ден" />} />
+          <StatCard label="Продажби" value={fcur.length} delta={<Delta cur={fcur.length} prev={fprev.length} />} />
+          <StatCard label="Количина" value={`${fKg.toFixed(1)} кг`} delta={<Delta cur={fKg} prev={fpKg} suffix=" кг" />} />
+          <StatCard label="Износ" value={`${fmtInt(fAmt)} ден`} delta={<Delta cur={fAmt} prev={fpAmt} suffix=" ден" />} />
         </div>
         <div className="card space-y-4">
-          {renderSalesTable({ sales: cur })}
+          {renderSalesTable({ sales: fcur })}
           {months.length > 1 && (
             <div className="rounded-(--r-md) border border-(--border) overflow-hidden">
               <div className="px-3 py-2 bg-(--surface) text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>По месец</div>
