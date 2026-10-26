@@ -273,7 +273,7 @@ export default function Dashboard() {
               </Link>
 
               {/* Food inventory */}
-              <Link to="/admin/inventory" className="card !p-3.5 transition-all hover:scale-[1.01] active:scale-[0.99]">
+              <Link to="/inventory/food" className="card !p-3.5 transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: lowFoodItems.length > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)' }}>
