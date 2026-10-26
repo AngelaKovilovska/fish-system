@@ -27,7 +27,13 @@ const REPORT_TYPES = [
   { key: 'inventory', group: 'food', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
   { key: 'production', group: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
   { key: 'salesHistory', group: 'sales', label: 'Историја на продажби', desc: 'Фактури и документи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
-  { key: 'sales', group: 'sales', label: 'Продажби', desc: 'По купувач, по производ и по месец', icon: TrendingUp, needsDates: true },
+  { key: 'sales', group: 'sales', label: 'Продажби (збирно)', desc: 'По купувач, по производ и по месец', icon: TrendingUp, needsDates: true },
+  { key: 'salesPeriod', group: 'sales', label: 'Продажби по датум', desc: 'Сите продажби од–до, ставка по ставка', icon: Calendar, needsDates: true, isDetail: true },
+  { key: 'salesBuyer', group: 'sales', label: 'Продажби по купувач', desc: 'Избери купувач — што и колку земал', icon: Users, needsDates: true, isDetail: true, filterField: 'buyer_id' },
+  { key: 'salesProduct', group: 'sales', label: 'Продажби по производ', desc: 'Избери производ — кому и колку е продадено', icon: Package, needsDates: true, isDetail: true, filterField: 'product_type_id' },
+  { key: 'salesMethod', group: 'sales', label: 'По начин на плаќање', desc: 'Фактура, готово или гратис', icon: ListFilter, needsDates: true, isDetail: true, filterField: 'payment_method' },
+  { key: 'salesPaid', group: 'sales', label: 'Платени', desc: 'Само платени фактури', icon: FileText, needsDates: true, isDetail: true, paid: 'paid' },
+  { key: 'salesUnpaid', group: 'sales', label: 'Неплатени', desc: 'Само неплатени фактури', icon: AlertTriangle, needsDates: true, isDetail: true, paid: 'unpaid' },
 ];
 
 // Под-прегледи на продажниот извештај
@@ -35,7 +41,6 @@ const SALES_VIEWS = [
   { key: 'salesByBuyer', label: 'По купувач', icon: Users },
   { key: 'salesByProduct', label: 'По производ', icon: Package },
   { key: 'salesByPeriod', label: 'По месец', icon: TrendingUp },
-  { key: 'salesDetail', label: 'Детално', icon: ListFilter },
 ];
 
 // Брзи периоди
@@ -135,16 +140,22 @@ export default function Reports() {
 
   // Купувачи и производи за филтрите на деталниот преглед
   useEffect(() => {
-    if (activeReport === 'sales' && salesView === 'salesDetail') {
-      api.getBuyers().then(r => setBuyers(r.buyers || [])).catch(() => setBuyers([]));
+    const r = REPORT_TYPES.find(x => x.key === activeReport);
+    if (r?.isDetail) {
+      setDetailFilters({ buyer_id: '', product_type_id: '', payment_method: '', paid: r.paid || '' });
+      setDetailData(null);
+      api.getBuyers().then(r2 => setBuyers(r2.buyers || [])).catch(() => setBuyers([]));
       if (productTypes.length === 0) {
         api.getProductTypes().then(res => setProductTypes((res.types || res || []).filter(t => t.is_active !== false))).catch(() => {});
       }
     }
-  }, [activeReport, salesView]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeReport]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!(activeReport === 'sales' && salesView === 'salesDetail' && from && to)) return;
+    const r = REPORT_TYPES.find(x => x.key === activeReport);
+    if (!(r?.isDetail && from && to)) return;
+    // Извештај што бара избор (купувач/производ/начин) — чекај да се избере
+    if (r.filterField && !detailFilters[r.filterField]) { setDetailData(null); return; }
     let cancelled = false;
     setDetailLoading(true);
     api.getSalesDetail({ from, to, ...detailFilters })
@@ -152,7 +163,7 @@ export default function Reports() {
       .catch(e => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setDetailLoading(false); });
     return () => { cancelled = true; };
-  }, [activeReport, salesView, from, to, detailFilters]);
+  }, [activeReport, from, to, detailFilters]);
 
   // Load product types when production report is selected
   useEffect(() => {
@@ -343,7 +354,7 @@ export default function Reports() {
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
   // Извештаи што бараат само период се генерираат веднаш по избор
-  const isSimpleReport = (r) => r && !r.isLink && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
+  const isSimpleReport = (r) => r && !r.isLink && !r.isDetail && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
   const handleSelectReport = (key) => {
     setActiveReport(key); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
@@ -1688,7 +1699,7 @@ ${tableHTML}
         )}
 
         {/* Standard reports — form (само за извештаи со дополнителни опции) */}
-        {!isInventory && !previewData && !loading && !isSimpleReport(report) && (
+        {!isInventory && !previewData && !loading && !isSimpleReport(report) && !report?.isDetail && (
           <div className="card animate-in space-y-4">
 
             {report.needsPool && (
@@ -1777,48 +1788,45 @@ ${tableHTML}
           <div className="alert-danger text-xs">{error}</div>
         )}
 
-        {/* Детален преглед на продажби со филтри + PDF на меморандум */}
-        {activeReport === 'sales' && salesView === 'salesDetail' && (
+        {/* Детални извештаи за продажби (по датум / купувач / производ / начин / платени / неплатени) + PDF на меморандум */}
+        {report?.isDetail && (
           <div className="animate-in space-y-3">
-            <div className="card space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
-                  <select value={detailFilters.buyer_id} onChange={e => setDetailFilters({ ...detailFilters, buyer_id: e.target.value })} className="input-base text-xs">
-                    <option value="">Сите</option>
-                    {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
-                  <select value={detailFilters.product_type_id} onChange={e => setDetailFilters({ ...detailFilters, product_type_id: e.target.value })} className="input-base text-xs">
-                    <option value="">Сите</option>
-                    {productTypes.map(t => <option key={t.id} value={t.id}>{t.code} — {t.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
-                  <select value={detailFilters.payment_method} onChange={e => setDetailFilters({ ...detailFilters, payment_method: e.target.value })} className="input-base text-xs">
-                    <option value="">Сите</option>
-                    <option value="фактура">Фактура</option>
-                    <option value="готово">Готово</option>
-                    <option value="гратис">Гратис</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Статус</label>
-                  <select value={detailFilters.paid} onChange={e => setDetailFilters({ ...detailFilters, paid: e.target.value })} className="input-base text-xs">
-                    <option value="">Сите</option>
-                    <option value="paid">Платено</option>
-                    <option value="unpaid">Неплатено</option>
-                  </select>
-                </div>
+            {report.filterField && (
+              <div className="card">
+                {report.filterField === 'buyer_id' && (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
+                    <select value={detailFilters.buyer_id} onChange={e => setDetailFilters({ ...detailFilters, buyer_id: e.target.value })} className="input-base text-sm">
+                      <option value="">— избери купувач —</option>
+                      {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {report.filterField === 'product_type_id' && (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
+                    <select value={detailFilters.product_type_id} onChange={e => setDetailFilters({ ...detailFilters, product_type_id: e.target.value })} className="input-base text-sm">
+                      <option value="">— избери производ —</option>
+                      {productTypes.map(t => <option key={t.id} value={t.id}>{t.code} — {t.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {report.filterField === 'payment_method' && (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
+                    <select value={detailFilters.payment_method} onChange={e => setDetailFilters({ ...detailFilters, payment_method: e.target.value })} className="input-base text-sm">
+                      <option value="">— избери —</option>
+                      <option value="фактура">Фактура</option>
+                      <option value="готово">Готово</option>
+                      <option value="гратис">Гратис</option>
+                    </select>
+                  </div>
+                )}
               </div>
-              {(detailFilters.buyer_id || detailFilters.product_type_id || detailFilters.payment_method || detailFilters.paid) && (
-                <button type="button" onClick={() => setDetailFilters({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' })}
-                  className="btn-ghost text-[11px] text-(--danger)">Тргни филтри</button>
-              )}
-            </div>
+            )}
+            {report.filterField && !detailFilters[report.filterField] && !detailLoading && (
+              <div className="info-box text-sm text-(--text-muted)">Избери за да се прикаже извештајот.</div>
+            )}
 
             {detailLoading && (
               <div className="card flex items-center justify-center gap-3 py-8 text-sm text-(--text-secondary)">
@@ -1882,7 +1890,7 @@ ${tableHTML}
         )}
 
         {/* Preview data */}
-        {!isInventory && previewData && !(activeReport === 'sales' && salesView === 'salesDetail') && (
+        {!isInventory && previewData && !report?.isDetail && (
           <div className="animate-in space-y-0">
             {/* Chart visualization ABOVE the table */}
             {renderChart()}
