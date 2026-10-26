@@ -599,6 +599,15 @@ select.input-base:focus {
   transition: all 0.2s ease;
   text-decoration: none;
 }
+.sidebar-link-nested {
+  margin-left: 1.25rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+  font-size: 0.8125rem;
+  border-left: 2px solid rgba(255,255,255,0.08);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.sidebar-link-nested.active { border-left-color: var(--primary); }
 .sidebar-link:hover {
   background: rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.85);

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal, ShoppingCart } from 'lucide-react';
 import FishBackground from './FishBackground';
 
 // ─── Main sections ───
@@ -19,6 +19,10 @@ const sidebarSections = [
     title: 'Производство',
     items: [
       { path: '/production', label: 'Производство', icon: Factory },
+      // Вгнездени под Производство
+      { path: '/production/processing', label: 'Обработка', icon: Factory, nested: true, match: ['/production/processing'] },
+      { path: '/production/sales/history', label: 'Продажба', icon: ShoppingCart, nested: true, match: ['/production/sales'] },
+      { path: '/inventory/products', label: 'Залиха', icon: Package, nested: true, match: ['/inventory/products'] },
     ],
   },
 ];
@@ -119,10 +123,11 @@ export default function Layout() {
                 // Special active logic for grouped sections
                 if (item.path === '/entry') isActive = isEntryActive;
                 if (item.path === '/reports') isActive = isReportsActive;
+                if (item.nested) isActive = (item.match || []).some(m => location.pathname.startsWith(m));
                 return (
                   <Link key={item.path} to={item.path}
-                    className={`sidebar-link ${isActive ? 'active' : ''}`}>
-                    <item.icon size={17} strokeWidth={isActive ? 2.2 : 1.8} />
+                    className={`sidebar-link ${isActive ? 'active' : ''} ${item.nested ? 'sidebar-link-nested' : ''}`}>
+                    <item.icon size={item.nested ? 14 : 17} strokeWidth={isActive ? 2.2 : 1.8} />
                     {item.label}
                   </Link>
                 );
