@@ -48,7 +48,7 @@ export default function SalesNew() {
     sale_date: new Date().toISOString().split('T')[0],
     payment_method: 'фактура',
     lot_number: '',
-    transport_vehicle: '',
+    transport_vehicle: 'VE-8779-AF',
     packaging: 'Кеси',
     notes: '',
   });
@@ -577,7 +577,7 @@ export default function SalesNew() {
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Рег. ознака на возило</label>
               <input type="text" value={form.transport_vehicle}
                 onChange={e => setForm({ ...form, transport_vehicle: e.target.value })}
-                className="input-base text-sm" placeholder="ВЕ-1234-АА" />
+                className="input-base text-sm" placeholder="VE-8779-AF" />
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Температура</label>
