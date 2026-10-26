@@ -131,9 +131,10 @@ export default function FoodInventoryPage() {
             const p = proj[item.food_type];
             const daysLeft = p?.daysLeft;
             const endDate = p?.depletionDate || p?.endDate;
-            const isLow = qty <= 5;
-            const isWarn = qty <= 15 && !isLow;
-            const barColor = isLow ? 'var(--danger)' : isWarn ? 'var(--warning)' : 'var(--success)';
+            const inUse = (p?.avgDailyConsumptionKg || 0) > 0; // се троши во последниот период
+            const isLow = inUse && qty <= 5;
+            const isWarn = inUse && qty <= 15 && !isLow;
+            const barColor = !inUse ? 'var(--text-muted)' : isLow ? 'var(--danger)' : isWarn ? 'var(--warning)' : 'var(--success)';
             const barBg = isLow ? 'rgba(239,68,68,0.08)' : isWarn ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.08)';
 
             return (
@@ -171,14 +172,14 @@ export default function FoodInventoryPage() {
                       }
                     </span>
                   ) : (
-                    <span className="text-[9px] text-(--text-muted) italic">Не се троши</span>
+                    <span className="text-[9px] text-(--text-muted) italic">{qty > 0 ? 'Не се троши' : 'Не се користи'}</span>
                   )}
                 </div>
               </div>
             );
           })}
 
-          {inventory.some(i => parseFloat(i.quantity_kg) <= 5) && (
+          {inventory.some(i => parseFloat(i.quantity_kg) <= 5 && (proj[i.food_type]?.avgDailyConsumptionKg || 0) > 0) && (
             <p className="text-[11px] text-(--danger) font-medium mt-1 flex items-center gap-1.5">
               <AlertTriangle size={12} />
               Ниски залихи — потребна набавка

@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [aiRec, setAiRec] = useState(null);
   const [productInv, setProductInv] = useState([]);
   const [foodInv, setFoodInv] = useState([]);
+  const [foodProj, setFoodProj] = useState([]); // проекција: кои типови храна се трошат
   const [loading, setLoading] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -57,6 +58,7 @@ export default function Dashboard() {
       api.getAIRecommendations().then(d => setAiRec(d)).catch(() => setAiRec(null)),
       api.getProductInventory().then(d => setProductInv(d.inventory || [])).catch(() => setProductInv([])),
       api.getFoodInventory().then(d => setFoodInv(d.inventory || [])).catch(() => setFoodInv([])),
+      api.getFoodProjection(14).then(d => setFoodProj(d.projections || [])).catch(() => setFoodProj([])),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -232,7 +234,9 @@ export default function Dashboard() {
       {(() => {
         const totalProductKg = productInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         const totalFoodKg = foodInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
-        const lowFoodItems = foodInv.filter(i => parseFloat(i.quantity_kg || 0) < 50);
+        // Ниска залиха само за типови што се трошат (не се користат → не треба набавка)
+        const usedTypes = new Set(foodProj.filter(p => (p.avgDailyConsumptionKg || 0) > 0).map(p => p.food_type));
+        const lowFoodItems = foodInv.filter(i => usedTypes.has(i.food_type) && parseFloat(i.quantity_kg || 0) < 50);
         const productWarnings = productStockWarnings(productInv);
         const productDanger = productWarnings.some(w => w.level === 'danger');
         return (
