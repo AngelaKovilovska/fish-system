@@ -4,6 +4,7 @@ import { api, downloadFile, salesDetailPdfUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate, fmtInt } from '../lib/utils';
+import SalesAnalytics from './reports/SalesAnalytics';
 import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet, ListFilter, Download, FileText } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -26,14 +27,12 @@ const REPORT_TYPES = [
   { key: 'purchases', group: 'food', label: 'Набавки на храна', desc: 'Кога и колку храна е купена', icon: ShoppingCart, needsDates: true, needsPool: false },
   { key: 'inventory', group: 'food', label: 'Залихи на храна', desc: 'Тековни залихи и последни промени', icon: Package },
   { key: 'production', group: 'production', label: 'Преработка', desc: 'Преработена риба по ЛОТ и период', icon: Factory, needsDates: true, needsPool: true },
-  { key: 'salesHistory', group: 'sales', label: 'Историја на продажби', desc: 'Фактури и документи', icon: ShoppingCart, isLink: true, linkTo: '/production/sales/history' },
-  { key: 'sales', group: 'sales', label: 'Продажби (збирно)', desc: 'По купувач, по производ и по месец', icon: TrendingUp, needsDates: true },
-  { key: 'salesPeriod', group: 'sales', label: 'Продажби по датум', desc: 'Сите продажби од–до, ставка по ставка', icon: Calendar, needsDates: true, isDetail: true },
-  { key: 'salesBuyer', group: 'sales', label: 'Продажби по купувач', desc: 'Избери купувач — што и колку земал', icon: Users, needsDates: true, isDetail: true, filterField: 'buyer_id' },
-  { key: 'salesProduct', group: 'sales', label: 'Продажби по производ', desc: 'Избери производ — кому и колку е продадено', icon: Package, needsDates: true, isDetail: true, filterField: 'product_type_id' },
-  { key: 'salesMethod', group: 'sales', label: 'По начин на плаќање', desc: 'Фактура, готово или гратис', icon: ListFilter, needsDates: true, isDetail: true, filterField: 'payment_method' },
-  { key: 'salesPaid', group: 'sales', label: 'Платени', desc: 'Само платени фактури', icon: FileText, needsDates: true, isDetail: true, paid: 'paid' },
-  { key: 'salesUnpaid', group: 'sales', label: 'Неплатени', desc: 'Само неплатени фактури', icon: AlertTriangle, needsDates: true, isDetail: true, paid: 'unpaid' },
+  { key: 'salesHistory', group: 'sales', label: 'Документи од продажби', desc: 'Фактури, испратници, декларации — преглед и печатење', icon: FileText, isLink: true, linkTo: '/production/sales/history' },
+  { key: 'salesAll', group: 'sales', label: 'Продажби', desc: 'Сите продажби за период или еден ден', icon: ShoppingCart, needsDates: true, analytics: 'sales' },
+  { key: 'salesBuyers', group: 'sales', label: 'Купувачи', desc: 'График, најредовни, нови, неактивни; по купувач', icon: Users, needsDates: true, analytics: 'buyers' },
+  { key: 'salesProducts', group: 'sales', label: 'Производи', desc: 'График и тренд; кому е продаден производот', icon: Package, needsDates: true, analytics: 'products' },
+  { key: 'salesPayments', group: 'sales', label: 'Плаќања', desc: 'Доспеани, неплатени, начин на плаќање', icon: ListFilter, needsDates: true, analytics: 'payments' },
+  { key: 'salesSeasonal', group: 'sales', label: 'Сезонски преглед', desc: 'Продажба по месец, последни 12 месеци', icon: TrendingUp, analytics: 'seasonal' },
 ];
 
 // Под-прегледи на продажниот извештај
@@ -49,6 +48,7 @@ function periodPreset(kind) {
   const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
   const y = d.getFullYear(), m = d.getMonth();
   switch (kind) {
+    case 'today': return [iso(d), iso(d)];
     case 'month': return [iso(new Date(y, m, 1)), iso(new Date(y, m + 1, 0))];
     case 'prevMonth': return [iso(new Date(y, m - 1, 1)), iso(new Date(y, m, 0))];
     case '30d': { const f = new Date(d); f.setDate(f.getDate() - 29); return [iso(f), iso(d)]; }
@@ -354,7 +354,7 @@ export default function Reports() {
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
   // Извештаи што бараат само период се генерираат веднаш по избор
-  const isSimpleReport = (r) => r && !r.isLink && !r.isDetail && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
+  const isSimpleReport = (r) => r && !r.isLink && !r.isDetail && !r.analytics && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
   const handleSelectReport = (key) => {
     setActiveReport(key); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
@@ -372,6 +372,7 @@ export default function Reports() {
 
   // ── Заеднички период (важи за сите извештаи) ──
   const PRESETS = [
+    { key: 'today', label: 'Денес' },
     { key: 'month', label: 'Овој месец' },
     { key: 'prevMonth', label: 'Минат месец' },
     { key: '30d', label: '30 дена' },
@@ -1699,7 +1700,7 @@ ${tableHTML}
         )}
 
         {/* Standard reports — form (само за извештаи со дополнителни опции) */}
-        {!isInventory && !previewData && !loading && !isSimpleReport(report) && !report?.isDetail && (
+        {!isInventory && !previewData && !loading && !isSimpleReport(report) && !report?.isDetail && !report?.analytics && (
           <div className="card animate-in space-y-4">
 
             {report.needsPool && (
@@ -1787,6 +1788,9 @@ ${tableHTML}
         {!isInventory && !loading && !previewData && isSimpleReport(report) && error && (
           <div className="alert-danger text-xs">{error}</div>
         )}
+
+        {/* Извештаи за продажба (аналитика) */}
+        {report?.analytics && <SalesAnalytics kind={report.analytics} from={from} to={to} />}
 
         {/* Детални извештаи за продажби (по датум / купувач / производ / начин / платени / неплатени) + PDF на меморандум */}
         {report?.isDetail && (
@@ -1890,7 +1894,7 @@ ${tableHTML}
         )}
 
         {/* Preview data */}
-        {!isInventory && previewData && !report?.isDetail && (
+        {!isInventory && previewData && !report?.isDetail && !report?.analytics && (
           <div className="animate-in space-y-0">
             {/* Chart visualization ABOVE the table */}
             {renderChart()}

@@ -55,6 +55,52 @@ async function detailNames(q) {
   return names;
 }
 
+// ── Аналитика на продажби: тековен период, претходен период (иста должина), купувачи (мета), месечно (12 мес.) ──
+async function salesFull(from, to) {
+  const r = await pool.query(
+    `SELECT s.id, s.sale_date, s.invoice_number, s.buyer_id, b.name AS buyer_name, s.payment_method, s.payment_status,
+            s.paid_at, s.due_date, s.total,
+            COALESCE((SELECT json_agg(json_build_object('product_type_id', si.product_type_id, 'code', pt.code, 'name', pt.name,
+                        'quantity_kg', si.quantity_kg, 'price_per_kg', si.price_per_kg, 'amount', si.amount) ORDER BY pt.sort_order)
+                      FROM sale_items si JOIN product_types pt ON pt.id = si.product_type_id WHERE si.sale_id = s.id), '[]'::json) AS items
+     FROM sales s LEFT JOIN buyers b ON b.id = s.buyer_id
+     WHERE s.sale_date >= $1 AND s.sale_date <= $2
+     ORDER BY s.sale_date, s.id`,
+    [from, to]
+  );
+  return r.rows;
+}
+
+router.get('/sales-analytics', authMiddleware, async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'Внесете период (од-до)' });
+    const d1 = new Date(from + 'T00:00:00Z'), d2 = new Date(to + 'T00:00:00Z');
+    const days = Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
+    const prevTo = new Date(d1.getTime() - 86400000), prevFrom = new Date(prevTo.getTime() - (days - 1) * 86400000);
+    const iso = (d) => d.toISOString().slice(0, 10);
+
+    const [current, previous, buyersMeta, monthly] = await Promise.all([
+      salesFull(from, to),
+      salesFull(iso(prevFrom), iso(prevTo)),
+      pool.query(`SELECT b.id AS buyer_id, b.name, b.is_individual, MIN(s.sale_date) AS first_sale, MAX(s.sale_date) AS last_sale, COUNT(s.id)::int AS sales_all
+                  FROM buyers b LEFT JOIN sales s ON s.buyer_id = b.id WHERE b.is_active = true GROUP BY b.id, b.name, b.is_individual ORDER BY b.name`),
+      pool.query(`SELECT TO_CHAR(s.sale_date, 'YYYY-MM') AS month, COUNT(DISTINCT s.id)::int AS count,
+                         COALESCE(SUM(si.quantity_kg), 0) AS kg, COALESCE(SUM(si.amount), 0) AS amount
+                  FROM sales s JOIN sale_items si ON si.sale_id = s.id
+                  WHERE s.sale_date >= (CURRENT_DATE - INTERVAL '12 months')
+                  GROUP BY 1 ORDER BY 1`),
+    ]);
+    res.json({
+      period: { from, to, days }, prevPeriod: { from: iso(prevFrom), to: iso(prevTo) },
+      current, previous, buyers: buyersMeta.rows, monthly: monthly.rows, today: new Date().toISOString().slice(0, 10),
+    });
+  } catch (err) {
+    console.error('Sales analytics error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 // GET /api/reports/sales-detail — JSON за екран
 router.get('/sales-detail', authMiddleware, async (req, res) => {
   try {

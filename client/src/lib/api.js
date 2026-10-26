@@ -104,6 +104,7 @@ export const api = {
   sendAlertsReport: (from, to) => request('/reports/alerts', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+  getSalesAnalytics: (from, to) => request(`/reports/sales-analytics?from=${from}&to=${to}`),
   getSalesDetail: (params) => request(`/reports/sales-detail?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))).toString()}`),
   sendSalesReport: (from, to, view) => request('/reports/sales', { method: 'POST', body: JSON.stringify({ from, to, view, sendEmail: true }) }),
   sendProductionReport: (from, to, pool, product_type) => request('/reports/production', { method: 'POST', body: JSON.stringify({ from, to, pool, product_type, sendEmail: true }) }),
