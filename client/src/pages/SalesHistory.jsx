@@ -46,6 +46,10 @@ export default function SalesHistory() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMonth, setFilterMonth] = useState(0); // 0 = all
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterProduct, setFilterProduct] = useState('');
+  const [filterMethod, setFilterMethod] = useState('');
   const [filterBuyer, setFilterBuyer] = useState(''); // '' = all
   const [filterPaid, setFilterPaid] = useState('all'); // all | paid | unpaid
   const [showFilters, setShowFilters] = useState(false);
@@ -88,10 +92,18 @@ export default function SalesHistory() {
       });
     }
 
+    // Датум од–до
+    if (filterFrom) result = result.filter(s => String(s.sale_date).slice(0, 10) >= filterFrom);
+    if (filterTo) result = result.filter(s => String(s.sale_date).slice(0, 10) <= filterTo);
+
     // Filter by buyer
     if (filterBuyer) {
       result = result.filter(s => s.buyer_name === filterBuyer);
     }
+    // Производ (продажби што содржат тој производ)
+    if (filterProduct) result = result.filter(s => (s.items || []).some(i => i.code === filterProduct));
+    // Начин на плаќање
+    if (filterMethod) result = result.filter(s => s.payment_method === filterMethod);
 
     // Платени / неплатени / сите
     if (filterPaid === 'unpaid') result = result.filter(s => s.payment_status !== 'платено');
@@ -108,7 +120,7 @@ export default function SalesHistory() {
     }
 
     return result;
-  }, [sales, filterMonth, filterBuyer, filterPaid, searchQuery]);
+  }, [sales, filterMonth, filterFrom, filterTo, filterBuyer, filterProduct, filterMethod, filterPaid, searchQuery]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -219,11 +231,13 @@ export default function SalesHistory() {
   function clearFilters() {
     setSearchQuery('');
     setFilterMonth(0);
-    setFilterBuyer('');
+    setFilterFrom(''); setFilterTo('');
+    setFilterBuyer(''); setFilterProduct(''); setFilterMethod('');
     setFilterPaid('all');
   }
 
-  const hasActiveFilters = searchQuery || filterMonth > 0 || filterBuyer || filterPaid !== 'all';
+  const hasActiveFilters = searchQuery || filterMonth > 0 || filterFrom || filterTo || filterBuyer || filterProduct || filterMethod || filterPaid !== 'all';
+  const productCodes = useMemo(() => [...new Set(sales.flatMap(s => (s.items || []).map(i => i.code)).filter(Boolean))].sort(), [sales]);
 
   // Збир по производ за филтрираните продажби (кг и денари) — корисно кога е избран купувач
   const productSummary = useMemo(() => {
@@ -405,13 +419,39 @@ export default function SalesHistory() {
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Плаќање</label>
-                    <select value={filterPaid} onChange={e => setFilterPaid(e.target.value)} className="input-base text-xs">
-                      <option value="all">Сите</option>
-                      <option value="paid">Платени</option>
-                      <option value="unpaid">Неплатени</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Од датум</label>
+                      <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="input-base text-xs" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">До датум</label>
+                      <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="input-base text-xs" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
+                      <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} className="input-base text-xs">
+                        <option value="">Сите производи</option>
+                        {productCodes.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
+                      <select value={filterMethod} onChange={e => setFilterMethod(e.target.value)} className="input-base text-xs">
+                        <option value="">Сите</option>
+                        <option value="фактура">Фактура</option>
+                        <option value="готово">Готово</option>
+                        <option value="гратис">Гратис</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Статус</label>
+                      <select value={filterPaid} onChange={e => setFilterPaid(e.target.value)} className="input-base text-xs">
+                        <option value="all">Сите</option>
+                        <option value="paid">Платени</option>
+                        <option value="unpaid">Неплатени</option>
+                      </select>
+                    </div>
                   </div>
                   {hasActiveFilters && (
                     <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-(--danger)">
@@ -424,7 +464,7 @@ export default function SalesHistory() {
           )}
 
           {/* Збир по производ за избраниот купувач / филтер */}
-          {(filterBuyer || filterMonth > 0 || filterPaid !== 'all') && productSummary.length > 0 && (
+          {(filterBuyer || filterMonth > 0 || filterFrom || filterTo || filterProduct || filterMethod || filterPaid !== 'all') && productSummary.length > 0 && (
             <div className="rounded-(--r-md) border border-(--border) overflow-hidden mb-3 animate-in">
               <div className="px-3 py-2 bg-(--surface) flex items-center justify-between">
                 <p className="text-xs font-semibold text-(--text-secondary)" style={{ fontFamily: 'Sora, sans-serif' }}>
