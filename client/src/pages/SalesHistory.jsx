@@ -4,7 +4,7 @@ import PdfPages from '../components/PdfPages';
 import DateRangePicker, { dateRangeLabel } from '../components/DateRangePicker';
 import { IS_IOS, fetchPdfBytes, canSharePdf, sharePdf, printPdfViaImages } from '../lib/printPdf';
 import { useNavigate } from 'react-router-dom';
-import { api, documentUrl } from '../lib/api';
+import { api, documentUrl, downloadFile, salesDetailPdfUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import {
   Plus, FileText, Printer, Trash2, ShoppingCart, Users, Pencil, Save, X,
@@ -222,6 +222,16 @@ export default function SalesHistory() {
     setFilterPaid('all');
   }
 
+  // Параметри за PDF извештај (на меморандум) според тековните филтри
+  const pdfFilterParams = () => {
+    const p = { from: filterFrom || '2000-01-01', to: filterTo || '2100-12-31' };
+    const b = buyers.find(x => x.name === filterBuyer); if (b) p.buyer_id = b.id;
+    if (filterProduct) { const it = sales.flatMap(x => x.items || []).find(i => i.code === filterProduct); if (it) p.product_type_id = it.product_type_id; }
+    if (filterMethod) p.payment_method = filterMethod;
+    if (filterPaid === 'paid') p.paid = 'paid';
+    if (filterPaid === 'unpaid') p.paid = 'unpaid';
+    return p;
+  };
   const hasActiveFilters = searchQuery || filterFrom || filterTo || filterBuyer || filterProduct || filterMethod || filterPaid !== 'all';
   const productCodes = useMemo(() => [...new Set(sales.flatMap(s => (s.items || []).map(i => i.code)).filter(Boolean))].sort(), [sales]);
 
@@ -426,11 +436,23 @@ export default function SalesHistory() {
                       </select>
                     </div>
                   </div>
-                  {hasActiveFilters && (
-                    <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-(--danger)">
-                      <X size={12} /> Тргни филтри
-                    </button>
-                  )}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {hasActiveFilters ? (
+                      <button onClick={clearFilters} className="btn-ghost text-[10px] flex items-center gap-1 text-(--danger)">
+                        <X size={12} /> Тргни филтри
+                      </button>
+                    ) : <span />}
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => window.open(salesDetailPdfUrl(pdfFilterParams()), '_blank')}
+                        className="btn-primary text-xs !px-3 !py-1.5 flex items-center gap-1.5">
+                        <FileText size={13} /> PDF на меморандум
+                      </button>
+                      <button type="button" onClick={() => downloadFile(`/reports/sales-detail/pdf?${new URLSearchParams(pdfFilterParams()).toString()}`, 'Prodazbi.pdf').catch(e => setError(e.message))}
+                        className="btn-ghost text-xs !px-3 !py-1.5 flex items-center gap-1.5">
+                        <Download size={13} /> Симни
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
