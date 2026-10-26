@@ -1,10 +1,10 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, downloadFile } from '../lib/api';
+import { api, downloadFile, salesDetailPdfUrl } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate, fmtInt } from '../lib/utils';
-import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet } from 'lucide-react';
+import { Mail, Eye, ChevronLeft, ChevronDown, BarChart3, AlertTriangle, Weight, ArrowLeftRight, ShoppingCart, Package, ArrowDown, ArrowUp, Clock, Printer, Calendar, Factory, Users, TrendingUp, FileSpreadsheet, ListFilter, Download, FileText } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Legend,
@@ -35,6 +35,7 @@ const SALES_VIEWS = [
   { key: 'salesByBuyer', label: 'По купувач', icon: Users },
   { key: 'salesByProduct', label: 'По производ', icon: Package },
   { key: 'salesByPeriod', label: 'По месец', icon: TrendingUp },
+  { key: 'salesDetail', label: 'Детално', icon: ListFilter },
 ];
 
 // Брзи периоди
@@ -108,6 +109,11 @@ export default function Reports() {
   const [sending, setSending] = useState(false);
   const [previewRaw, setPreviewData] = useState(null);
   const [salesView, setSalesView] = useState('salesByBuyer');
+  // Детален преглед на продажби (ставка по ставка) со филтри
+  const [detailFilters, setDetailFilters] = useState({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' });
+  const [detailData, setDetailData] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [buyers, setBuyers] = useState([]);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
 
@@ -126,6 +132,27 @@ export default function Reports() {
   const [inventory, setInventory] = useState([]);
   const [inventoryLog, setInventoryLog] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
+
+  // Купувачи и производи за филтрите на деталниот преглед
+  useEffect(() => {
+    if (activeReport === 'sales' && salesView === 'salesDetail') {
+      api.getBuyers().then(r => setBuyers(r.buyers || [])).catch(() => setBuyers([]));
+      if (productTypes.length === 0) {
+        api.getProductTypes().then(res => setProductTypes((res.types || res || []).filter(t => t.is_active !== false))).catch(() => {});
+      }
+    }
+  }, [activeReport, salesView]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!(activeReport === 'sales' && salesView === 'salesDetail' && from && to)) return;
+    let cancelled = false;
+    setDetailLoading(true);
+    api.getSalesDetail({ from, to, ...detailFilters })
+      .then(d => { if (!cancelled) setDetailData(d); })
+      .catch(e => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setDetailLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeReport, salesView, from, to, detailFilters]);
 
   // Load product types when production report is selected
   useEffect(() => {
@@ -1750,8 +1777,112 @@ ${tableHTML}
           <div className="alert-danger text-xs">{error}</div>
         )}
 
+        {/* Детален преглед на продажби со филтри + PDF на меморандум */}
+        {activeReport === 'sales' && salesView === 'salesDetail' && (
+          <div className="animate-in space-y-3">
+            <div className="card space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
+                  <select value={detailFilters.buyer_id} onChange={e => setDetailFilters({ ...detailFilters, buyer_id: e.target.value })} className="input-base text-xs">
+                    <option value="">Сите</option>
+                    {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
+                  <select value={detailFilters.product_type_id} onChange={e => setDetailFilters({ ...detailFilters, product_type_id: e.target.value })} className="input-base text-xs">
+                    <option value="">Сите</option>
+                    {productTypes.map(t => <option key={t.id} value={t.id}>{t.code} — {t.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
+                  <select value={detailFilters.payment_method} onChange={e => setDetailFilters({ ...detailFilters, payment_method: e.target.value })} className="input-base text-xs">
+                    <option value="">Сите</option>
+                    <option value="фактура">Фактура</option>
+                    <option value="готово">Готово</option>
+                    <option value="гратис">Гратис</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Статус</label>
+                  <select value={detailFilters.paid} onChange={e => setDetailFilters({ ...detailFilters, paid: e.target.value })} className="input-base text-xs">
+                    <option value="">Сите</option>
+                    <option value="paid">Платено</option>
+                    <option value="unpaid">Неплатено</option>
+                  </select>
+                </div>
+              </div>
+              {(detailFilters.buyer_id || detailFilters.product_type_id || detailFilters.payment_method || detailFilters.paid) && (
+                <button type="button" onClick={() => setDetailFilters({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' })}
+                  className="btn-ghost text-[11px] text-(--danger)">Тргни филтри</button>
+              )}
+            </div>
+
+            {detailLoading && (
+              <div className="card flex items-center justify-center gap-3 py-8 text-sm text-(--text-secondary)">
+                <div className="wave-loader"><span /><span /><span /><span /></div> Се вчитува...
+              </div>
+            )}
+
+            {!detailLoading && detailData && (
+              <div className="card space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Фактури</div>
+                    <div className="text-sm font-bold text-(--text-primary)">{detailData.totals.sales}</div>
+                  </div>
+                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
+                    <div className="text-sm font-bold text-(--text-primary)">{detailData.totals.kg.toFixed(2)} кг</div>
+                  </div>
+                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Износ</div>
+                    <div className="text-sm font-bold text-(--primary)">{fmtInt(detailData.totals.amount)} ден</div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
+                  <table className="table-modern text-[11px]">
+                    <thead><tr><th>Датум</th><th>Фактура</th><th>Купувач</th><th>Производ</th><th className="text-right">Кг</th><th className="text-right">Цена</th><th className="text-right">Износ</th><th>Плаќање</th><th>Статус</th></tr></thead>
+                    <tbody>
+                      {detailData.rows.map((r, i) => (
+                        <tr key={i}>
+                          <td className="whitespace-nowrap">{fmtDate(r.sale_date)}</td>
+                          <td className="whitespace-nowrap font-medium">{r.invoice_number}</td>
+                          <td>{r.buyer_name}</td>
+                          <td>{r.code}</td>
+                          <td className="text-right tabular-nums">{parseFloat(r.quantity_kg).toFixed(2)}</td>
+                          <td className="text-right tabular-nums">{fmtInt(r.price_per_kg)}</td>
+                          <td className="text-right tabular-nums font-semibold text-(--primary)">{fmtInt(r.amount)}</td>
+                          <td>{r.payment_method}</td>
+                          <td className={r.payment_status === 'платено' ? 'text-(--success)' : 'text-(--danger)'}>
+                            {r.payment_status === 'платено' ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : 'неплатено'}
+                          </td>
+                        </tr>
+                      ))}
+                      {detailData.rows.length === 0 && (
+                        <tr><td colSpan={9} className="text-center text-(--text-muted) py-4">Нема продажби за избраните филтри.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => window.open(salesDetailPdfUrl({ from, to, ...detailFilters }), '_blank')} className="btn-primary w-full py-3">
+                    <FileText size={18} /> PDF на меморандум
+                  </button>
+                  <button type="button" onClick={() => downloadFile(`/reports/sales-detail/pdf?${new URLSearchParams(Object.fromEntries(Object.entries({ from, to, ...detailFilters }).filter(([, v]) => v))).toString()}`, `Prodazbi_${from}_${to}.pdf`).catch(e => setError(e.message))} className="btn-secondary w-full py-3">
+                    <Download size={18} /> Симни PDF
+                  </button>
+                </div>
+                {error && <div className="alert-danger text-xs">{error}</div>}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Preview data */}
-        {!isInventory && previewData && (
+        {!isInventory && previewData && !(activeReport === 'sales' && salesView === 'salesDetail') && (
           <div className="animate-in space-y-0">
             {/* Chart visualization ABOVE the table */}
             {renderChart()}

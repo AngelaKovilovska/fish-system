@@ -8,7 +8,116 @@ const {
   getSortingReportData, generateExcel, generatePDF, PARAMETER_LABELS,
 } = require('../services/reportService');
 
+const { buildMemoTable, fmtMoney } = require('../lib/memoPdf');
+
 const router = express.Router();
+
+// ── Детален преглед на продажби (ставка по ставка) со филтри ──
+// query: from, to, buyer_id, product_type_id, payment_method, paid ('paid' | 'unpaid' | '')
+async function getSalesDetailRows(q) {
+  const params = [q.from, q.to];
+  let where = 'WHERE s.sale_date >= $1 AND s.sale_date <= $2';
+  if (q.buyer_id) { params.push(parseInt(q.buyer_id)); where += ` AND s.buyer_id = $${params.length}`; }
+  if (q.product_type_id) { params.push(parseInt(q.product_type_id)); where += ` AND si.product_type_id = $${params.length}`; }
+  if (q.payment_method) { params.push(q.payment_method); where += ` AND s.payment_method = $${params.length}`; }
+  if (q.paid === 'paid') where += " AND s.payment_status = 'платено'";
+  if (q.paid === 'unpaid') where += " AND s.payment_status <> 'платено'";
+  const r = await pool.query(
+    `SELECT s.id AS sale_id, s.sale_date, s.invoice_number, s.payment_method, s.payment_status, s.paid_at,
+            b.name AS buyer_name, pt.code, pt.name AS product_name,
+            SUM(si.quantity_kg) AS quantity_kg, MAX(si.price_per_kg) AS price_per_kg, SUM(si.amount) AS amount
+     FROM sales s
+     JOIN sale_items si ON si.sale_id = s.id
+     JOIN product_types pt ON pt.id = si.product_type_id
+     LEFT JOIN buyers b ON b.id = s.buyer_id
+     ${where}
+     GROUP BY s.id, s.sale_date, s.invoice_number, s.payment_method, s.payment_status, s.paid_at, b.name, pt.code, pt.name, pt.sort_order
+     ORDER BY s.sale_date, s.id, pt.sort_order`,
+    params
+  );
+  return r.rows;
+}
+
+function detailFilterLines(q, names) {
+  const lines = [`Период: ${fmtDate(q.from)} — ${fmtDate(q.to)}`];
+  if (q.buyer_id) lines.push(`Купувач: ${names.buyer || q.buyer_id}`);
+  if (q.product_type_id) lines.push(`Производ: ${names.product || q.product_type_id}`);
+  if (q.payment_method) lines.push(`Начин на плаќање: ${q.payment_method}`);
+  if (q.paid === 'paid') lines.push('Статус: платени');
+  if (q.paid === 'unpaid') lines.push('Статус: неплатени');
+  return lines;
+}
+
+async function detailNames(q) {
+  const names = {};
+  if (q.buyer_id) { const r = await pool.query('SELECT name FROM buyers WHERE id = $1', [q.buyer_id]); names.buyer = r.rows[0]?.name; }
+  if (q.product_type_id) { const r = await pool.query('SELECT code, name FROM product_types WHERE id = $1', [q.product_type_id]); names.product = r.rows[0] ? `${r.rows[0].code} — ${r.rows[0].name}` : null; }
+  return names;
+}
+
+// GET /api/reports/sales-detail — JSON за екран
+router.get('/sales-detail', authMiddleware, async (req, res) => {
+  try {
+    const q = req.query;
+    if (!q.from || !q.to) return res.status(400).json({ error: 'Внесете период (од-до)' });
+    const rows = await getSalesDetailRows(q);
+    const totals = rows.reduce((a, r) => ({ kg: a.kg + parseFloat(r.quantity_kg || 0), amount: a.amount + parseFloat(r.amount || 0) }), { kg: 0, amount: 0 });
+    const saleIds = new Set(rows.map(r => r.sale_id));
+    res.json({ rows, totals: { ...totals, sales: saleIds.size } });
+  } catch (err) {
+    console.error('Sales detail error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
+// GET /api/reports/sales-detail/pdf — PDF на меморандум (inline; ?download=1 за симнување)
+router.get('/sales-detail/pdf', authMiddleware, async (req, res) => {
+  try {
+    const q = req.query;
+    if (!q.from || !q.to) return res.status(400).json({ error: 'Внесете период (од-до)' });
+    const rows = await getSalesDetailRows(q);
+    const names = await detailNames(q);
+    const totKg = rows.reduce((a, r) => a + parseFloat(r.quantity_kg || 0), 0);
+    const totAmt = rows.reduce((a, r) => a + parseFloat(r.amount || 0), 0);
+    const unpaidAmt = rows.filter(r => r.payment_status !== 'платено').reduce((a, r) => a + parseFloat(r.amount || 0), 0);
+    const salesCount = new Set(rows.map(r => r.sale_id)).size;
+
+    const pdf = await buildMemoTable({
+      title: 'Преглед на продажби',
+      subtitle: `Изготвено: ${fmtDate(new Date().toISOString().slice(0, 10))}`,
+      filters: detailFilterLines(q, names),
+      columns: [
+        { label: 'Датум', width: 52 },
+        { label: 'Фактура', width: 62 },
+        { label: 'Купувач', width: 112 },
+        { label: 'Производ', width: 48 },
+        { label: 'Кол. (кг)', width: 52, align: 'right' },
+        { label: 'Цена', width: 52, align: 'right' },
+        { label: 'Износ (ден)', width: 68, align: 'right' },
+        { label: 'Плаќање', width: 48 },
+        { label: 'Статус', width: 72 },
+      ],
+      rows: rows.map(r => [
+        fmtDate(r.sale_date), r.invoice_number, r.buyer_name || '', r.code,
+        (parseFloat(r.quantity_kg) || 0).toFixed(2), fmtMoney(r.price_per_kg), fmtMoney(r.amount),
+        r.payment_method, r.payment_status === 'платено' ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : 'неплатено',
+      ]),
+      totals: [
+        ['ВКУПНО', `${salesCount} факт.`, '', '', totKg.toFixed(2), '', fmtMoney(totAmt), '', ''],
+      ],
+      note: rows.length === 0 ? 'Нема продажби за избраните филтри.' : (unpaidAmt > 0 ? `Неплатено: ${fmtMoney(unpaidAmt)} ден` : 'Сите продажби се платени.'),
+    });
+
+    const fileName = `Prodazbi_${q.from}_${q.to}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${req.query.download ? 'attachment' : 'inline'}; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(pdf);
+  } catch (err) {
+    console.error('Sales detail PDF error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
 
 // ── Продажби: агрегација по купувач / производ / месец ──
 async function getSalesRows(from, to) {

@@ -104,6 +104,7 @@ export const api = {
   sendAlertsReport: (from, to) => request('/reports/alerts', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendSortingReport: (from, to) => request('/reports/sorting', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
   sendPurchasesReport: (from, to) => request('/reports/food-purchases', { method: 'POST', body: JSON.stringify({ from, to, sendEmail: true }) }),
+  getSalesDetail: (params) => request(`/reports/sales-detail?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))).toString()}`),
   sendSalesReport: (from, to, view) => request('/reports/sales', { method: 'POST', body: JSON.stringify({ from, to, view, sendEmail: true }) }),
   sendProductionReport: (from, to, pool, product_type) => request('/reports/production', { method: 'POST', body: JSON.stringify({ from, to, pool, product_type, sendEmail: true }) }),
   sendInventoryReport: () => request('/reports/inventory', { method: 'POST', body: JSON.stringify({ sendEmail: true }) }),
@@ -184,3 +185,10 @@ export const api = {
   setSalePayment: (id, paid, paid_at) => request(`/sales/${id}/payment`, { method: 'PUT', body: JSON.stringify({ paid, paid_at }) }),
   deleteSale: (id) => request(`/sales/${id}`, { method: 'DELETE' }),
 };
+
+// URL за PDF на меморандум (детален преглед на продажби)
+export function salesDetailPdfUrl(params, download = false) {
+  const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null)));
+  if (download) q.set('download', '1');
+  return `${API_BASE}/reports/sales-detail/pdf?${q.toString()}`;
+}

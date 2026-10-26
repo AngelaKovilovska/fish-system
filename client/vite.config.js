@@ -49,7 +49,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /\/api\/(documents|reports\/sales-export)/i,
+            urlPattern: /\/api\/(documents|reports\/sales-export|reports\/sales-detail\/pdf)/i,
             handler: 'NetworkOnly',
           },
           {
