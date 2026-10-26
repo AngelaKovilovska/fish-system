@@ -57,6 +57,7 @@ export const FOOD_TYPES = [
   'Advance (1.5mm)',
   'Pregrower-15 (2mm)',
   'SpecialPro EF (3mm)',
+  'SpecialPro EF (4.5mm)',
   'Grower-13EF (3mm)',
   'Grower-13EF (4.5mm)',
   'Grower-13EF (6mm)',

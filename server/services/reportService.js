@@ -183,10 +183,11 @@ async function getFoodConsumptionData(from, to, poolNumber) {
         WHEN 'Advance (1.5mm)' THEN 1
         WHEN 'Pregrower-15 (2mm)' THEN 2
         WHEN 'SpecialPro EF (3mm)' THEN 3
-        WHEN 'Grower-13EF (3mm)' THEN 4
-        WHEN 'Grower-13EF (4.5mm)' THEN 5
-        WHEN 'Grower-13EF (6mm)' THEN 6
-        ELSE 7
+        WHEN 'SpecialPro EF (4.5mm)' THEN 4
+        WHEN 'Grower-13EF (3mm)' THEN 5
+        WHEN 'Grower-13EF (4.5mm)' THEN 6
+        WHEN 'Grower-13EF (6mm)' THEN 7
+        ELSE 8
       END`;
 
   const consumedResult = await pool.query(consumedQuery, params);
