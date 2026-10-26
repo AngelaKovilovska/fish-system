@@ -119,7 +119,7 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
 // POST /api/food-inventory/census - попис: ја поставува залихата на внесената вредност (admin only)
 // Залиха = Σ набавки − потрошено; пописот се запишува како корекција (разлика) во дневникот
 // со документ „ПОПИС-ГГГГММДД“, па залихата станува точно колку што е преброено.
-router.post('/census', authMiddleware, adminOnly, async (req, res) => {
+router.post('/census', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
     const { census_date } = req.body;
