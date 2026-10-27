@@ -1844,41 +1844,45 @@ ${tableHTML}
 
             {!detailLoading && detailData && (
               <div className="card space-y-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
-                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Фактури</div>
-                    <div className="text-sm font-bold text-(--text-primary)">{detailData.totals.sales}</div>
-                  </div>
-                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
-                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Количина</div>
-                    <div className="text-sm font-bold text-(--text-primary)">{detailData.totals.kg.toFixed(2)} кг</div>
-                  </div>
-                  <div className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
-                    <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Износ</div>
-                    <div className="text-sm font-bold text-(--primary)">{fmtInt(detailData.totals.amount)} ден</div>
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {[
+                    ['Фактури', detailData.totals.sales],
+                    ['Количина', `${detailData.totals.kg.toFixed(2)} кг`],
+                    ['Основица', `${fmtInt(detailData.totals.subtotal)} ден`],
+                    ['ДДВ', `${fmtInt(detailData.totals.vat)} ден`],
+                    ['Вкупно', `${fmtInt(detailData.totals.amount)} ден`],
+                  ].map(([l, v]) => (
+                    <div key={l} className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
+                      <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{l}</div>
+                      <div className={`text-sm font-bold ${l === 'Вкупно' ? 'text-(--primary)' : 'text-(--text-primary)'}`}>{v}</div>
+                    </div>
+                  ))}
                 </div>
+                {detailData.totals.unpaid > 0 && (
+                  <div className="text-xs text-(--text-secondary)">Платено: <strong className="text-(--success)">{fmtInt(detailData.totals.paid)} ден</strong> · Неплатено (побарувања): <strong className="text-(--danger)">{fmtInt(detailData.totals.unpaid)} ден</strong></div>
+                )}
                 <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
                   <table className="table-modern text-[11px]">
-                    <thead><tr><th>Датум</th><th>Фактура</th><th>Купувач</th><th>Производ</th><th className="text-right">Кг</th><th className="text-right">Цена</th><th className="text-right">Износ</th><th>Плаќање</th><th>Статус</th></tr></thead>
+                    <thead><tr><th>Датум</th><th>Фактура</th><th>Купувач</th><th>Производи (кг)</th><th className="text-right">Кг</th><th className="text-right">Основица</th><th className="text-right">ДДВ</th><th className="text-right">Вкупно</th><th>Плаќање</th><th>Статус</th></tr></thead>
                     <tbody>
-                      {detailData.rows.map((r, i) => (
-                        <tr key={i}>
+                      {detailData.rows.map((r) => (
+                        <tr key={r.sale_id}>
                           <td className="whitespace-nowrap">{fmtDate(r.sale_date)}</td>
                           <td className="whitespace-nowrap font-medium">{r.invoice_number}</td>
                           <td>{r.buyer_name}</td>
-                          <td>{r.code}</td>
-                          <td className="text-right tabular-nums">{parseFloat(r.quantity_kg).toFixed(2)}</td>
-                          <td className="text-right tabular-nums">{fmtInt(r.price_per_kg)}</td>
-                          <td className="text-right tabular-nums font-semibold text-(--primary)">{fmtInt(r.amount)}</td>
+                          <td className="text-(--text-secondary)">{(r.items || []).map(i => `${i.code} ${parseFloat(i.quantity_kg).toFixed(2)}`).join(', ')}</td>
+                          <td className="text-right tabular-nums">{r.quantity_kg.toFixed(2)}</td>
+                          <td className="text-right tabular-nums">{fmtInt(r.subtotal)}</td>
+                          <td className="text-right tabular-nums">{r.vat_amount ? `${fmtInt(r.vat_amount)} (${r.vat_rate}%)` : '0'}</td>
+                          <td className="text-right tabular-nums font-semibold text-(--primary)">{fmtInt(r.total)}</td>
                           <td>{r.payment_method}</td>
-                          <td className={r.payment_status === 'платено' ? 'text-(--success)' : 'text-(--danger)'}>
-                            {r.payment_status === 'платено' ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : 'неплатено'}
+                          <td className={`whitespace-nowrap ${r.paid ? 'text-(--success)' : 'text-(--danger)'}`}>
+                            {r.paid ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : (r.due_date ? `неплатено, рок ${fmtDate(r.due_date)}` : 'неплатено')}
                           </td>
                         </tr>
                       ))}
                       {detailData.rows.length === 0 && (
-                        <tr><td colSpan={9} className="text-center text-(--text-muted) py-4">Нема продажби за избраните филтри.</td></tr>
+                        <tr><td colSpan={10} className="text-center text-(--text-muted) py-4">Нема продажби за избраните филтри.</td></tr>
                       )}
                     </tbody>
                   </table>

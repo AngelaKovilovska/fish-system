@@ -30,7 +30,7 @@ function fmtMoney(v) {
  * build({ title, subtitle, filters: [string], columns: [{ label, width, align }], rows: [[...]], totals: [[...]], note })
  *  - width во pt; align 'left' | 'right'
  */
-async function buildMemoTable({ title, subtitle, filters = [], columns, rows, totals = [], note }) {
+async function buildMemoTable({ title, subtitle, filters = [], columns, rows, totals = [], note, rowSize = 8.5 }) {
   const tpl = await PDFDocument.load(readCached('tpl:memo', path.join(TEMPLATES_DIR, 'memo.pdf')));
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
@@ -63,7 +63,7 @@ async function buildMemoTable({ title, subtitle, filters = [], columns, rows, to
     page.drawRectangle({ x: MARGIN_X, y: H - y - 16, width: W - 2 * MARGIN_X, height: 16, color: NAVY });
     for (const c of cols) {
       const cx = c.align === 'right' ? x + c.width - 4 : x + 4;
-      text(c.label, cx, y + 11.5, { size: 8.5, f: bold, color: rgb(1, 1, 1), align: c.align || 'left', maxWidth: c.width - 8 });
+      text(c.label, cx, y + 11.5, { size: Math.min(8.5, rowSize + 0.5), f: bold, color: rgb(1, 1, 1), align: c.align || 'left', maxWidth: c.width - 8 });
       x += c.width;
     }
     y += 18;
@@ -85,14 +85,17 @@ async function buildMemoTable({ title, subtitle, filters = [], columns, rows, to
     drawHeaderRow();
   };
 
-  const drawRow = (cells, { f = font, size = 8.5, color = BLACK, bg } = {}) => {
+  const drawRow = (cells, { f = font, size = rowSize, color = BLACK, bg } = {}) => {
     if (y + 14 > CONTENT_BOTTOM) newPage();
     if (bg) page.drawRectangle({ x: MARGIN_X, y: H - y - 13, width: W - 2 * MARGIN_X, height: 14, color: bg });
     let x = MARGIN_X;
     cells.forEach((cell, i) => {
       const c = cols[i];
+      // Лево порамнет текст може да се протега преку следните празни ќелии (за збирни редови)
+      let span = c.width;
+      if ((c.align || 'left') === 'left') for (let j = i + 1; j < cols.length && !cells[j]; j++) span += cols[j].width;
       const cx = c.align === 'right' ? x + c.width - 4 : x + 4;
-      text(cell, cx, y + 10, { size, f, color, align: c.align || 'left', maxWidth: c.width - 8 });
+      text(cell, cx, y + 10, { size, f, color, align: c.align || 'left', maxWidth: span - 8 });
       x += c.width;
     });
     y += 14;
@@ -103,7 +106,7 @@ async function buildMemoTable({ title, subtitle, filters = [], columns, rows, to
   for (const r of rows) drawRow(r);
   if (totals.length) {
     y += 2;
-    for (const t of totals) drawRow(t, { f: bold, size: 9, color: NAVY, bg: rgb(0.93, 0.95, 0.99) });
+    for (const t of totals) drawRow(t, { f: bold, size: rowSize + 0.5, color: NAVY, bg: rgb(0.93, 0.95, 0.99) });
   }
   if (note) { y += 6; if (y + 12 > CONTENT_BOTTOM) newPage(); text(note, MARGIN_X, y, { size: 8, color: GREY }); }
 

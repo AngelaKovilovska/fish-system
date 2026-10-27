@@ -14,28 +14,42 @@ const router = express.Router();
 
 // ── Детален преглед на продажби (ставка по ставка) со филтри ──
 // query: from, to, buyer_id, product_type_id, payment_method, paid ('paid' | 'unpaid' | '')
+// Еден ред = една фактура (како книга на излезни фактури): основица, ДДВ, вкупно, плаќање.
+// Со филтер по производ се прикажуваат само ставките за тој производ (кол./износ), а ДДВ/вкупно се од целата фактура.
 async function getSalesDetailRows(q) {
   const params = [q.from, q.to];
   let where = 'WHERE s.sale_date >= $1 AND s.sale_date <= $2';
   if (q.buyer_id) { params.push(parseInt(q.buyer_id)); where += ` AND s.buyer_id = $${params.length}`; }
-  if (q.product_type_id) { params.push(parseInt(q.product_type_id)); where += ` AND si.product_type_id = $${params.length}`; }
   if (q.payment_method) { params.push(q.payment_method); where += ` AND s.payment_method = $${params.length}`; }
   if (q.paid === 'paid') where += " AND s.payment_status = 'платено'";
   if (q.paid === 'unpaid') where += " AND s.payment_status <> 'платено'";
+  let itemWhere = '';
+  if (q.product_type_id) { params.push(parseInt(q.product_type_id)); itemWhere = ` AND si.product_type_id = $${params.length}`; where += ` AND EXISTS (SELECT 1 FROM sale_items si WHERE si.sale_id = s.id${itemWhere})`; }
   const r = await pool.query(
-    `SELECT s.id AS sale_id, s.sale_date, s.invoice_number, s.payment_method, s.payment_status, s.paid_at,
-            b.name AS buyer_name, pt.code, pt.name AS product_name,
-            SUM(si.quantity_kg) AS quantity_kg, MAX(si.price_per_kg) AS price_per_kg, SUM(si.amount) AS amount
+    `SELECT s.id AS sale_id, s.sale_date, s.invoice_number, s.payment_method, s.payment_status, s.paid_at, s.due_date,
+            s.subtotal, s.vat_rate, s.vat_amount, s.total, b.name AS buyer_name,
+            COALESCE((SELECT json_agg(json_build_object('code', pt.code, 'name', pt.name, 'quantity_kg', si.quantity_kg,
+                        'price_per_kg', si.price_per_kg, 'amount', si.amount) ORDER BY pt.sort_order)
+                      FROM sale_items si JOIN product_types pt ON pt.id = si.product_type_id WHERE si.sale_id = s.id${itemWhere}), '[]'::json) AS items
      FROM sales s
-     JOIN sale_items si ON si.sale_id = s.id
-     JOIN product_types pt ON pt.id = si.product_type_id
      LEFT JOIN buyers b ON b.id = s.buyer_id
      ${where}
-     GROUP BY s.id, s.sale_date, s.invoice_number, s.payment_method, s.payment_status, s.paid_at, b.name, pt.code, pt.name, pt.sort_order
-     ORDER BY s.sale_date, s.id, pt.sort_order`,
+     ORDER BY s.sale_date, s.invoice_number, s.id`,
     params
   );
-  return r.rows;
+  return r.rows.map(row => {
+    const items = row.items || [];
+    const kg = items.reduce((a, i) => a + (parseFloat(i.quantity_kg) || 0), 0);
+    const itemsAmount = items.reduce((a, i) => a + (parseFloat(i.amount) || 0), 0);
+    const subtotal = parseFloat(row.subtotal) || 0, vat = parseFloat(row.vat_amount) || 0, total = parseFloat(row.total) || 0;
+    return {
+      ...row, items, quantity_kg: kg,
+      // со филтер по производ основицата е само за тој производ
+      subtotal: q.product_type_id ? itemsAmount : subtotal,
+      vat_rate: parseFloat(row.vat_rate) || 0, vat_amount: vat, total,
+      paid: row.payment_status === 'платено',
+    };
+  });
 }
 
 function detailFilterLines(q, names) {
@@ -107,9 +121,11 @@ router.get('/sales-detail', authMiddleware, async (req, res) => {
     const q = req.query;
     if (!q.from || !q.to) return res.status(400).json({ error: 'Внесете период (од-до)' });
     const rows = await getSalesDetailRows(q);
-    const totals = rows.reduce((a, r) => ({ kg: a.kg + parseFloat(r.quantity_kg || 0), amount: a.amount + parseFloat(r.amount || 0) }), { kg: 0, amount: 0 });
-    const saleIds = new Set(rows.map(r => r.sale_id));
-    res.json({ rows, totals: { ...totals, sales: saleIds.size } });
+    const totals = rows.reduce((a, r) => ({
+      kg: a.kg + r.quantity_kg, subtotal: a.subtotal + r.subtotal, vat: a.vat + r.vat_amount, amount: a.amount + r.total,
+      paid: a.paid + (r.paid ? r.total : 0), unpaid: a.unpaid + (r.paid ? 0 : r.total),
+    }), { kg: 0, subtotal: 0, vat: 0, amount: 0, paid: 0, unpaid: 0 });
+    res.json({ rows, totals: { ...totals, sales: rows.length } });
   } catch (err) {
     console.error('Sales detail error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
@@ -123,35 +139,54 @@ router.get('/sales-detail/pdf', authMiddleware, async (req, res) => {
     if (!q.from || !q.to) return res.status(400).json({ error: 'Внесете период (од-до)' });
     const rows = await getSalesDetailRows(q);
     const names = await detailNames(q);
-    const totKg = rows.reduce((a, r) => a + parseFloat(r.quantity_kg || 0), 0);
-    const totAmt = rows.reduce((a, r) => a + parseFloat(r.amount || 0), 0);
-    const unpaidAmt = rows.filter(r => r.payment_status !== 'платено').reduce((a, r) => a + parseFloat(r.amount || 0), 0);
-    const salesCount = new Set(rows.map(r => r.sale_id)).size;
+    const sum = (list, f) => list.reduce((a, r) => a + f(r), 0);
+    const totKg = sum(rows, r => r.quantity_kg), totSub = sum(rows, r => r.subtotal), totVat = sum(rows, r => r.vat_amount), totAll = sum(rows, r => r.total);
+    const paidRows = rows.filter(r => r.paid), unpaidRows = rows.filter(r => !r.paid);
+    const byProduct = q.product_type_id;
+    const itemsText = r => r.items.map(i => `${i.code} ${(parseFloat(i.quantity_kg) || 0).toFixed(2)}`).join(', ');
+    const statusText = r => (r.paid ? 'платено' : 'неплатено');
+
+    // Збирни редови: вкупно, платено/неплатено, по начин на плаќање
+    const totalRow = (label, list) => [
+      `${label} — ${list.length} факт.`, '', '', '', sum(list, r => r.quantity_kg).toFixed(2),
+      fmtMoney(sum(list, r => r.subtotal)), '', fmtMoney(sum(list, r => r.vat_amount)), fmtMoney(sum(list, r => r.total)), '', '', '',
+    ];
+    const totals = [totalRow('ВКУПНО', rows)];
+    if (rows.length) {
+      totals.push(totalRow('Платено', paidRows));
+      totals.push(totalRow('Неплатено (побарувања)', unpaidRows));
+      for (const m of ['фактура', 'готово', 'гратис']) {
+        const list = rows.filter(r => r.payment_method === m);
+        if (list.length) totals.push(totalRow(`Начин: ${m}`, list));
+      }
+    }
 
     const pdf = await buildMemoTable({
-      title: 'Преглед на продажби',
+      title: byProduct ? 'Преглед на продажби по производ' : 'Преглед на продажби (по фактура)',
       subtitle: `Изготвено: ${fmtDate(new Date().toISOString().slice(0, 10))}`,
-      filters: detailFilterLines(q, names),
+      filters: detailFilterLines(q, names).concat(byProduct ? ['Количина и основица се само за избраниот производ; ДДВ и вкупно се од целата фактура.'] : []),
+      rowSize: 7.5,
       columns: [
-        { label: 'Датум', width: 52 },
-        { label: 'Фактура', width: 62 },
-        { label: 'Купувач', width: 112 },
-        { label: 'Производ', width: 48 },
-        { label: 'Кол. (кг)', width: 52, align: 'right' },
-        { label: 'Цена', width: 52, align: 'right' },
-        { label: 'Износ (ден)', width: 68, align: 'right' },
-        { label: 'Плаќање', width: 48 },
-        { label: 'Статус', width: 72 },
+        { label: 'Датум', width: 44 },
+        { label: 'Фактура', width: 50 },
+        { label: 'Купувач', width: 80 },
+        { label: 'Производи (кг)', width: 64 },
+        { label: 'Кол. (кг)', width: 34, align: 'right' },
+        { label: 'Основица', width: 50, align: 'right' },
+        { label: '%', width: 22, align: 'right' },
+        { label: 'ДДВ', width: 42, align: 'right' },
+        { label: 'Вкупно', width: 52, align: 'right' },
+        { label: 'Плаќање', width: 36 },
+        { label: 'Рок / Платено', width: 46 },
+        { label: 'Статус', width: 52 },
       ],
       rows: rows.map(r => [
-        fmtDate(r.sale_date), r.invoice_number, r.buyer_name || '', r.code,
-        (parseFloat(r.quantity_kg) || 0).toFixed(2), fmtMoney(r.price_per_kg), fmtMoney(r.amount),
-        r.payment_method, r.payment_status === 'платено' ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : 'неплатено',
+        fmtDate(r.sale_date), r.invoice_number, r.buyer_name || '', itemsText(r),
+        r.quantity_kg.toFixed(2), fmtMoney(r.subtotal), r.vat_amount ? `${r.vat_rate}` : '0', fmtMoney(r.vat_amount), fmtMoney(r.total),
+        r.payment_method, r.paid ? (r.paid_at ? fmtDate(r.paid_at) : '') : (r.due_date ? fmtDate(r.due_date) : ''), statusText(r),
       ]),
-      totals: [
-        ['ВКУПНО', `${salesCount} факт.`, '', '', totKg.toFixed(2), '', fmtMoney(totAmt), '', ''],
-      ],
-      note: rows.length === 0 ? 'Нема продажби за избраните филтри.' : (unpaidAmt > 0 ? `Неплатено: ${fmtMoney(unpaidAmt)} ден` : 'Сите продажби се платени.'),
+      totals,
+      note: rows.length === 0 ? 'Нема продажби за избраните филтри.' : `Фактури: ${rows.length} | Количина: ${totKg.toFixed(2)} кг | Основица: ${fmtMoney(totSub)} | ДДВ: ${fmtMoney(totVat)} | Вкупно: ${fmtMoney(totAll)} ден | Неплатено: ${fmtMoney(sum(unpaidRows, r => r.total))} ден`,
     });
 
     const fileName = `Prodazbi_${q.from}_${q.to}.pdf`;
