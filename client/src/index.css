@@ -685,3 +685,27 @@ select.input-base:focus {
     font-size: 0.75rem;
   }
 }
+
+/* ═══════ ПЕЧАТЕЊЕ НА СТРАНИЦА (Ctrl+P) ═══════
+   Само содржината: без мени, позадина, копчиња и филтри; табелите во цела ширина, без празни страници. */
+@media print {
+  @page { size: A4; margin: 12mm 10mm; }
+  html, body { background: #fff !important; color: #111 !important; }
+  body { font-size: 11px; }
+  .sidebar, .bottom-tab-bar, header, .fish-bg-container, .no-print,
+  main img, button, input, select, textarea, [role="dialog"], .toast { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+  main > div { max-width: none !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+  * { animation: none !important; transition: none !important; box-shadow: none !important; }
+  .animate-in, [class*="animate-in-delay"] { opacity: 1 !important; transform: none !important; }
+  .card, .card-hover { padding: 8px 10px !important; margin-bottom: 8px !important; border: 1px solid #ddd !important; border-radius: 4px !important; background: #fff !important; break-inside: avoid; page-break-inside: avoid; }
+  .recharts-responsive-container, .recharts-wrapper { break-inside: avoid; page-break-inside: avoid; }
+  table { width: 100% !important; border-collapse: collapse; font-size: 10px; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+  th, td { padding: 3px 6px !important; border-bottom: 1px solid #e5e7eb; }
+  .overflow-x-auto, .overflow-auto, .overflow-hidden { overflow: visible !important; }
+  .grid { display: block !important; }
+  .grid > * { margin-bottom: 6px; }
+  a { text-decoration: none; color: inherit; }
+}

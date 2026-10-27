@@ -516,23 +516,27 @@ export default function Reports() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} — ФАМАКОМ</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;padding:24px;font-size:12px;max-width:900px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1a8a;padding-bottom:12px;margin-bottom:20px}
-.brand{font-size:18px;font-weight:800;color:#1a1a8a;letter-spacing:0.5px}
-.brand-sub{font-size:10px;color:#666;margin-top:2px}
-.print-date{font-size:10px;color:#888;text-align:right}
-h2{font-size:16px;color:#1a1a2e;margin-bottom:4px}
-h3{font-size:13px;color:#1a1a8a;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}
-.subtitle{font-size:11px;color:#666;margin-bottom:16px}
-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
-th{background:#f0f4ff;color:#1a1a8a;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.3px;padding:8px 10px;border-bottom:2px solid #c7d2fe;text-align:left}
-td{padding:7px 10px;border-bottom:1px solid #e5e7eb}
-tr:nth-child(even){background:#fafbff}
-.r{text-align:right}
+@page{size:A4 portrait;margin:12mm 10mm}
+html,body{background:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;padding:16px;font-size:11px;width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1a1a8a;padding-bottom:6px;margin-bottom:10px}
+.brand{font-size:15px;font-weight:800;color:#1a1a8a;letter-spacing:0.5px}
+.brand-sub{font-size:9px;color:#666;margin-top:1px}
+.print-date{font-size:9px;color:#888;text-align:right}
+h2{font-size:14px;color:#1a1a2e;margin-bottom:2px}
+h3{font-size:11px;color:#1a1a8a;margin:10px 0 4px;padding-bottom:2px;border-bottom:1px solid #e5e7eb;break-after:avoid;page-break-after:avoid}
+.subtitle{font-size:10px;color:#666;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:10px;table-layout:auto}
+thead{display:table-header-group}
+tr{break-inside:avoid;page-break-inside:avoid}
+th{background:#f0f4ff;color:#1a1a8a;font-weight:700;text-transform:uppercase;font-size:8.5px;letter-spacing:0.2px;padding:4px 6px;border-bottom:1.5px solid #c7d2fe;text-align:left;white-space:nowrap}
+td{padding:3px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+tbody tr:nth-child(even){background:#fafbff}
+.r{text-align:right;white-space:nowrap}
 .danger{color:#dc2626;font-weight:700}
-.total{background:#f0f4ff;padding:10px 14px;border-radius:6px;font-weight:700;color:#1a1a8a;margin-top:8px;font-size:12px}
-.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;font-size:9px;color:#aaa}
-@media print{body{padding:12px}@page{margin:15mm 10mm;size:A4}}
+.total{background:#f0f4ff;padding:6px 10px;border-radius:4px;font-weight:700;color:#1a1a8a;margin:4px 0 8px;font-size:10.5px;break-inside:avoid}
+.footer{margin-top:14px;padding-top:6px;border-top:1px solid #e5e7eb;text-align:center;font-size:8px;color:#aaa}
+@media print{body{padding:0}}
 </style></head><body>
 <div class="header">
   <div><div class="brand">ФАМАКОМ АКВАКУЛТУРА</div><div class="brand-sub">Систем за управување со рибник</div></div>

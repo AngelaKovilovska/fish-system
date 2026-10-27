@@ -70,6 +70,10 @@ export default function ProductionNew() {
   const [filterProduct, setFilterProduct] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+  // Сериите се прикажуваат на делови („Вчитај уште“) — долги листи забавуваат на телефон
+  const PAGE_SIZE = 30;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQ, filterPool, filterProduct, filterFrom, filterTo]);
   const [showFilters, setShowFilters] = useState(false);
 
   /* form (stepper) */
@@ -238,15 +242,16 @@ export default function ProductionNew() {
     return list;
   }, [batches, searchQ, filterPool, filterProduct, filterFrom, filterTo]);
 
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const grouped = useMemo(() => {
     const groups = {};
-    filtered.forEach(b => {
+    visible.forEach(b => {
       const key = dateGroup(b.production_date || b.created_at);
       if (!groups[key]) groups[key] = [];
       groups[key].push(b);
     });
     return groups;
-  }, [filtered]);
+  }, [visible]);
 
   const GROUP_ORDER = ['Денес', 'Вчера', 'Оваа недела', 'Овој месец', 'Постаро', 'Останато'];
   const hasActiveFilters = searchQ || filterPool || filterProduct || filterFrom || filterTo;
@@ -779,7 +784,7 @@ export default function ProductionNew() {
                   <p className="text-sm text-(--text-secondary)">Нема резултати</p>
                 </div>
               ) : (
-                GROUP_ORDER.filter(g => grouped[g]?.length > 0).map(group => (
+                <>{GROUP_ORDER.filter(g => grouped[g]?.length > 0).map(group => (
                   <div key={group}>
                     {/* group header */}
                     <div className="flex items-center gap-3 my-3">
@@ -872,7 +877,12 @@ export default function ProductionNew() {
                       })}
                     </div>
                   </div>
-                ))
+                ))}
+                {filtered.length > visibleCount && (
+                  <button type="button" onClick={() => setVisibleCount(c => c + PAGE_SIZE)} className="btn-secondary w-full py-3 text-sm mt-3">
+                    Вчитај уште ({filtered.length - visibleCount} преостанати)
+                  </button>
+                )}</>
               )}
             </div>
           )}

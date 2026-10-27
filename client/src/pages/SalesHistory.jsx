@@ -47,6 +47,9 @@ export default function SalesHistory() {
   const [filterMethod, setFilterMethod] = useState('');
   const [filterBuyer, setFilterBuyer] = useState(''); // '' = all
   const [filterPaid, setFilterPaid] = useState('all'); // all | paid | unpaid
+  // Листата се прикажува на делови („Вчитај уште“) — долги листи забавуваат на телефон
+  const PAGE_SIZE = 30;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [showFilters, setShowFilters] = useState(false);
 
   // Document preview modal: { url (API), docType, fileName }
@@ -59,6 +62,8 @@ export default function SalesHistory() {
   const [buyerForm, setBuyerForm] = useState({ name: '', edb: '', address: '', contact_person: '', phone: '', email: '' });
 
   useEffect(() => { loadData(); }, []);
+  // При промена на филтер → листата почнува од почеток
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, filterFrom, filterTo, filterProduct, filterMethod, filterBuyer, filterPaid]);
 
   async function loadData() {
     try {
@@ -502,7 +507,7 @@ export default function SalesHistory() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredSales.map((sale, idx) => {
+              {filteredSales.slice(0, visibleCount).map((sale, idx) => {
                 const isExpanded = expandedSale === sale.id;
                 const totalKg = (sale.items || []).reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
                 return (
@@ -627,6 +632,11 @@ export default function SalesHistory() {
                   </div>
                 );
               })}
+              {filteredSales.length > visibleCount && (
+                <button type="button" onClick={() => setVisibleCount(c => c + PAGE_SIZE)} className="btn-secondary w-full py-3 text-sm">
+                  Вчитај уште ({filteredSales.length - visibleCount} преостанати)
+                </button>
+              )}
             </div>
           )}
         </>
