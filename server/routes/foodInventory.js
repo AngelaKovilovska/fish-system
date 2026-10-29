@@ -42,6 +42,8 @@ router.get('/', authMiddleware, async (req, res) => {
         ) all_consumption
         GROUP BY food_type
       ) c ON c.food_type = fi.food_type
+      -- Grower-13 EF не се користи во RAS: се прикажува само додека има залиха
+      WHERE NOT (fi.food_type LIKE 'Grower-13EF%' AND COALESCE(p.purchased_kg, 0) - COALESCE(c.consumed_kg, 0) <= 0)
       ORDER BY CASE fi.food_type
         WHEN 'Advance (1.5mm)' THEN 1
         WHEN 'Pregrower-15 (2mm)' THEN 2

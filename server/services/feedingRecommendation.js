@@ -5,6 +5,8 @@
  *
  * Based on Alltech Coppens 2025-2026 Catfish Feeding Tables
  * for African sharptooth catfish (Clarias gariepinus).
+ * Само храни означени „Designed for RAS“: Advance → Pre Grower-15 EF → Special Pro (3.0 / 4.5 mm).
+ * Grower-13 EF е за полуинтензивно одгледување и не се препорачува во RAS.
  *
  * Two tables:
  *   1. FRY protocol (day 1-57, weight 0.0025g - 10g)
@@ -34,27 +36,27 @@ const GROWOUT_TABLE = [
   { feedingDays: 21,  avgWeight: 58,   feedRate: 4.48, feedSizeMm: '3.0',     foodType: 'Special Pro' },
   { feedingDays: 28,  avgWeight: 90,   feedRate: 4.04, feedSizeMm: '3.0',     foodType: 'Special Pro' },
   { feedingDays: 35,  avgWeight: 132,  feedRate: 3.61, feedSizeMm: '3.0',     foodType: 'Special Pro' },
-  { feedingDays: 42,  avgWeight: 184,  feedRate: 3.16, feedSizeMm: '4.5',     foodType: 'Grower-13 EF' },
-  { feedingDays: 49,  avgWeight: 242,  feedRate: 2.74, feedSizeMm: '4.5',     foodType: 'Grower-13 EF' },
-  { feedingDays: 56,  avgWeight: 305,  feedRate: 2.37, feedSizeMm: '4.5',     foodType: 'Grower-13 EF' },
-  { feedingDays: 63,  avgWeight: 372,  feedRate: 2.08, feedSizeMm: '4.5',     foodType: 'Grower-13 EF' },
-  { feedingDays: 70,  avgWeight: 441,  feedRate: 1.87, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 77,  avgWeight: 514,  feedRate: 1.70, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 84,  avgWeight: 589,  feedRate: 1.57, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 91,  avgWeight: 669,  feedRate: 1.50, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 98,  avgWeight: 754,  feedRate: 1.43, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 105, avgWeight: 845,  feedRate: 1.36, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 112, avgWeight: 940,  feedRate: 1.30, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 119, avgWeight: 1040, feedRate: 1.24, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 126, avgWeight: 1144, feedRate: 1.18, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 133, avgWeight: 1251, feedRate: 1.12, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 140, avgWeight: 1361, feedRate: 1.06, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 147, avgWeight: 1473, feedRate: 1.02, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 154, avgWeight: 1589, feedRate: 0.97, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 161, avgWeight: 1706, feedRate: 0.92, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 168, avgWeight: 1826, feedRate: 0.89, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 175, avgWeight: 1948, feedRate: 0.86, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
-  { feedingDays: 178, avgWeight: 2000, feedRate: 0.84, feedSizeMm: '4.5/6.0', foodType: 'Grower-13 EF' },
+  { feedingDays: 42,  avgWeight: 184,  feedRate: 3.16, feedSizeMm: '4.5',     foodType: 'Special Pro' },
+  { feedingDays: 49,  avgWeight: 242,  feedRate: 2.74, feedSizeMm: '4.5',     foodType: 'Special Pro' },
+  { feedingDays: 56,  avgWeight: 305,  feedRate: 2.37, feedSizeMm: '4.5',     foodType: 'Special Pro' },
+  { feedingDays: 63,  avgWeight: 372,  feedRate: 2.08, feedSizeMm: '4.5',     foodType: 'Special Pro' },
+  { feedingDays: 70,  avgWeight: 441,  feedRate: 1.87, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 77,  avgWeight: 514,  feedRate: 1.70, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 84,  avgWeight: 589,  feedRate: 1.57, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 91,  avgWeight: 669,  feedRate: 1.50, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 98,  avgWeight: 754,  feedRate: 1.43, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 105, avgWeight: 845,  feedRate: 1.36, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 112, avgWeight: 940,  feedRate: 1.30, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 119, avgWeight: 1040, feedRate: 1.24, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 126, avgWeight: 1144, feedRate: 1.18, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 133, avgWeight: 1251, feedRate: 1.12, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 140, avgWeight: 1361, feedRate: 1.06, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 147, avgWeight: 1473, feedRate: 1.02, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 154, avgWeight: 1589, feedRate: 0.97, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 161, avgWeight: 1706, feedRate: 0.92, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 168, avgWeight: 1826, feedRate: 0.89, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 175, avgWeight: 1948, feedRate: 0.86, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
+  { feedingDays: 178, avgWeight: 2000, feedRate: 0.84, feedSizeMm: '4.5'    , foodType: 'Special Pro' },
 ];
 
 // ─── Feed product specifications ───
@@ -79,13 +81,6 @@ const FEED_PRODUCTS = {
     fat: { '3.0': 13, '4.5': 14 },
     type: 'floating',
     description: 'Специјална про — брз и ефикасен раст',
-  },
-  'Grower-13 EF': {
-    sizes: ['3.0', '4.5', '6.0'],
-    protein: { '3.0': 42, '4.5': 42, '6.0': 42 },
-    fat: 13,
-    type: 'floating',
-    description: 'Растење — полу-интензивен систем',
   },
   'Repro': {
     sizes: ['6.0', '9.0'],
@@ -228,12 +223,11 @@ function getRecommendedFeedProduct(avgWeight) {
   if (avgWeight < 10) {
     return { name: 'Advance', sizeMm: avgWeight < 1 ? '0.2-0.3' : avgWeight < 3 ? '0.5-0.8' : '1.5' };
   }
+  // RAS ланец (Coppens 2025-2026): Advance → Pre Grower-15 EF (2.0) → Special Pro 3.0 → Special Pro 4.5
   if (avgWeight < 13) return { name: 'Advance', sizeMm: '1.5' };
-  if (avgWeight < 35) return { name: 'Pre Grower-15 EF', sizeMm: '2.0' };
-  if (avgWeight < 132) return { name: 'Special Pro', sizeMm: '3.0' };
-  if (avgWeight < 200) return { name: 'Grower-13 EF', sizeMm: '3.0' };
-  if (avgWeight < 400) return { name: 'Grower-13 EF', sizeMm: '4.5' };
-  return { name: 'Grower-13 EF', sizeMm: '6.0' };
+  if (avgWeight < 58) return { name: 'Pre Grower-15 EF', sizeMm: '2.0' };
+  if (avgWeight < 184) return { name: 'Special Pro', sizeMm: '3.0' };
+  return { name: 'Special Pro', sizeMm: '4.5' };
 }
 
 /**
@@ -276,8 +270,10 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
   if (currentFoodType) {
     const recName = feedProduct.name;
     // Normalize comparison (ignore size info in parentheses)
-    const currentNorm = currentFoodType.replace(/\s*\(.*\)/, '').trim().toLowerCase();
-    const recNorm = recName.toLowerCase();
+    // „SpecialPro EF (3mm)“ и „Special Pro“ се ист производ — се споредува без празни места, „EF“ и големина
+    const norm = (t) => t.replace(/\s*\(.*\)/, '').toLowerCase().replace(/\bef\b/g, '').replace(/[\s-]/g, '');
+    const currentNorm = norm(currentFoodType);
+    const recNorm = norm(recName);
     if (!currentNorm.includes(recNorm) && !recNorm.includes(currentNorm)) {
       foodTypeWarning = `Моментално користите "${currentFoodType}", но препорачано е "${recName} (${feedProduct.sizeMm}mm)" за риби од ${avgWeight}g`;
     }
@@ -286,11 +282,9 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
   // Transition zone detection
   let transitionNote = null;
   const productChanges = [
-    { threshold: 10, from: 'Advance', to: 'Pre Grower-15 EF', toSize: '2.0mm' },
-    { threshold: 50, from: 'Pre Grower-15 EF', to: 'Special Pro', toSize: '3.0mm' },
-    { threshold: 120, from: 'Special Pro', to: 'Grower-13 EF', toSize: '3.0mm' },
-    { threshold: 180, from: 'Grower-13 EF 3mm', to: 'Grower-13 EF', toSize: '4.5mm' },
-    { threshold: 380, from: 'Grower-13 EF 4.5mm', to: 'Grower-13 EF', toSize: '6.0mm' },
+    { threshold: 13, from: 'Advance', to: 'Pre Grower-15 EF', toSize: '2.0mm' },
+    { threshold: 58, from: 'Pre Grower-15 EF', to: 'Special Pro', toSize: '3.0mm' },
+    { threshold: 184, from: 'Special Pro 3mm', to: 'Special Pro', toSize: '4.5mm' },
   ];
   for (const change of productChanges) {
     if (avgWeight >= change.threshold * 0.85 && avgWeight < change.threshold * 1.05) {
@@ -447,26 +441,22 @@ const FCR_BY_PRODUCT = {
   'Advance': 0.65,            // range 0.50-0.80, use midpoint
   'Pre Grower-15 EF': 0.65,   // range 0.50-0.80
   'Special Pro': 0.925,        // range 0.75-1.10
-  'Grower-13 EF': 0.925,      // range 0.75-1.10
   'Repro': 0.925,              // range 0.75-1.10
 };
 
-// ─── Map AI food type name → stock inventory food type name ───
-const AI_TO_STOCK_MAP = {
+// ─── Map ML food type name → stock inventory food type name ───
+const ML_TO_STOCK_MAP = {
   'Advance':            'Advance (1.5mm)',
   'Pre Grower-15 EF':  'Pregrower-15 (2mm)',
-  'Special Pro':        'SpecialPro EF (3mm)',
 };
 
-function mapToStockFoodType(aiProductName, feedSizeMm) {
-  if (AI_TO_STOCK_MAP[aiProductName]) return AI_TO_STOCK_MAP[aiProductName];
-  // Grower-13 EF has multiple sizes in stock
-  if (aiProductName === 'Grower-13 EF') {
-    if (feedSizeMm && feedSizeMm.includes('6')) return 'Grower-13EF (6mm)';
-    if (feedSizeMm && feedSizeMm.includes('4.5')) return 'Grower-13EF (4.5mm)';
-    return 'Grower-13EF (3mm)';
+function mapToStockFoodType(productName, feedSizeMm) {
+  if (ML_TO_STOCK_MAP[productName]) return ML_TO_STOCK_MAP[productName];
+  // Special Pro има две големини во залиха
+  if (productName === 'Special Pro') {
+    return feedSizeMm && String(feedSizeMm).includes('4.5') ? 'SpecialPro EF (4.5mm)' : 'SpecialPro EF (3mm)';
   }
-  return aiProductName;
+  return productName;
 }
 
 /**

@@ -58,7 +58,6 @@ export const FOOD_TYPES = [
   'Pregrower-15 (2mm)',
   'SpecialPro EF (3mm)',
   'SpecialPro EF (4.5mm)',
-  'Grower-13EF (3mm)',
-  'Grower-13EF (4.5mm)',
-  'Grower-13EF (6mm)',
 ];
+// Стари типови (Grower-13 EF — полуинтензивно, не за RAS): само за прикажување на постари записи
+export const LEGACY_FOOD_TYPES = ['Grower-13EF (3mm)', 'Grower-13EF (4.5mm)', 'Grower-13EF (6mm)'];
