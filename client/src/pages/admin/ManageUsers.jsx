@@ -35,6 +35,33 @@ export default function ManageUsers() {
     finally { setSubmitting(false); }
   };
 
+  const [savingRole, setSavingRole] = useState(null);
+  const handleRoleChange = async (u, role) => {
+    if (role === u.role) return;
+    const label = role === 'admin' ? 'Админ' : 'Оператор';
+    if (!confirm(`Да се смени улогата на ${u.full_name} во „${label}“?`)) return;
+    setSavingRole(u.id);
+    try {
+      await api.updateUser(u.id, { role });
+      setUsers(list => list.map(x => (x.id === u.id ? { ...x, role } : x)));
+    } catch (err) { alert('Грешка: ' + err.message); }
+    finally { setSavingRole(null); }
+  };
+
+  // Сопствената улога не се менува; за другите — паѓачко мени
+  const renderRole = (u) => (u.id === currentUser.id ? (
+    <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
+      {u.role === 'admin' ? 'Админ' : 'Оператор'}
+    </span>
+  ) : (
+    <select value={u.role} disabled={savingRole === u.id} onChange={(e) => handleRoleChange(u, e.target.value)}
+      aria-label={`Улога на ${u.full_name}`}
+      className="input-base !w-auto !py-1 !px-2 !text-xs font-semibold">
+      <option value="operator">Оператор</option>
+      <option value="admin">Админ</option>
+    </select>
+  ));
+
   const handleDelete = async (id, name) => {
     if (!confirm(`Дали сте сигурни дека сакате да го избришете ${name}?`)) return;
     try { await api.deleteUser(id); loadUsers(); }
@@ -137,9 +164,7 @@ export default function ManageUsers() {
                 </td>
                 <td className="text-(--text-secondary) text-xs">{u.email}</td>
                 <td className="text-center">
-                  <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
-                    {u.role === 'admin' ? 'Админ' : 'Оператор'}
-                  </span>
+                  {renderRole(u)}
                 </td>
                 <td className="text-right">
                   {u.id !== currentUser.id && (
@@ -175,9 +200,7 @@ export default function ManageUsers() {
                 </p>
                 <p className="text-xs text-(--text-muted) truncate">{u.email}</p>
               </div>
-              <span className={`pill ${u.role === 'admin' ? 'pill-warning' : 'pill-blue'}`}>
-                {u.role === 'admin' ? 'Админ' : 'Оператор'}
-              </span>
+              {renderRole(u)}
               {u.id !== currentUser.id && (
                 <button onClick={() => handleDelete(u.id, u.full_name)}
                   className="btn-ghost text-(--danger) p-2"

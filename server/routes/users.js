@@ -65,6 +65,11 @@ router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
     const { id } = req.params;
     const { email, full_name, role } = req.body;
 
+    // Админ не може самиот да си ја одземе админ улогата (за да не остане системот без админ)
+    if (role && role !== 'admin' && parseInt(id) === req.user.id) {
+      return res.status(400).json({ error: 'Не може да ја смените сопствената улога' });
+    }
+
     const fields = [];
     const values = [];
     let idx = 1;
