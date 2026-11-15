@@ -4,7 +4,9 @@ import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
 import { Save, Loader2, Info, Gauge, Fish, Weight, Calendar, Trash2, History, ChevronDown, ChevronUp, Check, ChevronLeft } from 'lucide-react';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// Локален датум (не UTC) — по полноќ да не го дава вчерашниот ден
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const emptyForm = () => { const o = {}; POOL_NUMBERS.forEach(n => { o[n] = { fishCount: '', avgWeight: '' }; }); return o; };
 
 export default function ManagePoolMeasurements() {
   const navigate = useNavigate();
@@ -21,11 +23,10 @@ export default function ManagePoolMeasurements() {
   const [fishInventory, setFishInventory] = useState([]);
 
   // Per-pool form data: { 1: { fishCount: '', avgWeight: '' }, 2: { ... }, ... }
-  const [poolData, setPoolData] = useState(() => {
-    const initial = {};
-    POOL_NUMBERS.forEach(n => { initial[n] = { fishCount: '', avgWeight: '' }; });
-    return initial;
-  });
+  const [poolData, setPoolData] = useState(emptyForm);
+  // Дали за избраниот датум веќе има зачувано мерење (тогаш формата ги уредува тие вредности)
+  const [existingForDate, setExistingForDate] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const updatePoolField = (poolNum, field, value) => {
     setPoolData(prev => ({ ...prev, [poolNum]: { ...prev[poolNum], [field]: value } }));
@@ -44,6 +45,23 @@ export default function ManagePoolMeasurements() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Ако за датумот веќе има мерење → вчитај го во формата, за повторно зачувување да не избрише ништо
+  const loadForDate = async (date) => {
+    try {
+      const data = await api.getPoolMeasurementsByDate(date);
+      const rows = data.measurements || [];
+      const form = emptyForm();
+      rows.forEach(m => {
+        if (form[m.pool_number] && m.fish_count > 0) {
+          form[m.pool_number] = { fishCount: String(m.fish_count), avgWeight: String(parseFloat(m.avg_weight_gr)) };
+        }
+      });
+      setPoolData(form);
+      setExistingForDate(rows.length > 0);
+    } catch { setExistingForDate(false); }
+  };
+  useEffect(() => { setConfirming(false); if (measuredDate) loadForDate(measuredDate); }, [measuredDate]);
 
   const loadHistory = async (poolNum) => {
     setLoadingHistory(true);
@@ -65,7 +83,7 @@ export default function ManagePoolMeasurements() {
     try {
       await api.deletePoolMeasurement(id);
       setHistory(h => h.filter(m => m.id !== id));
-      await load();
+      await Promise.all([load(), loadForDate(measuredDate)]);
     } catch (err) { setMessage(err.message); }
     finally { setDeleting(null); }
   };
@@ -76,36 +94,53 @@ export default function ManagePoolMeasurements() {
   // Check if a pool has any data entered
   const poolHasData = (poolNum) => {
     const d = poolData[poolNum];
-    return d && (d.fishCount !== '' || d.avgWeight !== '');
+    return !!d && ((parseFloat(d.fishCount) || 0) > 0 || (parseFloat(d.avgWeight) || 0) > 0);
   };
 
   // Count how many pools have data
   const filledCount = POOL_NUMBERS.filter(n => poolHasData(n)).length;
 
+  // Проверка пред зачувување: број и тежина мора да одат заедно
+  const validationError = () => {
+    if (!measuredDate) return 'Изберете датум на мерење';
+    if (measuredDate > todayStr()) return 'Датумот на мерење не може да биде во иднина';
+    for (const n of POOL_NUMBERS) {
+      const c = parseFloat(poolData[n].fishCount) || 0, w = parseFloat(poolData[n].avgWeight) || 0;
+      if (c < 0 || w < 0) return `Базен ${n}: вредностите не може да бидат негативни`;
+      if (c > 0 && w <= 0) return `Базен ${n}: внесете и тежина`;
+      if (w > 0 && c <= 0) return `Базен ${n}: внесете и број на риби`;
+      if (!Number.isInteger(c)) return `Базен ${n}: бројот на риби мора да биде цел број`;
+    }
+    if (filledCount === 0) return 'Внесете барем еден базен со риби';
+    return null;
+  };
+
+  const askConfirm = () => {
+    const err = validationError();
+    if (err) { setMessage(err); return; }
+    setMessage(''); setConfirming(true);
+  };
+
   const handleSaveAll = async () => {
-    // Send ALL pools — pools without entered data are saved as 0/0 (empty pool)
+    const err = validationError();
+    if (err) { setMessage(err); setConfirming(false); return; }
+    // Мерење = сортирање: се зачувуваат сите базени; базен без бројки = празен по сортирањето
     const toSave = POOL_NUMBERS.map(n => ({
       pool_number: n,
-      fish_count: poolData[n].fishCount !== '' ? poolData[n].fishCount : 0,
-      avg_weight_gr: poolData[n].avgWeight !== '' ? poolData[n].avgWeight : 0,
+      fish_count: parseInt(poolData[n].fishCount) || 0,
+      avg_weight_gr: parseFloat(poolData[n].avgWeight) || 0,
     }));
 
     setSaving(true); setMessage('');
     try {
-      const result = await api.createPoolMeasurementBatch({
-        measurements: toSave,
-        measured_at: measuredDate,
-      });
-      const withFish = POOL_NUMBERS.filter(n => poolHasData(n)).length;
+      await api.createPoolMeasurementBatch({ measurements: toSave, measured_at: measuredDate });
+      const withFish = filledCount;
       const empty = POOL_NUMBERS.length - withFish;
       setMessage(`Зачувано! ${withFish} базен${withFish !== 1 ? 'и' : ''} со риби, ${empty} празн${empty !== 1 ? 'и' : 'о'}`);
-      // Reset form
-      const reset = {};
-      POOL_NUMBERS.forEach(n => { reset[n] = { fishCount: '', avgWeight: '' }; });
-      setPoolData(reset);
-      setMeasuredDate(todayStr());
-      await load();
-    } catch (err) { setMessage(err.message); }
+      setConfirming(false);
+      // Формата останува со зачуваните вредности за тој датум (може веднаш да се поправи)
+      await Promise.all([load(), loadForDate(measuredDate)]);
+    } catch (err) { setMessage(err.message); setConfirming(false); }
     finally { setSaving(false); }
   };
 
@@ -131,7 +166,7 @@ export default function ManagePoolMeasurements() {
           <h1 className="page-title mb-1">Мерења по базен</h1>
         </div>
         <p className="text-xs text-(--text-muted) leading-relaxed">
-          Внесете број на риби и просечна тежина. Зачувајте сè одеднаш на крајот.
+          Мерење и сортирање: внесете број на риби и просечна тежина за секој базен по распределбата. Базен без внесени бројки се зачувува како празен.
         </p>
       </div>
 
@@ -143,7 +178,12 @@ export default function ManagePoolMeasurements() {
         </div>
         <input type="date" value={measuredDate}
           onChange={(e) => setMeasuredDate(e.target.value)}
-          className="input-base" />
+          max={todayStr()} className="input-base" />
+        {existingForDate && (
+          <p className="text-[11px] mt-2 text-(--warning) font-medium">
+            За овој датум веќе има зачувано мерење — прикажани се зачуваните вредности. Со зачувување ги заменувате.
+          </p>
+        )}
       </div>
 
       {/* Pool tabs */}
@@ -261,17 +301,33 @@ export default function ManagePoolMeasurements() {
           </p>
         )}
 
-        <button onClick={handleSaveAll} disabled={saving}
-          className="btn-primary w-full py-3">
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <div className="wave-loader"><span /><span /><span /><span /></div>
-              Се зачувува...
-            </span>
-          ) : (
-            <><Save size={16} /> Зачувај сите мерења</>
-          )}
-        </button>
+        {!confirming ? (
+          <button onClick={askConfirm} disabled={saving} className="btn-primary w-full py-3">
+            <Save size={16} /> Зачувај ги мерењата
+          </button>
+        ) : (
+          <div className="rounded-(--r-md) border border-(--border) p-3">
+            <p className="text-xs font-semibold text-(--text-primary) mb-2" style={{ fontFamily: 'Sora, sans-serif' }}>
+              Проверете пред зачувување — {measuredDate.slice(8, 10)}.{measuredDate.slice(5, 7)}.{measuredDate.slice(0, 4)}
+            </p>
+            <div className="space-y-1 mb-3">
+              {POOL_NUMBERS.map(n => (
+                <div key={n} className="flex justify-between text-xs">
+                  <span className="font-semibold text-(--text-secondary)">Базен {n}</span>
+                  {poolHasData(n)
+                    ? <span className="text-(--text-primary)">{poolData[n].fishCount} риби / {poolData[n].avgWeight} gr</span>
+                    : <span className="text-(--danger) font-semibold">ПРАЗЕН (0 риби)</span>}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setConfirming(false)} disabled={saving} className="btn-secondary w-full py-2.5">Назад</button>
+              <button type="button" onClick={handleSaveAll} disabled={saving} className="btn-primary w-full py-2.5">
+                {saving ? 'Се зачувува...' : 'Потврди и зачувај'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Measurement history */}

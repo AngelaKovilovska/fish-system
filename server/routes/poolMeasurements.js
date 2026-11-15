@@ -15,7 +15,7 @@ router.get('/', authMiddleware, async (req, res) => {
       SELECT DISTINCT ON (pool_number)
         id, pool_number, fish_count, avg_weight_gr, measured_at
       FROM pool_measurements
-      ORDER BY pool_number, measured_at DESC
+      ORDER BY pool_number, measured_at DESC, id DESC
     `);
 
     // 2. Total feed given per pool since their last measurement
@@ -24,7 +24,7 @@ router.get('/', authMiddleware, async (req, res) => {
         SELECT DISTINCT ON (pool_number)
           pool_number, DATE(measured_at) as measured_date
         FROM pool_measurements
-        ORDER BY pool_number, measured_at DESC
+        ORDER BY pool_number, measured_at DESC, id DESC
       )
       SELECT
         lm.pool_number,
@@ -91,7 +91,7 @@ router.get('/history/:poolNumber', authMiddleware, validatePoolNumber, async (re
   try {
     const { poolNumber } = req.params;
     const result = await pool.query(
-      'SELECT * FROM pool_measurements WHERE pool_number = $1 ORDER BY measured_at DESC LIMIT 20',
+      'SELECT * FROM pool_measurements WHERE pool_number = $1 ORDER BY measured_at DESC, id DESC LIMIT 20',
       [poolNumber]
     );
     res.json({ measurements: result.rows });
@@ -101,89 +101,133 @@ router.get('/history/:poolNumber', authMiddleware, validatePoolNumber, async (re
   }
 });
 
-// POST /api/pool-measurements - add new measurement (admin only)
+// Мерење = сортирање: рибите се мерат и се распределуваат по базени.
+// Едно мерење по базен по датум — повторно зачувување за ист датум го заменува постоечкото.
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeDate(value) {
+  const d = value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+  return DATE_RE.test(d) ? d : null;
+}
+
+// Проверка на едно мерење; враќа { poolNum, fishCount, avgWeight } или { error }
+function parseMeasurement(m) {
+  const poolNum = parseInt(m.pool_number);
+  if (!poolNum || poolNum < 1 || poolNum > 8) return { error: 'Невалиден број на базен' };
+  const rawCount = m.fish_count === '' || m.fish_count == null ? 0 : Number(m.fish_count);
+  const rawWeight = m.avg_weight_gr === '' || m.avg_weight_gr == null ? 0 : Number(m.avg_weight_gr);
+  if (!Number.isFinite(rawCount) || !Number.isFinite(rawWeight) || rawCount < 0 || rawWeight < 0 || !Number.isInteger(rawCount)) {
+    return { error: `Базен ${poolNum}: невалидни вредности` };
+  }
+  if (rawCount > 0 && rawWeight <= 0) return { error: `Базен ${poolNum}: внесена е бројка на риби, но не и тежина` };
+  if (rawWeight > 0 && rawCount <= 0) return { error: `Базен ${poolNum}: внесена е тежина, но не и број на риби` };
+  return { poolNum, fishCount: rawCount, avgWeight: rawWeight };
+}
+
+async function upsertMeasurement(client, { poolNum, fishCount, avgWeight }, date, userId) {
+  const existing = await client.query(
+    'SELECT id FROM pool_measurements WHERE pool_number = $1 AND measured_at::date = $2::date ORDER BY id DESC',
+    [poolNum, date]
+  );
+  let row;
+  if (existing.rows.length > 0) {
+    const keepId = existing.rows[0].id;
+    const upd = await client.query(
+      `UPDATE pool_measurements SET fish_count = $1, avg_weight_gr = $2, measured_by = $3, created_at = NOW()
+       WHERE id = $4 RETURNING *`,
+      [fishCount, avgWeight, userId, keepId]
+    );
+    row = upd.rows[0];
+    if (existing.rows.length > 1) {
+      await client.query('DELETE FROM pool_measurements WHERE pool_number = $1 AND measured_at::date = $2::date AND id <> $3', [poolNum, date, keepId]);
+    }
+  } else {
+    const ins = await client.query(
+      `INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at, created_at)
+       VALUES ($1, $2, $3, $4, $5::date, NOW()) RETURNING *`,
+      [poolNum, fishCount, avgWeight, userId, date]
+    );
+    row = ins.rows[0];
+  }
+  await client.query(
+    `INSERT INTO pool_fish_inventory (pool_number, current_count, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (pool_number) DO UPDATE SET current_count = $2, updated_at = NOW()`,
+    [poolNum, fishCount]
+  );
+  return row;
+}
+
+async function saveMeasurements(req, res, list, measuredAt) {
+  const date = normalizeDate(measuredAt);
+  if (!date) return res.status(400).json({ error: 'Невалиден датум на мерење' });
+  if (date > new Date(Date.now() + 86400000).toISOString().slice(0, 10)) {
+    return res.status(400).json({ error: 'Датумот на мерење не може да биде во иднина' });
+  }
+  const parsed = [];
+  const seen = new Set();
+  for (const m of list) {
+    const p = parseMeasurement(m || {});
+    if (p.error) return res.status(400).json({ error: p.error });
+    if (seen.has(p.poolNum)) return res.status(400).json({ error: `Базен ${p.poolNum} е внесен двапати` });
+    seen.add(p.poolNum);
+    parsed.push(p);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const saved = [];
+    for (const p of parsed) saved.push(await upsertMeasurement(client, p, date, req.user.id));
+    await client.query('COMMIT');
+    return saved;
+  } catch (innerErr) {
+    await client.query('ROLLBACK');
+    throw innerErr;
+  } finally {
+    client.release();
+  }
+}
+
+// GET /api/pool-measurements/by-date?date=YYYY-MM-DD — мерењата внесени за даден датум (за уредување)
+router.get('/by-date', authMiddleware, async (req, res) => {
+  try {
+    const date = normalizeDate(req.query.date);
+    if (!date) return res.status(400).json({ error: 'Невалиден датум' });
+    const result = await pool.query(
+      `SELECT DISTINCT ON (pool_number) id, pool_number, fish_count, avg_weight_gr, measured_at
+       FROM pool_measurements WHERE measured_at::date = $1::date
+       ORDER BY pool_number, id DESC`,
+      [date]
+    );
+    res.json({ date, measurements: result.rows });
+  } catch (err) {
+    console.error('Get measurements by date error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
+// POST /api/pool-measurements - едно мерење (admin only)
 router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { pool_number, fish_count, avg_weight_gr, measured_at } = req.body;
-
-    if (!pool_number || pool_number < 1 || pool_number > 8) {
-      return res.status(400).json({ error: 'Невалиден број на базен' });
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      const result = await client.query(
-        'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [pool_number, fish_count || 0, avg_weight_gr || 0, req.user.id, measured_at || new Date()]
-      );
-
-      // Update fish inventory to the new measured count
-      await client.query(
-        `INSERT INTO pool_fish_inventory (pool_number, current_count, updated_at)
-         VALUES ($1, $2, NOW())
-         ON CONFLICT (pool_number) DO UPDATE SET current_count = $2, updated_at = NOW()`,
-        [pool_number, fish_count || 0]
-      );
-
-      await client.query('COMMIT');
-      res.status(201).json({ measurement: result.rows[0] });
-    } catch (innerErr) {
-      await client.query('ROLLBACK');
-      throw innerErr;
-    } finally {
-      client.release();
-    }
+    const saved = await saveMeasurements(req, res, [{ pool_number, fish_count, avg_weight_gr }], measured_at);
+    if (Array.isArray(saved)) res.status(201).json({ measurement: saved[0] });
   } catch (err) {
     console.error('Create pool measurement error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   }
 });
 
-// POST /api/pool-measurements/batch - save measurements for multiple pools at once (admin only)
+// POST /api/pool-measurements/batch - мерење/сортирање за повеќе базени одеднаш (admin only)
 router.post('/batch', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { measurements, measured_at } = req.body;
     if (!measurements || !Array.isArray(measurements) || measurements.length === 0) {
       return res.status(400).json({ error: 'Нема мерења за зачувување' });
     }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const saved = [];
-
-      for (const m of measurements) {
-        const poolNum = parseInt(m.pool_number);
-        if (!poolNum || poolNum < 1 || poolNum > 8) continue;
-        const fishCount = parseInt(m.fish_count) || 0;
-        const avgWeight = parseFloat(m.avg_weight_gr) || 0;
-        // Save even 0/0 — records that the pool is empty after sorting
-
-        const result = await client.query(
-          'INSERT INTO pool_measurements (pool_number, fish_count, avg_weight_gr, measured_by, measured_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-          [poolNum, fishCount, avgWeight, req.user.id, measured_at || new Date()]
-        );
-
-        await client.query(
-          `INSERT INTO pool_fish_inventory (pool_number, current_count, updated_at)
-           VALUES ($1, $2, NOW())
-           ON CONFLICT (pool_number) DO UPDATE SET current_count = $2, updated_at = NOW()`,
-          [poolNum, fishCount]
-        );
-
-        saved.push(result.rows[0]);
-      }
-
-      await client.query('COMMIT');
-      res.status(201).json({ measurements: saved, count: saved.length });
-    } catch (innerErr) {
-      await client.query('ROLLBACK');
-      throw innerErr;
-    } finally {
-      client.release();
-    }
+    const saved = await saveMeasurements(req, res, measurements, measured_at);
+    if (Array.isArray(saved)) res.status(201).json({ measurements: saved, count: saved.length });
   } catch (err) {
     console.error('Batch pool measurement error:', err);
     res.status(500).json({ error: 'Серверска грешка' });

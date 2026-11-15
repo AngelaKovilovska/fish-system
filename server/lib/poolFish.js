@@ -4,16 +4,17 @@
 //                 − угинати (чеклисти од датумот на мерење наваму)
 //                 − продадени (само стари чеклисти, полето веќе не се внесува)
 //                 − риби земени за преработка (production_batches: изворен базен = базенот,
-//                   датум на производство ≥ датум на мерење)
+//                   датум на производство > датум на мерење, или ист ден но внесени по мерењето)
 //
 // Сите функции примаат `db` — pool или client од отворена трансакција.
 
 const COUNT_SQL = `
   WITH latest_measurement AS (
     SELECT DISTINCT ON (pool_number)
-      pool_number, fish_count, measured_at::date AS measured_date
+      pool_number, fish_count, measured_at::date AS measured_date,
+      COALESCE(created_at, measured_at) AS entered_at
     FROM pool_measurements
-    ORDER BY pool_number, measured_at DESC
+    ORDER BY pool_number, measured_at DESC, id DESC
   ),
   removed AS (
     SELECT pf.pool_number,
@@ -28,7 +29,10 @@ const COUNT_SQL = `
     SELECT pb.source_pool AS pool_number, SUM(COALESCE(pb.fish_count, 0)) AS total_processed
     FROM production_batches pb
     JOIN latest_measurement lm ON pb.source_pool = lm.pool_number
-    WHERE COALESCE(pb.production_date, pb.created_at::date) >= lm.measured_date
+    -- по датумот на мерење; на самиот ден на мерење само сериите внесени ПОСЛЕ мерењето
+    -- (серија внесена пред мерењето е веќе надвор од измерениот број)
+    WHERE COALESCE(pb.production_date, pb.created_at::date) > lm.measured_date
+       OR (COALESCE(pb.production_date, pb.created_at::date) = lm.measured_date AND pb.created_at > lm.entered_at)
     GROUP BY pb.source_pool
   )
   SELECT lm.pool_number,

@@ -115,6 +115,7 @@ export const api = {
 
   // Pool measurements
   getPoolMeasurements: () => request('/pool-measurements'),
+  getPoolMeasurementsByDate: (date) => request(`/pool-measurements/by-date?date=${date}`),
   getPoolMeasurementHistory: (poolNumber) => request(`/pool-measurements/history/${poolNumber}`),
   createPoolMeasurement: (data) => request('/pool-measurements', { method: 'POST', body: JSON.stringify(data) }),
   createPoolMeasurementBatch: (data) => request('/pool-measurements/batch', { method: 'POST', body: JSON.stringify(data) }),

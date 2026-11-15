@@ -49,7 +49,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
         measured_at,
         DATE(measured_at) as measured_date
       FROM pool_measurements
-      ORDER BY pool_number, measured_at DESC
+      ORDER BY pool_number, measured_at DESC, id DESC
     `);
 
     // 3. Get temperature: 3-day moving average for stable recommendations,
@@ -87,7 +87,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
         SELECT DISTINCT ON (pool_number)
           pool_number, DATE(measured_at) as measured_date
         FROM pool_measurements
-        ORDER BY pool_number, measured_at DESC
+        ORDER BY pool_number, measured_at DESC, id DESC
       )
       SELECT
         lm.pool_number,
@@ -264,7 +264,7 @@ router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, 
       `SELECT fish_count, avg_weight_gr, measured_at, DATE(measured_at) as measured_date
        FROM pool_measurements
        WHERE pool_number = $1
-       ORDER BY measured_at DESC LIMIT 1`,
+       ORDER BY measured_at DESC, id DESC LIMIT 1`,
       [poolNumber]
     );
 
@@ -424,7 +424,7 @@ router.get('/stock-projection', authMiddleware, async (req, res) => {
       SELECT DISTINCT ON (pool_number)
         pool_number, avg_weight_gr
       FROM pool_measurements
-      ORDER BY pool_number, measured_at DESC
+      ORDER BY pool_number, measured_at DESC, id DESC
     `);
 
     // 2. Get latest water temperature
