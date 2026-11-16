@@ -324,12 +324,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const newSeries = docNum.seriesForPayment(newMethod);
     if (oldSeries !== newSeries) {
       invoiceNumber = await docNum.nextNumber(client, newSeries, newSaleDate);
+    } else {
+      // иста серија, сменет датум → бројот го следи датумот на продажбата
+      invoiceNumber = await docNum.redate(client, invoiceNumber, newSeries, existing.rows[0].sale_date, newSaleDate);
     }
+    const dispatchNumber = await docNum.redate(client, existing.rows[0].dispatch_number, 'dispatch', existing.rows[0].sale_date, newSaleDate);
     const result = await client.query(
       `UPDATE sales SET buyer_id = $1, sale_date = $2, due_date = $3, payment_method = $4,
          lot_number = $5, transport_vehicle = $6, product_temp = $7,
          subtotal = $8, vat_rate = $9, vat_amount = $10, total = $11, notes = $12,
-         payment_status = $14, paid_at = $15, invoice_number = $16, packaging = $17, updated_at = NOW()
+         payment_status = $14, paid_at = $15, invoice_number = $16, packaging = $17, dispatch_number = $18, updated_at = NOW()
        WHERE id = $13 RETURNING *`,
       [
         buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
@@ -337,7 +341,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         resolved.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
         subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
-        paymentStatus, paidAt, invoiceNumber, packOf(packaging, existing.rows[0].packaging)
+        paymentStatus, paidAt, invoiceNumber, packOf(packaging, existing.rows[0].packaging), dispatchNumber
       ]
     );
 

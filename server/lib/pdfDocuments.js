@@ -165,7 +165,14 @@ const DECL_SCALE = 2;
 const DECL_ORIGIN = { x: 72, top: 74 }; // горен-лев агол на етикетата во урнекот (pt)
 
 async function buildDeclaration(sale) {
-  const { totalKg, firstLot, lotDate, expiry } = saleFacts(sale);
+  const { items, totalKg, firstLot } = saleFacts(sale);
+  // Една декларација по LOT (секој LOT има свој датум на производство и рок) — количината е онаа од тој LOT.
+  const byLot = new Map();
+  for (const it of items) {
+    const lot = it.lot_number || sale.lot_number || '';
+    byLot.set(lot, (byLot.get(lot) || 0) + (parseFloat(it.quantity_kg) || 0));
+  }
+  const groups = byLot.size > 0 ? [...byLot.entries()] : [[firstLot, totalKg]];
 
   const tpl = await PDFDocument.load(readCached('tpl:declaration', path.join(TEMPLATES_DIR, 'declaration.pdf')));
   const doc = await PDFDocument.create();
@@ -176,7 +183,11 @@ async function buildDeclaration(sale) {
   const [tplPage] = tpl.getPages();
   const embedded = await doc.embedPage(tplPage);
   const W = tplPage.getWidth(), H = tplPage.getHeight();
+
+  for (const [lot, lotKg] of groups) {
   const page = doc.addPage([W, H]);
+  const lotDate = dateFromLot(lot);
+  const expiry = lotDate ? addMonths(lotDate, 6) : null;
 
   // Точка (x, top) од урнекот → (S·x + dx, S·top + dtop) така што аголот на етикетата останува на исто место
   const S = DECL_SCALE;
@@ -188,13 +199,14 @@ async function buildDeclaration(sale) {
   const ctx = { page, font: bold, bold, H };
   const X = S * 161.5 + dx, SZ = 6.5 * S, MAXW = 88 * S;
   const rows = [
-    [219.6, `${qty(totalKg)} кг`],
+    [219.6, `${qty(lotKg)} кг`],
     [231.2, fmtDate(lotDate)],
     [242.7, fmtDate(lotDate)],
     [254.3, fmtDate(expiry)],
-    [265.8, firstLot],
+    [265.8, lot],
   ];
   for (const [top, val] of rows) draw(ctx, val, { x: X, top: S * top + dtop, size: SZ, font: bold, color: BLACK, maxWidth: MAXW });
+  }
   return doc.save();
 }
 

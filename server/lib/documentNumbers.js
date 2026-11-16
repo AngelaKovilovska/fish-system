@@ -37,4 +37,15 @@ async function nextNumber(client, series, saleDate) {
   return `${PREFIX[series]}${String(seq).padStart(3, '0')}-${dateSuffix(d)}`;
 }
 
-module.exports = { nextNumber, seriesForPayment, dateSuffix };
+// При промена на датумот на продажба: редниот број останува, се менува само делот со датумот (…-ГГММДД).
+// Ако се смени годината, се доделува нов број од серијата за новата година.
+async function redate(client, number, series, oldDate, newDate) {
+  if (!number) return number;
+  const a = toDate(oldDate), b = toDate(newDate);
+  if (dateSuffix(a) === dateSuffix(b)) return number;
+  if (a.getFullYear() !== b.getFullYear()) return nextNumber(client, series, newDate);
+  const m = String(number).match(/^(.*-)\d{6}$/);
+  return m ? `${m[1]}${dateSuffix(b)}` : number;
+}
+
+module.exports = { nextNumber, seriesForPayment, dateSuffix, redate };
