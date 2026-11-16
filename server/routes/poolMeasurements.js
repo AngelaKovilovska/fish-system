@@ -127,16 +127,20 @@ function parseMeasurement(m) {
 
 async function upsertMeasurement(client, { poolNum, fishCount, avgWeight }, date, userId) {
   const existing = await client.query(
-    'SELECT id FROM pool_measurements WHERE pool_number = $1 AND measured_at::date = $2::date ORDER BY id DESC',
+    'SELECT id, fish_count FROM pool_measurements WHERE pool_number = $1 AND measured_at::date = $2::date ORDER BY id DESC',
     [poolNum, date]
   );
   let row;
   if (existing.rows.length > 0) {
     const keepId = existing.rows[0].id;
+    // Часот на внес (created_at) се менува само ако се смени бројот на риби (ново броење). Поправка само на
+    // тежината не смее да го помести — инаку серија внесена тој ден по мерењето повеќе не би се одземала.
+    const countChanged = parseInt(existing.rows[0].fish_count) !== fishCount;
     const upd = await client.query(
-      `UPDATE pool_measurements SET fish_count = $1, avg_weight_gr = $2, measured_by = $3, created_at = NOW()
+      `UPDATE pool_measurements SET fish_count = $1, avg_weight_gr = $2, measured_by = $3,
+         created_at = CASE WHEN $5 THEN NOW() ELSE created_at END
        WHERE id = $4 RETURNING *`,
-      [fishCount, avgWeight, userId, keepId]
+      [fishCount, avgWeight, userId, keepId, countChanged]
     );
     row = upd.rows[0];
     if (existing.rows.length > 1) {

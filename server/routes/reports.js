@@ -1296,10 +1296,10 @@ router.post('/inventory', authMiddleware, async (req, res) => {
     const { sendEmail } = req.body;
 
     // Get current inventory
-    const invResult = await pool.query(
-      'SELECT * FROM food_inventory ORDER BY food_type'
-    );
-    const inventory = invResult.rows;
+    // Иста пресметка како на екранот: набавки − потрошено (не колоната food_inventory.quantity_kg)
+    const { getFoodStock, isHiddenLegacy } = require('../lib/foodStock');
+    const inventory = (await getFoodStock(pool)).filter(r => !isHiddenLegacy(r))
+      .map(r => ({ food_type: r.food_type, quantity_kg: Math.max(0, r.stock_kg), updated_at: r.updated_at }));
 
     // Get recent log entries (last 30)
     const logResult = await pool.query(

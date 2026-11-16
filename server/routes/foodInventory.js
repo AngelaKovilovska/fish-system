@@ -1,5 +1,6 @@
 const express = require('express');
-const { todayLocal } = require('../lib/dates');
+const { todayLocal, isValidDateStr } = require('../lib/dates');
+const { getFoodStock } = require('../lib/foodStock');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
@@ -76,7 +77,7 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
     // Normalize to items array
     let items;
     if (req.body.items && Array.isArray(req.body.items)) {
-      items = req.body.items.filter(it => it.food_type && it.quantity_kg > 0);
+      items = req.body.items.filter(it => it.food_type && Number(it.quantity_kg) > 0);
     } else if (req.body.food_type && req.body.quantity_kg > 0) {
       items = [{ food_type: req.body.food_type, quantity_kg: req.body.quantity_kg }];
     } else {
@@ -86,6 +87,8 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
     if (items.length === 0) {
       return res.status(400).json({ error: 'Внесете барем еден тип храна со количина > 0' });
     }
+    if (!isValidDateStr(String(date).slice(0, 10))) return res.status(400).json({ error: 'Невалиден датум на набавка' });
+    if (items.some(it => !Number.isFinite(Number(it.quantity_kg)))) return res.status(400).json({ error: 'Невалидна количина' });
 
     await client.query('BEGIN');
 
@@ -130,22 +133,13 @@ router.post('/census', authMiddleware, async (req, res) => {
     const items = (req.body.items || []).filter(it => it.food_type && it.quantity_kg !== '' && it.quantity_kg != null && parseFloat(it.quantity_kg) >= 0);
     if (items.length === 0) return res.status(400).json({ error: 'Внесете преброена количина за барем еден тип храна' });
 
+    if (!isValidDateStr(String(date).slice(0, 10))) return res.status(400).json({ error: 'Невалиден датум на попис' });
+    if (date > todayLocal()) return res.status(400).json({ error: 'Датумот на попис не може да биде во иднина' });
+
     await client.query('BEGIN');
-    const cur = await client.query(`
-      SELECT fi.food_type,
-        COALESCE(p.purchased_kg, 0) - COALESCE(c.consumed_kg, 0) AS stock_kg
-      FROM food_inventory fi
-      LEFT JOIN (SELECT food_type, SUM(change_kg) AS purchased_kg FROM food_inventory_log WHERE reason = 'purchase' GROUP BY food_type) p ON p.food_type = fi.food_type
-      LEFT JOIN (
-        SELECT food_type, SUM(consumed_gr) / 1000.0 AS consumed_kg FROM (
-          SELECT food_type, food_quantity_gr AS consumed_gr FROM pool_meals WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
-          UNION ALL
-          SELECT pf.food_type, pf.food_quantity_gr FROM pool_feeding pf JOIN daily_records dr ON pf.daily_record_id = dr.id
-          WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
-            AND NOT EXISTS (SELECT 1 FROM pool_meals pm WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number)
-        ) x GROUP BY food_type
-      ) c ON c.food_type = fi.food_type`);
-    const stockMap = Object.fromEntries(cur.rows.map(r => [r.food_type, parseFloat(r.stock_kg) || 0]));
+    // Состојба НА ДАТУМОТ на пописот — оброци и набавки по тој датум остануваат да се одземаат/додаваат нормално
+    const cur = await getFoodStock(client, date);
+    const stockMap = Object.fromEntries(cur.map(r => [r.food_type, r.stock_kg]));
     const docNo = `ПОПИС-${date.replace(/-/g, '')}`;
     let changed = 0;
     for (const it of items) {
@@ -183,7 +177,7 @@ router.put('/purchase/:id', authMiddleware, adminOnly, validateId, async (req, r
     const { id } = req.params;
     const { food_type, quantity_kg, purchase_date, supplier, document_number } = req.body;
 
-    if (!quantity_kg || quantity_kg <= 0) {
+    if (!Number.isFinite(Number(quantity_kg)) || Number(quantity_kg) <= 0) {
       return res.status(400).json({ error: 'Количината мора да е поголема од 0' });
     }
 
@@ -196,6 +190,10 @@ router.put('/purchase/:id', authMiddleware, adminOnly, validateId, async (req, r
       return res.status(404).json({ error: 'Набавката не е пронајдена' });
     }
     const oldEntry = old.rows[0];
+    // Корекциите од попис имаат знак (+/−) и не се уредуваат како набавка — се внесува нов попис
+    if (oldEntry.supplier === 'Попис') {
+      return res.status(400).json({ error: 'Записот од попис не се уредува. Внесете нов попис или избришете го овој.' });
+    }
 
     await client.query('BEGIN');
 
@@ -280,7 +278,7 @@ router.get('/log', authMiddleware, async (req, res) => {
   try {
     const { days = 3 } = req.query;
     const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
+    since.setDate(since.getDate() - (Math.min(Math.max(parseInt(days) || 3, 1), 3650)));
     const sinceStr = since.toISOString().split('T')[0];
 
     // Purchases from log (individual entries)
@@ -417,7 +415,13 @@ router.get('/projection', authMiddleware, async (req, res) => {
         };
       }
 
-      const avgDailyKg = consumption.totalConsumedKg / consumption.activeDays;
+      // Просек по календарски ден од првото користење во периодот до денес (не само деновите кога е користена —
+      // храна дадена еднаш во 14 дена инаку би изгледала како да се троши секој ден)
+      const spanDays = Math.max(
+        consumption.activeDays,
+        Math.min(periodDays + 1, Math.floor((today - new Date(consumption.firstDate)) / 86400000) + 1)
+      );
+      const avgDailyKg = consumption.totalConsumedKg / spanDays;
       const daysLeft = avgDailyKg > 0 ? Math.floor(currentStockKg / avgDailyKg) : null;
 
       let depletionDate = null;

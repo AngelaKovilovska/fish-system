@@ -275,9 +275,9 @@ export default function ChecklistForm() {
       clearDraft();
       setSuccess(isEdit ? 'Записот е ажуриран!' : 'Записот е зачуван!');
       if (result.alerts?.length > 0) setSuccess(prev => prev + ` ${result.alerts.length} аларм(и).`);
+      // Копчето останува оневозможено до пренасочувањето — втор клик не смее да направи втор запис
       setTimeout(() => navigate('/entry'), 2000);
-    } catch (err) { setError(err.message); }
-    finally { setSaving(false); }
+    } catch (err) { setError(err.message); setSaving(false); }
   };
 
   const currentStepErrors = stepErrors[step] || [];

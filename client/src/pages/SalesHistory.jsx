@@ -68,7 +68,7 @@ export default function SalesHistory() {
   async function loadData() {
     try {
       const [salesRes, buyersRes] = await Promise.all([
-        api.getSales({ limit: 200 }),
+        api.getSales({ limit: 5000 }), // сите продажби — збировите и филтрите мора да ги опфатат и постарите
         api.getBuyers(),
       ]);
       setSales(salesRes.sales || []);

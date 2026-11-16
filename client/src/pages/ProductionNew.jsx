@@ -117,7 +117,7 @@ export default function ProductionNew() {
     let fc = p ? p.current_count : (m ? m.fish_count : 0);
     // При уредување, рибите од оваа серија веќе се одземени од базенот — врати ги за приказ
     if (editingOrig && editingOrig.source_pool === parseInt(n)) fc += editingOrig.fish_count;
-    const aw = m ? parseFloat(m.projected_avg_weight || m.avg_weight_gr || 0) : 0;
+    const aw = m ? parseFloat(m.projected_weight_gr || m.avg_weight_gr || 0) : 0;
     return { fishCount: fc, avgWeight: aw, totalMass: fc * aw / 1000 };
   }
 
@@ -168,6 +168,12 @@ export default function ProductionNew() {
   async function handleSave() {
     const vi = items.filter(i => parseFloat(i.quantity_kg) > 0);
     if (!vi.length) { setError('Нема производи'); return; }
+    if (saving) return;
+    // Повеќе риби отколку што има во базенот според евиденцијата → бара потврда (бројот е проценка до следно сортирање)
+    const info = form.source_pool ? poolInfo(form.source_pool) : null;
+    const taken = parseInt(form.fish_count) || 0;
+    if (info && info.fishCount > 0 && taken > info.fishCount &&
+        !confirm(`Во Базен ${form.source_pool} според евиденцијата има ${info.fishCount} риби, а внесувате ${taken}. Да продолжам?`)) return;
     setSaving(true); setError('');
     try {
       const payload = {
@@ -404,7 +410,7 @@ export default function ProductionNew() {
             <div className="flex items-center gap-3">
               <Calendar size={18} className="text-(--primary) flex-shrink-0" />
               <span className="text-xs font-medium text-(--text-secondary)">Датум:</span>
-              <input type="date" value={form.production_date} onChange={e => setForm({ ...form, production_date: e.target.value })}
+              <input type="date" max={todayStr()} value={form.production_date} onChange={e => setForm({ ...form, production_date: e.target.value })}
                 className="input-base text-sm flex-1" style={{ maxWidth: 180 }} />
               <span className="text-xs text-(--text-muted) hidden min-[400px]:inline">{fmtDate(form.production_date)}</span>
             </div>
@@ -491,7 +497,9 @@ export default function ProductionNew() {
                     style={{ letterSpacing: '0.05em' }} />
                   {pi && pi.fishCount > 0 && form.fish_count && (
                     <p className="text-[11px] text-(--text-muted) mt-2 text-center">
-                      Остануваат <strong>{pi.fishCount - parseInt(form.fish_count || 0)}</strong> во базенот
+                      {pi.fishCount - parseInt(form.fish_count || 0) >= 0
+                        ? <>Остануваат <strong>{pi.fishCount - parseInt(form.fish_count || 0)}</strong> во базенот</>
+                        : <span className="text-(--danger) font-semibold">Внесувате {parseInt(form.fish_count || 0) - pi.fishCount} риби повеќе отколку што има во базенот ({pi.fishCount})</span>}
                     </p>
                   )}
                 </div>

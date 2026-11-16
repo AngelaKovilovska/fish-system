@@ -20,7 +20,8 @@ const COUNT_SQL = `
     SELECT pf.pool_number,
            SUM(COALESCE(pf.dead_count, 0) + COALESCE(pf.sold_count, 0)) AS total_removed
     FROM pool_feeding pf
-    JOIN daily_records dr ON pf.daily_record_id = dr.id
+    -- по еден запис за секој датум (ако случајно има два за ист ден, важи последниот)
+    JOIN (SELECT DISTINCT ON (date) id, date FROM daily_records ORDER BY date, id DESC) dr ON pf.daily_record_id = dr.id
     JOIN latest_measurement lm ON pf.pool_number = lm.pool_number
     WHERE dr.date >= lm.measured_date
     GROUP BY pf.pool_number

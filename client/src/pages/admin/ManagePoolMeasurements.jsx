@@ -27,9 +27,12 @@ export default function ManagePoolMeasurements() {
   // Дали за избраниот датум веќе има зачувано мерење (тогаш формата ги уредува тие вредности)
   const [existingForDate, setExistingForDate] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // Дали корисникот впишал нешто што уште не е зачувано (за промена на датум да не му го избрише)
+  const [dirty, setDirty] = useState(false);
 
   const updatePoolField = (poolNum, field, value) => {
     setPoolData(prev => ({ ...prev, [poolNum]: { ...prev[poolNum], [field]: value } }));
+    setDirty(true);
   };
 
   const load = async () => {
@@ -47,21 +50,27 @@ export default function ManagePoolMeasurements() {
   useEffect(() => { load(); }, []);
 
   // Ако за датумот веќе има мерење → вчитај го во формата, за повторно зачувување да не избрише ништо
-  const loadForDate = async (date) => {
+  // keepTyped: при промена на датум, веќе впишаните (незачувани) бројки остануваат ако за новиот датум нема мерење
+  const loadForDate = async (date, { keepTyped = false } = {}) => {
     try {
       const data = await api.getPoolMeasurementsByDate(date);
       const rows = data.measurements || [];
+      setExistingForDate(rows.length > 0);
+      if (rows.length === 0) {
+        if (!keepTyped) { setPoolData(emptyForm()); setDirty(false); }
+        return;
+      }
+      if (keepTyped && !confirm('За овој датум веќе има зачувано мерење. Да ги заменам впишаните бројки со зачуваните?')) return;
       const form = emptyForm();
       rows.forEach(m => {
         if (form[m.pool_number] && m.fish_count > 0) {
           form[m.pool_number] = { fishCount: String(m.fish_count), avgWeight: String(parseFloat(m.avg_weight_gr)) };
         }
       });
-      setPoolData(form);
-      setExistingForDate(rows.length > 0);
+      setPoolData(form); setDirty(false);
     } catch { setExistingForDate(false); }
   };
-  useEffect(() => { setConfirming(false); if (measuredDate) loadForDate(measuredDate); }, [measuredDate]);
+  useEffect(() => { setConfirming(false); if (measuredDate) loadForDate(measuredDate, { keepTyped: dirty }); }, [measuredDate]);
 
   const loadHistory = async (poolNum) => {
     setLoadingHistory(true);

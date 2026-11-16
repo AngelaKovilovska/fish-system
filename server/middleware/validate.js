@@ -50,6 +50,10 @@ function validateRecordBody(req, res, next) {
   if (!date || !isValidDate(date)) {
     return res.status(400).json({ error: 'Невалиден формат за датум' });
   }
+  // Датум во иднина не е дозволен (со еден ден толеранција за временска зона)
+  if (date > new Date(Date.now() + 86400000).toISOString().slice(0, 10)) {
+    return res.status(400).json({ error: 'Датумот не може да биде во иднина' });
+  }
 
   // Validate water_control numeric fields if present
   const wc = req.body.water_control;
@@ -92,6 +96,23 @@ function validateRecordBody(req, res, next) {
       for (const field of pfNumeric) {
         if (!isNumericOrNull(pool[field])) {
           return res.status(400).json({ error: `Невалидна вредност за ${field} во хранење` });
+        }
+      }
+      const pn = Number(pool.pool_number);
+      if (!Number.isInteger(pn) || pn < 1 || pn > 8) {
+        return res.status(400).json({ error: 'Невалиден број на базен' });
+      }
+      // Угинати / продадени: цел број, 0 или повеќе (негативен број би го зголемил бројот на риби во базенот)
+      for (const field of ['dead_count', 'sold_count']) {
+        const v = pool[field];
+        if (v == null || v === '') continue;
+        if (!Number.isInteger(Number(v)) || Number(v) < 0) {
+          return res.status(400).json({ error: `Базен ${pn}: бројот на угинати риби мора да биде цел број, 0 или повеќе` });
+        }
+      }
+      for (const field of ['avg_weight_gr', 'food_quantity_gr']) {
+        if (pool[field] != null && pool[field] !== '' && Number(pool[field]) < 0) {
+          return res.status(400).json({ error: `Базен ${pn}: вредностите не може да бидат негативни` });
         }
       }
     }

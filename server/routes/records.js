@@ -213,6 +213,13 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
 
     const { date, water_control, filtration_checks, fish_visual, pool_feeding, activities } = req.body;
 
+    // Една чеклиста по датум — втор запис за ист ден би ги одзел угинатите риби двапати
+    const dup = await client.query('SELECT id FROM daily_records WHERE date = $1 LIMIT 1', [date]);
+    if (dup.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Веќе постои запис за овој датум. Едитирајте го постоечкиот.' });
+    }
+
     // 1. Create daily record
     const recordResult = await client.query(
       'INSERT INTO daily_records (date, checked_by) VALUES ($1, $2) RETURNING *',
@@ -345,6 +352,13 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
     if (existing.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Записот не е пронајден' });
+    }
+
+    // Датумот не смее да се смени на ден за кој веќе има друг запис
+    const dup = await client.query('SELECT id FROM daily_records WHERE date = $1 AND id <> $2 LIMIT 1', [date, id]);
+    if (dup.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Веќе постои друг запис за овој датум.' });
     }
 
     // Update daily record

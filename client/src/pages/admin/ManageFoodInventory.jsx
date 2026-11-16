@@ -96,8 +96,8 @@ export default function ManageFoodInventory() {
   // Load existing purchases for a date into the form for editing
   const loadDatePurchases = (dateStr) => {
     const datePurchases = log.filter(e =>
-      e.reason === 'purchase' &&
-      new Date(e.date).toISOString().split('T')[0] === dateStr
+      e.reason === 'purchase' && e.supplier !== 'Попис' && // корекциите од попис не се уредуваат како набавка
+      String(e.date).slice(0, 10) === dateStr
     );
 
     if (datePurchases.length > 0) {
@@ -563,7 +563,7 @@ export default function ManageFoodInventory() {
         </div>
 
         {message && (
-          <p className={`text-xs mt-3 font-medium ${message.includes('додадена') || message.includes('ажурирана') ? 'text-(--success)' : 'text-(--danger)'}`}>
+          <p className={`text-xs mt-3 font-medium ${/додадена|ажурирана|зачуван|избришана/.test(message) ? 'text-(--success)' : 'text-(--danger)'}`}>
             {message}
           </p>
         )}
@@ -697,7 +697,7 @@ export default function ManageFoodInventory() {
                         <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider">{dateStr}</span>
                       </div>
                       {/* Edit all purchases for this date */}
-                      {log.some(e => e.reason === 'purchase' && new Date(e.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) === dateStr) && (
+                      {log.some(e => e.reason === 'purchase' && e.supplier !== 'Попис' && new Date(e.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) === dateStr) && (
                         <button onClick={() => editDateFromLog(entryDateISO)}
                           className="text-[9px] px-2 py-0.5 rounded-full text-(--primary) hover:bg-(--primary-muted) transition-colors flex items-center gap-1 font-medium">
                           <Pencil size={9} /> Измени ден
@@ -784,11 +784,13 @@ export default function ManageFoodInventory() {
                         </span>
                         {isPurchase && entry.id && (
                           <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => startEdit(entry)}
-                              className="p-1 rounded hover:bg-(--primary-muted) text-(--text-muted) hover:text-(--primary) transition-colors"
-                              title="Измени">
-                              <Pencil size={12} />
-                            </button>
+                            {entry.supplier !== 'Попис' && (
+                              <button onClick={() => startEdit(entry)}
+                                className="p-1 rounded hover:bg-(--primary-muted) text-(--text-muted) hover:text-(--primary) transition-colors"
+                                title="Измени">
+                                <Pencil size={12} />
+                              </button>
+                            )}
                             <button onClick={() => { setDeleteConfirmId(entry.id); setEditId(null); }}
                               className="p-1 rounded hover:bg-red-50 text-(--text-muted) hover:text-(--danger) transition-colors"
                               title="Избриши">
