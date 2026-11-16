@@ -436,7 +436,7 @@ export default function Reports() {
       const rows = (previewData.data || []).map(d =>
         `<tr><td>${d.food_type || 'Непознат'}</td><td class="r">${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–'}</td><td class="r">${(parseFloat(d.total_gr) / 1000).toFixed(2)}</td><td class="r">${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–'}</td></tr>`
       ).join('');
-      tableHTML = `<table><thead><tr><th>Тип храна</th><th class="r">Набавено (kg)</th><th class="r">Потрошено (kg)</th><th class="r">Преостанато (kg)</th></tr></thead><tbody>${rows}</tbody></table>
+      tableHTML = `<table><thead><tr><th>Тип храна</th><th class="r">Набавено во период (kg)</th><th class="r">Потрошено (kg)</th><th class="r">Залиха сега (kg)</th></tr></thead><tbody>${rows}</tbody></table>
         <p class="total">Вкупно потрошена храна: ${previewData.totalKg} kg</p>`;
     }
 
@@ -1029,9 +1029,9 @@ ${tableHTML}
             <table className="table-modern">
               <thead><tr>
                 <th>Тип храна</th>
-                <th className="text-right">Набавено (kg)</th>
+                <th className="text-right">Набавено во период (kg)</th>
                 <th className="text-right">Потрошено (kg)</th>
-                <th className="text-right">Преостанато (kg)</th>
+                <th className="text-right">Залиха сега (kg)</th>
               </tr></thead>
               <tbody>
                 {(previewData.data || []).map((d, i) => (
@@ -1546,7 +1546,7 @@ ${tableHTML}
               <thead>
                 <tr>
                   <th>Тип храна</th>
-                  <th className="text-right">Набавено (kg)</th>
+                  <th className="text-right">Набавено во период (kg)</th>
                   <th className="text-right">Потрошено (kg)</th>
                   <th className="text-right">Остаток (kg)</th>
                 </tr>

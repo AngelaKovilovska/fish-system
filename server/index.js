@@ -50,10 +50,11 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
-// Global API rate limiter (100 requests per minute per IP)
+// Global API rate limiter (600 барања во минута по IP — сите уреди на фармата делат иста IP адреса,
+// а една страница прави 5–10 барања, па 100 се трошеа за неколку корисници)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Премногу барања. Обидете се повторно по малку.' },

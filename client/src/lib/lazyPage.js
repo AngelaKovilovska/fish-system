@@ -15,7 +15,10 @@ export function reloadOnceForNewVersion() {
   try {
     if (sessionStorage.getItem(RELOAD_KEY)) return false;
     sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
-  } catch { /* ignore */ }
+  } catch {
+    // sessionStorage недостапен → не можеме да паметиме дека веќе сме освежиле; без освежување, за да нема бескрајна јамка
+    return false;
+  }
   window.location.reload();
   return true;
 }

@@ -765,13 +765,28 @@ async function analyzeWaterPrediction(dbPool) {
     const totalFedGr = parseFloat(feedResult.rows[0]?.total_gr) || 0;
 
     // Вкупно риби (единствена пресметка по базен)
-    const totalFish = (await getPoolCounts(dbPool)).reduce((s, r) => s + (parseInt(r.current_count) || 0), 0);
-    // Груба проценка: 2-4% BW/ден, просечно 3%
-    // Ова е приближна проценка — точната вредност доаѓа од AI модулот
+    const counts = await getPoolCounts(dbPool);
+    const totalFish = counts.reduce((s, r) => s + (parseInt(r.current_count) || 0), 0);
     if (totalFedGr > 0 && totalFish > 0) {
+      // Однос дадена / препорачана храна за тој ден (препорака според последното мерење и температурата).
+      // Над 1.2 = прехранување → влегува во каузалните ланци и препораките.
+      let feedVsRecommended = null;
+      try {
+        const { calculateAllRecommendations } = require('./feedingRecommendation');
+        const weights = await dbPool.query(
+          `SELECT DISTINCT ON (pool_number) pool_number, avg_weight_gr FROM pool_measurements ORDER BY pool_number, measured_at DESC, id DESC`
+        );
+        const wMap = Object.fromEntries(weights.rows.map(r => [r.pool_number, parseFloat(r.avg_weight_gr) || 0]));
+        const temp = latest && latest.temperature != null ? parseFloat(latest.temperature) : null;
+        const rec = calculateAllRecommendations(
+          counts.map(c => ({ pool_number: c.pool_number, current_count: c.current_count, avg_weight_gr: wMap[c.pool_number] || 0 })), temp
+        );
+        const recommendedGr = rec.summary.totalDailyFoodGr || 0;
+        if (recommendedGr > 0) feedVsRecommended = Math.round((totalFedGr / recommendedGr) * 100) / 100;
+      } catch (e) { /* без препорака — правилото не се применува */ }
       feedingData = {
         totalFedKg: Math.round(totalFedGr / 10) / 100,
-        feedVsRecommended: null, // Ќе се пополни подоцна ако имаме ML препорака
+        feedVsRecommended,
       };
     }
   } catch (e) {

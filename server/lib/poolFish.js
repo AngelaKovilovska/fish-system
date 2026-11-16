@@ -14,6 +14,7 @@ const COUNT_SQL = `
       pool_number, fish_count, measured_at::date AS measured_date,
       COALESCE(created_at, measured_at) AS entered_at
     FROM pool_measurements
+    WHERE ($1::date IS NULL OR measured_at::date <= $1::date)
     ORDER BY pool_number, measured_at DESC, id DESC
   ),
   removed AS (
@@ -23,7 +24,7 @@ const COUNT_SQL = `
     -- по еден запис за секој датум (ако случајно има два за ист ден, важи последниот)
     JOIN (SELECT DISTINCT ON (date) id, date FROM daily_records ORDER BY date, id DESC) dr ON pf.daily_record_id = dr.id
     JOIN latest_measurement lm ON pf.pool_number = lm.pool_number
-    WHERE dr.date >= lm.measured_date
+    WHERE dr.date >= lm.measured_date AND ($1::date IS NULL OR dr.date <= $1::date)
     GROUP BY pf.pool_number
   ),
   processed AS (
@@ -32,8 +33,9 @@ const COUNT_SQL = `
     JOIN latest_measurement lm ON pb.source_pool = lm.pool_number
     -- по датумот на мерење; на самиот ден на мерење само сериите внесени ПОСЛЕ мерењето
     -- (серија внесена пред мерењето е веќе надвор од измерениот број)
-    WHERE COALESCE(pb.production_date, pb.created_at::date) > lm.measured_date
-       OR (COALESCE(pb.production_date, pb.created_at::date) = lm.measured_date AND pb.created_at > lm.entered_at)
+    WHERE (COALESCE(pb.production_date, pb.created_at::date) > lm.measured_date
+        OR (COALESCE(pb.production_date, pb.created_at::date) = lm.measured_date AND pb.created_at > lm.entered_at))
+      AND ($1::date IS NULL OR COALESCE(pb.production_date, pb.created_at::date) <= $1::date)
     GROUP BY pb.source_pool
   )
   SELECT lm.pool_number,
@@ -44,15 +46,15 @@ const COUNT_SQL = `
   ORDER BY lm.pool_number
 `;
 
-// [{ pool_number, current_count }]
-async function getPoolCounts(db) {
-  const r = await db.query(COUNT_SQL);
+// [{ pool_number, current_count }] — asOf ('YYYY-MM-DD') = состојба на крајот на тој ден; без него = сега
+async function getPoolCounts(db, asOf = null) {
+  const r = await db.query(COUNT_SQL, [asOf]);
   return r.rows;
 }
 
 // Број за еден базен (0 ако нема мерење)
-async function getPoolCount(db, poolNumber) {
-  const rows = await getPoolCounts(db);
+async function getPoolCount(db, poolNumber, asOf = null) {
+  const rows = await getPoolCounts(db, asOf);
   const row = rows.find(r => r.pool_number === parseInt(poolNumber));
   return row ? row.current_count : 0;
 }

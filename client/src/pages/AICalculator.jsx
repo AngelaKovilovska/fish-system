@@ -94,7 +94,7 @@ export default function AICalculator() {
       const result = await api.calculateAI({
         fishCount: count,
         avgWeight: weight,
-        temperature: calcInputs.temperature ? parseFloat(calcInputs.temperature) : null,
+        temperature: calcInputs.temperature !== '' && calcInputs.temperature != null ? parseFloat(calcInputs.temperature) : null,
       });
       setCalcResult(result);
     } catch (err) {

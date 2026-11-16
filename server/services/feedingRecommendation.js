@@ -438,7 +438,7 @@ function compareWithActual(recommendation, actualFoodGr, mealsEntered = null) {
  * Takes manual inputs (not from database)
  */
 function manualCalculate({ fishCount, avgWeight, temperature, currentFoodType }) {
-  return calculatePoolRecommendation(fishCount, avgWeight, temperature || null, { currentFoodType });
+  return calculatePoolRecommendation(fishCount, avgWeight, temperature === '' || temperature == null ? null : Number(temperature), { currentFoodType });
 }
 
 // ─── FCR values per product (from Coppens ecological figures) ───

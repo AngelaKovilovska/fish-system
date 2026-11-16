@@ -1002,7 +1002,7 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
 
     if (sendEmail) {
       const poolLabel = pool_number ? `Базен ${pool_number}` : 'Сите базени';
-      const headers = ['Тип храна', 'Набавено (kg)', 'Потрошено (kg)', 'Преостанато (kg)'];
+      const headers = ['Тип храна', 'Набавено во период (kg)', 'Потрошено (kg)', 'Залиха сега (kg)'];
       const rows = data.map(d => [
         d.food_type || 'Непознат',
         d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–',
@@ -1029,7 +1029,7 @@ router.post('/food-consumption', authMiddleware, async (req, res) => {
             { type: 'keyvalue', items: [
               ...data.map(d => ({
                 label: d.food_type || 'Непознат',
-                value: `Набавено: ${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–'} kg • Потрошено: ${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg • Преостанато: ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–'} kg`,
+                value: `Набавено во период: ${d.purchased_kg != null ? parseFloat(d.purchased_kg).toFixed(2) : '–'} kg • Потрошено: ${(parseFloat(d.total_gr) / 1000).toFixed(2)} kg • Залиха сега: ${d.remaining_kg != null ? parseFloat(d.remaining_kg).toFixed(2) : '–'} kg`,
               })),
               { label: 'ВКУПНО', value: `${totalKg} kg потрошено` },
             ]},

@@ -193,44 +193,21 @@ async function getFoodConsumptionData(from, to, poolNumber) {
   const consumedResult = await pool.query(consumedQuery, params);
 
   // Total purchased and all-time consumed (for accurate remaining calculation)
-  const inventoryQuery = `
-    SELECT
-      fi.food_type,
-      COALESCE(p.purchased_kg, 0)::float as purchased_kg,
-      COALESCE(ac.all_consumed_gr, 0)::float as all_consumed_gr
-    FROM food_inventory fi
-    LEFT JOIN (
-      SELECT food_type, SUM(change_kg) as purchased_kg
-      FROM food_inventory_log WHERE reason = 'purchase'
-      GROUP BY food_type
-    ) p ON p.food_type = fi.food_type
-    LEFT JOIN (
-      SELECT food_type, SUM(consumed_gr) as all_consumed_gr
-      FROM (
-        SELECT food_type, food_quantity_gr as consumed_gr
-        FROM pool_meals WHERE food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type != ''
-        UNION ALL
-        SELECT pf.food_type, pf.food_quantity_gr
-        FROM pool_feeding pf
-        WHERE pf.food_quantity_gr > 0 AND pf.food_type IS NOT NULL AND pf.food_type != ''
-        AND NOT EXISTS (
-          SELECT 1 FROM pool_meals pm
-          JOIN daily_records dr ON pf.daily_record_id = dr.id
-          WHERE pm.date = dr.date AND pm.pool_number = pf.pool_number
-        )
-      ) all_fed
-      GROUP BY food_type
-    ) ac ON ac.food_type = fi.food_type`;
-
-  const inventoryResult = await pool.query(inventoryQuery);
-
-  // Build inventory lookup: remaining = purchased - all_consumed
+  // Набавено = набавки ВО ПЕРИОДОТ (без корекции од попис); Залиха = тековна состојба (иста пресметка како на екранот)
+  const { getFoodStock } = require('../lib/foodStock');
+  const stock = await getFoodStock(pool);
+  const purchased = await pool.query(
+    `SELECT food_type, COALESCE(SUM(change_kg), 0)::float AS kg FROM food_inventory_log
+     WHERE reason = 'purchase' AND COALESCE(supplier, '') <> 'Попис'
+       AND COALESCE(purchased_at, created_at::date) >= $1::date AND COALESCE(purchased_at, created_at::date) <= $2::date
+     GROUP BY food_type`, [from, to]
+  );
+  const purchasedMap = Object.fromEntries(purchased.rows.map(r => [r.food_type, r.kg]));
   const inventoryMap = {};
-  for (const row of inventoryResult.rows) {
-    const remaining = row.purchased_kg - (row.all_consumed_gr / 1000);
+  for (const row of stock) {
     inventoryMap[row.food_type] = {
-      purchased_kg: row.purchased_kg,
-      remaining_kg: Math.max(0, parseFloat(remaining.toFixed(2))),
+      purchased_kg: purchasedMap[row.food_type] || 0,
+      remaining_kg: Math.max(0, parseFloat(row.stock_kg.toFixed(2))),
     };
   }
 

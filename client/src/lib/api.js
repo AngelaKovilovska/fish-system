@@ -159,7 +159,6 @@ export const api = {
   // AI Feeding Recommendations
   getAIRecommendations: () => request('/ai/recommendations'),
   calculateAI: (data) => request('/ai/calculate', { method: 'POST', body: JSON.stringify(data) }),
-  getStockProjection: () => request('/ai/stock-projection'),
   getWaterPrediction: () => request('/ai/water-prediction'),
 
   getGrowthHistory: (poolNumber, from) => request(`/ai/growth-history/${poolNumber}${from ? `?from=${from}` : ''}`),

@@ -265,7 +265,8 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
     if (pool_feeding && Array.isArray(pool_feeding)) {
       for (const pf of pool_feeding) {
         // Снимка на тековниот број риби (мерење − угинати − преработка) во моментот на записот
-        const currentCount = await getPoolCount(client, pf.pool_number);
+        // (за запис со минат датум: состојбата на тој датум, не денешната)
+        const currentCount = await getPoolCount(client, pf.pool_number, date);
 
         // Продадени риби веќе не се внесуваат во чеклистата — се следат преку сериите за преработка
         await client.query(
