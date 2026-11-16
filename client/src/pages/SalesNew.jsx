@@ -198,17 +198,36 @@ export default function SalesNew() {
     }
     return lots.filter(l => l.quantity_kg > 0);
   }
-  // План за автоматско земање: најстар LOT прв, па следниот — [{ lot_number, qty }]
-  function fifoPlan(productTypeId, qty) {
-    let remaining = parseFloat(qty) || 0;
-    const plan = [];
-    for (const l of lotsFor(productTypeId)) {
-      if (remaining <= 0.0005) break;
-      const take = Math.min(l.quantity_kg, remaining);
-      plan.push({ lot_number: l.lot_number, qty: take, emptied: take >= l.quantity_kg - 0.0005 });
-      remaining -= take;
-    }
-    return { plan, missing: remaining > 0.0005 ? remaining : 0 };
+  // План за автоматско земање: најстар LOT прв, па следниот — [{ lot_number, qty }].
+  // Како на серверот: прво се резервираат редовите со избран LOT, па автоматските редови по ред —
+  // два реда од ист производ не планираат од истата залиха.
+  function fifoPlan(productTypeId, qty, rowIdx = -1) {
+    const ptId = String(productTypeId);
+    const lots = lotsFor(productTypeId).map(l => ({ ...l, free: l.quantity_kg }));
+    const takeFrom = (amount) => {
+      let remaining = amount;
+      const plan = [];
+      for (const l of lots) {
+        if (remaining <= 0.0005) break;
+        const take = Math.min(l.free, remaining);
+        if (take <= 0.0005) continue;
+        plan.push({ lot_number: l.lot_number, qty: take, emptied: take >= l.free - 0.0005 });
+        l.free -= take; remaining -= take;
+      }
+      return { plan, missing: remaining > 0.0005 ? remaining : 0 };
+    };
+    items.forEach((o, i) => {
+      if (i === rowIdx || String(o.product_type_id) !== ptId) return;
+      if (o.lot_number && o.lot_number !== NO_LOT) {
+        const l = lots.find(x => x.lot_number === o.lot_number);
+        if (l) l.free = Math.max(0, l.free - (parseFloat(o.quantity_kg) || 0));
+      }
+    });
+    items.forEach((o, i) => {
+      if (i >= rowIdx || rowIdx < 0 || String(o.product_type_id) !== ptId || o.lot_number !== '') return;
+      takeFrom(parseFloat(o.quantity_kg) || 0);
+    });
+    return takeFrom(parseFloat(qty) || 0);
   }
   function availableInv(productTypeId) {
     return lotsFor(productTypeId).reduce((s, l) => s + l.quantity_kg, 0);
@@ -451,7 +470,7 @@ export default function SalesNew() {
                           <p className="text-[11px] text-(--text-muted) mt-1">Ставката не се одзема од залихата — за продажби внесени дополнително.</p>
                         )}
                         {item.lot_number === '' && lots.length > 0 && parseFloat(item.quantity_kg) > 0 && (() => {
-                          const { plan, missing } = fifoPlan(item.product_type_id, item.quantity_kg);
+                          const { plan, missing } = fifoPlan(item.product_type_id, item.quantity_kg, idx);
                           return (
                             <div className="mt-1.5 text-[11px]">
                               <span className="text-(--text-muted)">Ќе се земе: </span>
@@ -462,7 +481,7 @@ export default function SalesNew() {
                                 </span>
                               ))}
                               {missing > 0 && (
-                                <p className="text-(--danger) font-medium mt-0.5">Недостасуваат {missing.toFixed(2)} кг — вкупно на залиха има само {availableInv(item.product_type_id).toFixed(2)} кг</p>
+                                <p className="text-(--danger) font-medium mt-0.5">Недостасуваат {missing.toFixed(2)} кг — вкупно на залиха има {availableInv(item.product_type_id).toFixed(2)} кг (сметајќи ги и другите редови од овој производ)</p>
                               )}
                             </div>
                           );

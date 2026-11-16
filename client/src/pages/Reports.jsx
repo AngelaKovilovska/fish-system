@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, downloadFile, salesDetailPdfUrl } from '../lib/api';
+import { api, downloadFile } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import { POOL_NUMBERS, ALL_PARAM_LABELS } from '../lib/constants';
 import { fmtDate, fmtInt } from '../lib/utils';
@@ -115,10 +115,6 @@ export default function Reports() {
   const [previewRaw, setPreviewData] = useState(null);
   const [salesView, setSalesView] = useState('salesByBuyer');
   // Детален преглед на продажби (ставка по ставка) со филтри
-  const [detailFilters, setDetailFilters] = useState({ buyer_id: '', product_type_id: '', payment_method: '', paid: '' });
-  const [detailData, setDetailData] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [buyers, setBuyers] = useState([]);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
 
@@ -137,33 +133,6 @@ export default function Reports() {
   const [inventory, setInventory] = useState([]);
   const [inventoryLog, setInventoryLog] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
-
-  // Купувачи и производи за филтрите на деталниот преглед
-  useEffect(() => {
-    const r = REPORT_TYPES.find(x => x.key === activeReport);
-    if (r?.isDetail) {
-      setDetailFilters({ buyer_id: '', product_type_id: '', payment_method: '', paid: r.paid || '' });
-      setDetailData(null);
-      api.getBuyers().then(r2 => setBuyers(r2.buyers || [])).catch(() => setBuyers([]));
-      if (productTypes.length === 0) {
-        api.getProductTypes().then(res => setProductTypes((res.types || res || []).filter(t => t.is_active !== false))).catch(() => {});
-      }
-    }
-  }, [activeReport]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const r = REPORT_TYPES.find(x => x.key === activeReport);
-    if (!(r?.isDetail && from && to)) return;
-    // Извештај што бара избор (купувач/производ/начин) — чекај да се избере
-    if (r.filterField && !detailFilters[r.filterField]) { setDetailData(null); return; }
-    let cancelled = false;
-    setDetailLoading(true);
-    api.getSalesDetail({ from, to, ...detailFilters })
-      .then(d => { if (!cancelled) setDetailData(d); })
-      .catch(e => { if (!cancelled) setError(e.message); })
-      .finally(() => { if (!cancelled) setDetailLoading(false); });
-    return () => { cancelled = true; };
-  }, [activeReport, from, to, detailFilters]);
 
   // Load product types when production report is selected
   useEffect(() => {
@@ -354,7 +323,7 @@ export default function Reports() {
     setTimeout(() => window.scrollTo(0, 0), 50);
   };
   // Извештаи што бараат само период се генерираат веднаш по избор
-  const isSimpleReport = (r) => r && !r.isLink && !r.isDetail && !r.analytics && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
+  const isSimpleReport = (r) => r && !r.isLink && !r.analytics && r.key !== 'inventory' && !r.needsPool && !r.needsMeasurementDate;
   const handleSelectReport = (key) => {
     setActiveReport(key); setPreviewData(null); setError('');
     setPoolNumber(''); setMeasurementDate(''); setEmailSent(false);
@@ -1705,7 +1674,7 @@ ${tableHTML}
         )}
 
         {/* Standard reports — form (само за извештаи со дополнителни опции) */}
-        {!isInventory && !previewData && !loading && !isSimpleReport(report) && !report?.isDetail && !report?.analytics && (
+        {!isInventory && !previewData && !loading && !isSimpleReport(report) && !report?.analytics && (
           <div className="card animate-in space-y-4">
 
             {report.needsPool && (
@@ -1797,113 +1766,8 @@ ${tableHTML}
         {/* Извештаи за продажба (аналитика) */}
         {report?.analytics && <SalesAnalytics kind={report.analytics} from={from} to={to} />}
 
-        {/* Детални извештаи за продажби (по датум / купувач / производ / начин / платени / неплатени) + PDF на меморандум */}
-        {report?.isDetail && (
-          <div className="animate-in space-y-3">
-            {report.filterField && (
-              <div className="card">
-                {report.filterField === 'buyer_id' && (
-                  <div>
-                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Купувач</label>
-                    <select value={detailFilters.buyer_id} onChange={e => setDetailFilters({ ...detailFilters, buyer_id: e.target.value })} className="input-base text-sm">
-                      <option value="">— избери купувач —</option>
-                      {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                {report.filterField === 'product_type_id' && (
-                  <div>
-                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Производ</label>
-                    <select value={detailFilters.product_type_id} onChange={e => setDetailFilters({ ...detailFilters, product_type_id: e.target.value })} className="input-base text-sm">
-                      <option value="">— избери производ —</option>
-                      {productTypes.map(t => <option key={t.id} value={t.id}>{t.code} — {t.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                {report.filterField === 'payment_method' && (
-                  <div>
-                    <label className="block text-[10px] font-semibold text-(--text-muted) uppercase mb-1">Начин на плаќање</label>
-                    <select value={detailFilters.payment_method} onChange={e => setDetailFilters({ ...detailFilters, payment_method: e.target.value })} className="input-base text-sm">
-                      <option value="">— избери —</option>
-                      <option value="фактура">Фактура</option>
-                      <option value="готово">Готово</option>
-                      <option value="гратис">Гратис</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
-            {report.filterField && !detailFilters[report.filterField] && !detailLoading && (
-              <div className="info-box text-sm text-(--text-muted)">Избери за да се прикаже извештајот.</div>
-            )}
-
-            {detailLoading && (
-              <div className="card flex items-center justify-center gap-3 py-8 text-sm text-(--text-secondary)">
-                <div className="wave-loader"><span /><span /><span /><span /></div> Се вчитува...
-              </div>
-            )}
-
-            {!detailLoading && detailData && (
-              <div className="card space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {[
-                    ['Фактури', detailData.totals.sales],
-                    ['Количина', `${detailData.totals.kg.toFixed(2)} кг`],
-                    ['Основица', `${fmtInt(detailData.totals.subtotal)} ден`],
-                    ['ДДВ', `${fmtInt(detailData.totals.vat)} ден`],
-                    ['Вкупно', `${fmtInt(detailData.totals.amount)} ден`],
-                  ].map(([l, v]) => (
-                    <div key={l} className="rounded-(--r-md) bg-(--surface) p-2.5 text-center">
-                      <div className="text-[10px] text-(--text-muted) uppercase tracking-wide mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{l}</div>
-                      <div className={`text-sm font-bold ${l === 'Вкупно' ? 'text-(--primary)' : 'text-(--text-primary)'}`}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                {detailData.totals.unpaid > 0 && (
-                  <div className="text-xs text-(--text-secondary)">Платено: <strong className="text-(--success)">{fmtInt(detailData.totals.paid)} ден</strong> · Неплатено (побарувања): <strong className="text-(--danger)">{fmtInt(detailData.totals.unpaid)} ден</strong></div>
-                )}
-                <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
-                  <table className="table-modern text-[11px]">
-                    <thead><tr><th>Датум</th><th>Фактура</th><th>Купувач</th><th>Производи (кг)</th><th className="text-right">Кг</th><th className="text-right">Основица</th><th className="text-right">ДДВ</th><th className="text-right">Вкупно</th><th>Плаќање</th><th>Статус</th></tr></thead>
-                    <tbody>
-                      {detailData.rows.map((r) => (
-                        <tr key={r.sale_id}>
-                          <td className="whitespace-nowrap">{fmtDate(r.sale_date)}</td>
-                          <td className="whitespace-nowrap font-medium">{r.invoice_number}</td>
-                          <td>{r.buyer_name}</td>
-                          <td className="text-(--text-secondary)">{(r.items || []).map(i => `${i.code} ${parseFloat(i.quantity_kg).toFixed(2)}`).join(', ')}</td>
-                          <td className="text-right tabular-nums">{r.quantity_kg.toFixed(2)}</td>
-                          <td className="text-right tabular-nums">{fmtInt(r.subtotal)}</td>
-                          <td className="text-right tabular-nums">{r.vat_amount ? `${fmtInt(r.vat_amount)} (${r.vat_rate}%)` : '0'}</td>
-                          <td className="text-right tabular-nums font-semibold text-(--primary)">{fmtInt(r.total)}</td>
-                          <td>{r.payment_method}</td>
-                          <td className={`whitespace-nowrap ${r.paid ? 'text-(--success)' : 'text-(--danger)'}`}>
-                            {r.paid ? `платено${r.paid_at ? ' ' + fmtDate(r.paid_at) : ''}` : (r.due_date ? `неплатено, рок ${fmtDate(r.due_date)}` : 'неплатено')}
-                          </td>
-                        </tr>
-                      ))}
-                      {detailData.rows.length === 0 && (
-                        <tr><td colSpan={10} className="text-center text-(--text-muted) py-4">Нема продажби за избраните филтри.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => window.open(salesDetailPdfUrl({ from, to, ...detailFilters }), '_blank')} className="btn-primary w-full py-3">
-                    <FileText size={18} /> PDF на меморандум
-                  </button>
-                  <button type="button" onClick={() => downloadFile(`/reports/sales-detail/pdf?${new URLSearchParams(Object.fromEntries(Object.entries({ from, to, ...detailFilters }).filter(([, v]) => v))).toString()}`, `Prodazbi_${from}_${to}.pdf`).catch(e => setError(e.message))} className="btn-secondary w-full py-3">
-                    <Download size={18} /> Симни PDF
-                  </button>
-                </div>
-                {error && <div className="alert-danger text-xs">{error}</div>}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Preview data */}
-        {!isInventory && previewData && !report?.isDetail && !report?.analytics && (
+        {!isInventory && previewData && !report?.analytics && (
           <div className="animate-in space-y-0">
             {/* Chart visualization ABOVE the table */}
             {renderChart()}
