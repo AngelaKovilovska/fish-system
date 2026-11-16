@@ -6,7 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
-import { formatDateMK } from '../lib/utils';
+import { formatDateMK, fmtDate } from '../lib/utils';
 
 export default function AICalculator() {
   const [tab, setTab] = useState('pools'); // 'pools' | 'calculator' | 'water'
@@ -915,7 +915,7 @@ export default function AICalculator() {
                   <option value="">Сите мерења</option>
                   {(growthData?.measurementDates || []).map(md => (
                     <option key={md.date} value={md.date}>
-                      {new Date(md.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })} · {md.weight > 0 ? `${md.weight}g` : 'Празен базен'}
+                      {fmtDate(md.date)} · {md.weight > 0 ? `${md.weight}g` : 'Празен базен'}
                     </option>
                   ))}
                 </select>
@@ -927,7 +927,7 @@ export default function AICalculator() {
           {!growthLoading && growthData?.emptyPeriod && (
             <p className="text-[11px] text-(--text-muted) -mt-1 mb-2 px-1">
               <Info size={12} className="inline -mt-0.5 mr-1 opacity-60" />
-              Базенот бил празен на {new Date(growthData.emptyPeriod.from).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Базенот бил празен на {fmtDate(growthData.emptyPeriod.from)}
             </p>
           )}
 
@@ -1017,7 +1017,7 @@ export default function AICalculator() {
                       }}
                       labelFormatter={d => {
                         const dt = new Date(d);
-                        return dt.toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
+                        return fmtDate(dt);
                       }}
                       formatter={(val, name) => {
                         const labels = { actual: 'Измерена', sgr: 'SGR проекција', coppens: 'Coppens идеална' };

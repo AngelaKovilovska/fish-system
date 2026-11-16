@@ -56,7 +56,7 @@ export default function ManageUsers() {
   ) : (
     <select value={u.role} disabled={savingRole === u.id} onChange={(e) => handleRoleChange(u, e.target.value)}
       aria-label={`Улога на ${u.full_name}`}
-      className="input-base !w-auto !py-1 !px-2 !text-xs font-semibold">
+      className="input-base !w-auto !py-1 !pl-2.5 !pr-8 !text-xs font-semibold">
       <option value="operator">Оператор</option>
       <option value="admin">Админ</option>
     </select>

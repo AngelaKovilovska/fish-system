@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fmtDate } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -127,8 +128,8 @@ export default function RecordDetail() {
       html += section('4. Евиденција на базени', poolRows + `<div class="total">Риби: ${totalFish} | Вкупно: ${totalKg} кг | Преработени: ${totalProcessed} | Угинати: ${totalDead}</div>`);
     }
     if (act) {
-      let rows = row('Сортирање', act.sorting_date ? new Date(act.sorting_date).toLocaleDateString('mk-MK') : '–');
-      rows += row('Контрола тежина', act.weight_control_date ? new Date(act.weight_control_date).toLocaleDateString('mk-MK') : '–');
+      let rows = row('Сортирање', act.sorting_date ? fmtDate(act.sorting_date) : '–');
+      rows += row('Контрола тежина', act.weight_control_date ? fmtDate(act.weight_control_date) : '–');
       if (act.misc_1) rows += row('Разно (1)', act.misc_1);
       if (act.misc_2) rows += row('Разно (2)', act.misc_2);
       html += section('5. Активности', rows);

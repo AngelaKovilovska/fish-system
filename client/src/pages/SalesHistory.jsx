@@ -531,7 +531,7 @@ export default function SalesHistory() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                         <div className="text-right">
-                          <span className="text-sm font-bold text-(--primary) whitespace-nowrap">{Math.round(parseFloat(sale.total)).toLocaleString('mk-MK')} ден</span>
+                          <span className="text-sm font-bold text-(--primary) whitespace-nowrap">{fmtInt(sale.total)} ден</span>
                           <p className="text-[10px] text-(--text-muted)">{totalKg.toFixed(1)} кг</p>
                         </div>
                         {isExpanded ? <ChevronUp size={14} className="text-(--text-muted)" /> : <ChevronDown size={14} className="text-(--text-muted)" />}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fmtInt } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -61,7 +62,7 @@ export default function ProductionHub() {
       lightBg: 'rgba(34,197,94,0.08)',
       stats: [
         { label: 'Продажби', value: stats.salesCount },
-        { label: 'Вкупно', value: `${Math.round(stats.salesTotal).toLocaleString('mk-MK')} ден` },
+        { label: 'Вкупно', value: `${fmtInt(stats.salesTotal)} ден` },
       ],
     },
     {

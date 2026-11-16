@@ -44,8 +44,9 @@ async function authMiddleware(req, res, next) {
       activeUserCache.set(userId, { checkedAt: now, role, pwChangedAt });
     }
 
-    // Најава направена пред последната промена на лозинка повеќе не важи (5 s толеранција за заокружување)
-    if (pwChangedAt && decoded.iat && decoded.iat * 1000 < pwChangedAt - 5000) {
+    // Најава направена пред последната промена на лозинка повеќе не важи
+    // (1 s толеранција: времето во токенот е заокружено на цела секунда)
+    if (pwChangedAt && decoded.iat && decoded.iat * 1000 < pwChangedAt - 1000) {
       res.clearCookie('token');
       return res.status(401).json({ error: 'Лозинката е променета. Најавете се повторно.' });
     }

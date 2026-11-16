@@ -393,7 +393,7 @@ router.post('/calculate', authMiddleware, async (req, res) => {
     const { fishCount, avgWeight, temperature, currentFoodType } = req.body;
 
     if (!fishCount || !avgWeight) {
-      return res.status(400).json({ error: 'fishCount и avgWeight се задолжителни' });
+      return res.status(400).json({ error: 'Внесете број на риби и просечна тежина (поголеми од 0)' });
     }
 
     const result = manualCalculate({

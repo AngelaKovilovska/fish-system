@@ -295,7 +295,7 @@ export default function ProductionNew() {
           <button onClick={() => { setShowSettings(!showSettings); setShowForm(false); }}
             className="btn-ghost p-2 text-(--text-secondary)"><Settings size={18} /></button>
           {!showForm && !showSettings && (
-            <button onClick={startNew} className="btn-primary text-sm flex items-center gap-1.5">
+            <button onClick={startNew} className="btn-primary text-sm flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
               <Plus size={16} /> Нова серија
             </button>
           )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fmtDate } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { POOL_NUMBERS } from '../../lib/constants';
@@ -244,9 +245,7 @@ export default function ManagePoolMeasurements() {
               </div>
             </div>
             <p className="text-[10px] text-(--text-muted) mt-2 text-center">
-              {new Date(currentMeasurement.measured_at).toLocaleDateString('mk-MK', {
-                year: 'numeric', month: 'long', day: 'numeric'
-              })}
+              {fmtDate(currentMeasurement.measured_at)}
             </p>
           </div>
         ) : (
@@ -273,7 +272,7 @@ export default function ManagePoolMeasurements() {
             {currentMeasurement && currentInventory.current_count !== currentMeasurement.fish_count && (
               <p className="text-[10px] text-(--text-muted) mt-1">
                 Разлика од мерење: <span className="text-(--danger) font-semibold">{currentInventory.current_count - currentMeasurement.fish_count}</span>
-                {' '}(угинати + продадени)
+                {' '}(угинати + земени за преработка)
               </p>
             )}
           </div>
@@ -368,7 +367,7 @@ export default function ManagePoolMeasurements() {
                         <span className="font-bold">{m.fish_count}</span> риби / <span className="font-bold">{m.avg_weight_gr}</span> gr
                       </p>
                       <p className="text-[10px] text-(--text-muted) mt-0.5">
-                        {new Date(m.measured_at).toLocaleDateString('mk-MK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {fmtDate(m.measured_at)}
                       </p>
                     </div>
                     <button type="button" onClick={() => handleDelete(m.id)} disabled={deleting === m.id}
@@ -404,7 +403,7 @@ export default function ManagePoolMeasurements() {
                   {hasNew ? (
                     <span className="text-(--success)">
                       {poolData[num].fishCount} риби / {poolData[num].avgWeight} gr
-                      <span className="text-[10px] ml-1 font-semibold">(ново)</span>
+                      {dirty && <span className="text-[10px] ml-1 font-semibold">(ново)</span>}
                     </span>
                   ) : (() => {
                     const m = getMeasurement(num);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { formatDateShortMK, todayStr } from '../../lib/utils';
+import { formatDateShortMK, todayStr, fmtDate } from '../../lib/utils';
 import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search, ChevronLeft } from 'lucide-react';
 
 const emptyItem = () => ({ food_type: FOOD_TYPES[0], quantity_kg: '' });
@@ -681,8 +681,8 @@ export default function ManageFoodInventory() {
           ) : (
           <div className="space-y-1.5 max-h-[450px] overflow-y-auto">
             {filteredLog.map((entry, i) => {
-              const dateStr = new Date(entry.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' });
-              const prevDate = i > 0 ? new Date(filteredLog[i-1].date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+              const dateStr = fmtDate(entry.date);
+              const prevDate = i > 0 ? fmtDate(filteredLog[i-1].date) : null;
               const showDateHeader = dateStr !== prevDate;
               const isPurchase = entry.reason === 'purchase';
               const isEditing = editId === entry.id;
@@ -698,7 +698,7 @@ export default function ManageFoodInventory() {
                         <span className="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wider">{dateStr}</span>
                       </div>
                       {/* Edit all purchases for this date */}
-                      {log.some(e => e.reason === 'purchase' && e.supplier !== 'Попис' && new Date(e.date).toLocaleDateString('mk-MK', { day: 'numeric', month: 'short', year: 'numeric' }) === dateStr) && (
+                      {log.some(e => e.reason === 'purchase' && e.supplier !== 'Попис' && fmtDate(e.date) === dateStr) && (
                         <button onClick={() => editDateFromLog(entryDateISO)}
                           className="text-[9px] px-2 py-0.5 rounded-full text-(--primary) hover:bg-(--primary-muted) transition-colors flex items-center gap-1 font-medium">
                           <Pencil size={9} /> Измени ден

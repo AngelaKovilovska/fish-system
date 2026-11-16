@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test:server": "node tests/e2e/server.cjs",
+    "test:api": "node tests/e2e/api.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "nodemon": "^3.1.14"
   }
 }

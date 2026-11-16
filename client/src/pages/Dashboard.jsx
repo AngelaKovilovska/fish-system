@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { formatDateMK, productStockWarnings, todayStr } from '../lib/utils';
+import { formatDateMK, productStockWarnings, todayStr, formatDateShortMK } from '../lib/utils';
 import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer, Archive, Package } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
@@ -335,7 +335,7 @@ export default function Dashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-(--text-primary) truncate">{info.message}</p>
                     <p className="text-[11px] text-(--text-muted) mt-0.5">
-                      {new Date(alert.date).toLocaleDateString('mk-MK', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      {formatDateShortMK(alert.date)}
                     </p>
                   </div>
                   <button onClick={() => handleAcknowledge(alert.id)}
