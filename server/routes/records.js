@@ -1,4 +1,5 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
@@ -92,7 +93,7 @@ router.get('/streak', authMiddleware, async (req, res) => {
     }
 
     const dateSet = new Set(result.rows.map(r => r.date_str));
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     const todayDone = dateSet.has(today);
 
     // Start counting from today, or yesterday if today isn't done yet

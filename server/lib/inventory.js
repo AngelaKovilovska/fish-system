@@ -1,3 +1,4 @@
+const { todayLocal } = require('./dates');
 // Залиха на готови производи по LOT.
 // Сите функции работат со `client` од отворена трансакција.
 
@@ -94,7 +95,8 @@ async function pickLotFifo(client, productTypeId, qty) {
 
 // План за FIFO одземање низ повеќе LOT-ови: [{ lot_number, qty }] — најстариот прв, па следниот кога ќе се испразни.
 // Фрла Error со .status = 400 ако вкупната залиха не е доволна. Редовите се заклучуваат (FOR UPDATE).
-async function planFifo(client, productTypeId, qty) {
+// `reserved` (Map 'productTypeId|lot' → кг) = количини веќе планирани од други ставки на истата продажба
+async function planFifo(client, productTypeId, qty, reserved = null) {
   let remaining = parseFloat(qty) || 0;
   if (remaining <= 0) return [];
   const r = await client.query(
@@ -104,15 +106,17 @@ async function planFifo(client, productTypeId, qty) {
     [productTypeId]
   );
   const plan = [];
+  const freeOf = (lot) => Math.max(0, parseFloat(lot.quantity_kg) - (reserved ? (reserved.get(`${productTypeId}|${lot.lot_number}`) || 0) : 0));
   for (const lot of r.rows) {
     if (remaining <= 1e-9) break;
-    const take = Math.min(parseFloat(lot.quantity_kg), remaining);
-    plan.push({ lot_number: lot.lot_number, qty: Math.round(take * 1000) / 1000 });
+    const take = Math.round(Math.min(freeOf(lot), remaining) * 1000) / 1000;
+    if (take <= 0) continue;
+    plan.push({ lot_number: lot.lot_number, qty: take });
     remaining -= take;
   }
   if (remaining > 1e-6) {
     const pt = await client.query('SELECT code, name FROM product_types WHERE id = $1', [productTypeId]);
-    const avail = r.rows.reduce((s, l) => s + parseFloat(l.quantity_kg), 0);
+    const avail = r.rows.reduce((s, l) => s + freeOf(l), 0);
     const err = new Error(`Недоволна залиха за ${pt.rows[0]?.code || pt.rows[0]?.name || '#' + productTypeId}: има ${avail.toFixed(2)} кг, барате ${(parseFloat(qty) || 0).toFixed(2)} кг`);
     err.status = 400; throw err;
   }
@@ -159,7 +163,7 @@ async function adjustToTotal(client, productTypeId, targetQty) {
   if (Math.abs(diff) < 0.005) { await syncInventory(client, productTypeId); return; }
 
   if (diff > 0) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocal();
     const lot = `ПОПИС-${today.slice(2).replace(/-/g, '')}`;
     await addToLot(client, { productTypeId, lotNumber: lot, productionDate: today, qty: diff });
     return;
@@ -196,7 +200,7 @@ async function soldFromBatch(client, batchId) {
 }
 
 // Постави производи на завршена серија (кога се уредува): LOT = ново - веќе продадено
-async function setBatchLots(client, { batchId, lotNumber, productionDate, items }) {
+async function setBatchLots(client, { batchId, lotNumber, oldLotNumber = null, productionDate, items }) {
   const existing = await client.query(
     'SELECT id, product_type_id, initial_kg, quantity_kg FROM product_lots WHERE batch_id = $1 FOR UPDATE', [batchId]
   );
@@ -210,8 +214,9 @@ async function setBatchLots(client, { batchId, lotNumber, productionDate, items 
   const touched = new Set();
 
   // Стар LOT број на серијата (ако се преименува, продажбите сè уште го носат стариот)
-  const oldLotRow = await client.query('SELECT lot_number FROM production_batches WHERE id = $1', [batchId]);
-  const oldLot = oldLotRow.rows[0]?.lot_number || lotNumber;
+  // (повикувачот го праќа стариот број — во моментов серијата веќе го носи новиот)
+  const oldLotRow = oldLotNumber ? null : await client.query('SELECT lot_number FROM production_batches WHERE id = $1', [batchId]);
+  const oldLot = oldLotNumber || oldLotRow.rows[0]?.lot_number || lotNumber;
 
   // remove / update existing
   for (const row of existing.rows) {

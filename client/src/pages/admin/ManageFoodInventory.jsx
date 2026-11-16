@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { FOOD_TYPES } from '../../lib/constants';
-import { formatDateShortMK } from '../../lib/utils';
+import { formatDateShortMK, todayStr } from '../../lib/utils';
 import { Package, Plus, ArrowDown, ArrowUp, Clock, Calendar, TrendingDown, AlertTriangle, Timer, Pencil, Trash2, Check, X, FileText, Search, ChevronLeft } from 'lucide-react';
 
 const emptyItem = () => ({ food_type: FOOD_TYPES[0], quantity_kg: '' });
@@ -24,12 +24,12 @@ export default function ManageFoodInventory() {
   // Purchase form
   const [supplier, setSupplier] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [purchaseDate, setPurchaseDate] = useState(todayStr());
   const [purchaseItems, setPurchaseItems] = useState([emptyItem()]);
   const [saving, setSaving] = useState(false);
   // Попис: преброена залиха по тип → ја заменува тековната (набавките се додаваат на остатокот)
   const [showCensus, setShowCensus] = useState(false);
-  const [censusDate, setCensusDate] = useState(new Date().toISOString().split('T')[0]);
+  const [censusDate, setCensusDate] = useState(todayStr());
   const [censusValues, setCensusValues] = useState({});
   const [censusSaving, setCensusSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -152,7 +152,7 @@ export default function ManageFoodInventory() {
       });
       setMessage(isEditMode ? 'Набавката е ажурирана!' : 'Набавката е додадена!');
       resetForm();
-      setPurchaseDate(new Date().toISOString().split('T')[0]);
+      setPurchaseDate(todayStr());
       await load();
     } catch (err) { setMessage(err.message); }
     finally { setSaving(false); }
@@ -473,7 +473,7 @@ export default function ManageFoodInventory() {
             {isEditMode ? 'Измени набавка' : 'Додај набавка'}
           </h3>
           {isEditMode && (
-            <button onClick={() => { resetForm(); setPurchaseDate(new Date().toISOString().split('T')[0]); }}
+            <button onClick={() => { resetForm(); setPurchaseDate(todayStr()); }}
               className="btn-ghost text-xs text-(--text-muted) flex items-center gap-1">
               <X size={12} /> Откажи
             </button>

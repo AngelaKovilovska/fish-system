@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { todayStr } from '../lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -27,7 +28,7 @@ export default function MealForm() {
   const [fishInventory, setFishInventory] = useState([]);
   const [aiRec, setAiRec] = useState(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   const [selectedDate, setSelectedDate] = useState(today);
 
   const emptyFood = () => ({ food_type: '', food_quantity_gr: '' });

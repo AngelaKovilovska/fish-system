@@ -1,4 +1,5 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const { sendReportEmail, testConnection } = require('../services/emailService');
@@ -107,7 +108,7 @@ router.get('/sales-analytics', authMiddleware, async (req, res) => {
     ]);
     res.json({
       period: { from, to, days }, prevPeriod: { from: iso(prevFrom), to: iso(prevTo) },
-      current, previous, buyers: buyersMeta.rows, monthly: monthly.rows, today: new Date().toISOString().slice(0, 10),
+      current, previous, buyers: buyersMeta.rows, monthly: monthly.rows, today: todayLocal(),
     });
   } catch (err) {
     console.error('Sales analytics error:', err);
@@ -163,7 +164,7 @@ router.get('/sales-detail/pdf', authMiddleware, async (req, res) => {
 
     const pdf = await buildMemoTable({
       title: byProduct ? 'Преглед на продажби по производ' : 'Преглед на продажби (по фактура)',
-      subtitle: `Изготвено: ${fmtDate(new Date().toISOString().slice(0, 10))}`,
+      subtitle: `Изготвено: ${fmtDate(todayLocal())}`,
       filters: detailFilterLines(q, names).concat(byProduct ? ['Количина и основица се само за избраниот производ; ДДВ и вкупно се од целата фактура.'] : []),
       rowSize: 7.5,
       columns: [

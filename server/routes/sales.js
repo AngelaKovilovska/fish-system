@@ -1,4 +1,5 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const inv = require('../lib/inventory');
@@ -9,24 +10,63 @@ const packOf = (v, fallback = 'Кеси') => (PACKAGING.includes(v) ? v : fallba
 
 const router = express.Router();
 
-// Ги претвора ставките од формата во ставки по LOT:
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const round3 = (n) => Math.round((n + Number.EPSILON) * 1000) / 1000;
+const bad = (msg) => { const e = new Error(msg); e.status = 400; return e; };
+
+// Ги претвора ставките од формата во ставки по LOT, со износи:
 //  - item.no_lot            → lot_number = null (не се одзема залиха)
 //  - item.lot_number избран → тој LOT (целата количина)
 //  - инаку (автоматски)     → FIFO низ LOT-ови: може да се подели во повеќе ставки со ист производ/цена
+// Износ на ред = количина × цена, заокружен на 2 децимали. Кога ред се дели на повеќе LOT-ови, деловите се
+// собираат точно на износот на редот (последниот дел ја носи разликата) — фактурата и основицата се исти.
+// Враќа { resolved: [{ product_type_id, lot_number, quantity_kg, price_per_kg, amount }], subtotal }.
 async function resolveItemLots(client, items) {
-  const out = [];
+  const rows = [];
   for (const item of items) {
-    const qty = parseFloat(item.quantity_kg) || 0;
-    if (qty <= 0) continue;
-    const base = { product_type_id: item.product_type_id, price_per_kg: parseFloat(item.price_per_kg) || 0 };
-    if (item.no_lot) { out.push({ ...base, lot_number: null, quantity_kg: qty }); continue; }
-    const explicit = (item.lot_number || '').trim();
-    if (explicit) { out.push({ ...base, lot_number: explicit, quantity_kg: qty }); continue; }
-    const plan = await inv.planFifo(client, item.product_type_id, qty);
-    for (const part of plan) out.push({ ...base, lot_number: part.lot_number, quantity_kg: part.qty });
+    const qty = round3(Number(item.quantity_kg));
+    const price = Number(item.price_per_kg === '' || item.price_per_kg == null ? 0 : item.price_per_kg);
+    const ptId = parseInt(item.product_type_id);
+    if (!Number.isFinite(qty) || !Number.isFinite(price)) throw bad('Невалидна количина или цена во ставките');
+    if (qty < 0 || price < 0) throw bad('Количината и цената не може да бидат негативни');
+    if (qty === 0) continue;
+    if (!ptId) throw bad('Изберете производ за секоја ставка');
+    const explicit = item.no_lot ? '' : String(item.lot_number || '').trim();
+    rows.push({ ptId, qty, price, noLot: !!item.no_lot, explicit, amount: round2(qty * price), parts: null });
   }
-  return out;
+  if (rows.length === 0) throw bad('Додадете барем една ставка со количина');
+
+  // Прво ставките со избран LOT (ја резервираат количината), па автоматските — за два реда од ист производ
+  // да не планираат од истата залиха.
+  const reserved = new Map();
+  const reserve = (ptId, lot, qty) => reserved.set(`${ptId}|${lot}`, (reserved.get(`${ptId}|${lot}`) || 0) + qty);
+  for (const r of rows) {
+    if (r.noLot) r.parts = [{ lot_number: null, qty: r.qty }];
+    else if (r.explicit) { r.parts = [{ lot_number: r.explicit, qty: r.qty }]; reserve(r.ptId, r.explicit, r.qty); }
+  }
+  for (const r of rows) {
+    if (r.parts) continue;
+    r.parts = await inv.planFifo(client, r.ptId, r.qty, reserved);
+    for (const part of r.parts) reserve(r.ptId, part.lot_number, part.qty);
+  }
+
+  const resolved = [];
+  let subtotal = 0;
+  for (const r of rows) {
+    subtotal += r.amount;
+    let used = 0;
+    r.parts.forEach((part, i) => {
+      const last = i === r.parts.length - 1;
+      const amount = last ? round2(r.amount - used) : round2(part.qty * r.price);
+      used += amount;
+      resolved.push({ product_type_id: r.ptId, lot_number: part.lot_number, quantity_kg: part.qty, price_per_kg: r.price, amount });
+    });
+  }
+  return { resolved, subtotal: round2(subtotal) };
 }
+
+const { isValidDateStr } = require('../lib/dates');
+const METHODS = ['фактура', 'готово', 'гратис'];
 
 
 // GET /api/sales - list all sales
@@ -141,28 +181,23 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Ставки по LOT: избран LOT → тој; без LOT → не се одзема; автоматски → FIFO низ LOT-ови (најстар прв,
     // кога ќе се испразни продолжува со следниот). Залихата се заклучува и проверува.
-    const resolved = await resolveItemLots(client, items);
+    const { resolved, subtotal } = await resolveItemLots(client, items);
+
+    if (sale_date && !isValidDateStr(String(sale_date).slice(0, 10))) throw bad('Невалиден датум на продажба');
+    if (payment_method && !METHODS.includes(payment_method)) throw bad('Невалиден начин на плаќање');
 
     // Броеви на документи: серија според начин на плаќање + испратница, датум = датум на продажба
-    const saleDateForNum = sale_date || new Date().toISOString().slice(0, 10);
+    const saleDateForNum = sale_date || todayLocal();
     const invoice_number = await docNum.nextNumber(client, docNum.seriesForPayment(payment_method), saleDateForNum);
     const dispatch_number = await docNum.nextNumber(client, 'dispatch', saleDateForNum);
-
-    // Calculate totals
-    let subtotal = 0;
-    for (const item of items) {
-      const qty = parseFloat(item.quantity_kg) || 0;
-      const price = parseFloat(item.price_per_kg) || 0;
-      subtotal += qty * price;
-    }
 
     // Готово/гратис = платено на денот и БЕЗ ДДВ
     const method = payment_method || 'фактура';
     const isPaidNow = ['готово', 'гратис'].includes(method);
     const vat_rate = isPaidNow ? 0 : ([5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : 5.00);
-    const vat_amount = Math.round(subtotal * vat_rate) / 100;
-    const total = subtotal + vat_amount;
-    const saleDateVal = sale_date || new Date().toISOString().slice(0, 10);
+    const vat_amount = round2(subtotal * vat_rate / 100);
+    const total = round2(subtotal + vat_amount);
+    const saleDateVal = sale_date || todayLocal();
     const saleResult = await client.query(
       `INSERT INTO sales (invoice_number, dispatch_number, buyer_id, sale_date, due_date,
         payment_method, lot_number, transport_vehicle, product_temp,
@@ -172,7 +207,7 @@ router.post('/', authMiddleware, async (req, res) => {
         invoice_number, dispatch_number, buyer_id,
         saleDateVal,
         due_date || null, method,
-        lot_number || resolved.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
+        resolved.find(i => i.lot_number)?.lot_number || null, transport_vehicle || null,
         product_temp != null ? parseFloat(product_temp) : null,
         subtotal, vat_rate, vat_amount, total,
         notes || null, req.user.id,
@@ -185,19 +220,14 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Insert items and deduct from inventory
     for (const item of resolved) {
-      const qty = parseFloat(item.quantity_kg) || 0;
-      const price = parseFloat(item.price_per_kg) || 0;
-      const amount = qty * price;
-
       await client.query(
         `INSERT INTO sale_items (sale_id, product_type_id, lot_number, quantity_kg, price_per_kg, amount)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [saleId, item.product_type_id, item.lot_number || null, qty, price, amount]
+        [saleId, item.product_type_id, item.lot_number || null, item.quantity_kg, item.price_per_kg, item.amount]
       );
-
       // Deduct from LOT inventory (verifies availability, row-locked); без LOT → не се одзема
-      if (qty > 0 && item.lot_number) {
-        await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
+      if (item.lot_number) {
+        await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty: item.quantity_kg });
       }
     }
 
@@ -246,41 +276,42 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
 
-    // 2. Ставки по LOT (избран / без LOT / автоматски FIFO низ повеќе LOT-ови)
-    const resolved = await resolveItemLots(client, items);
+    // 2. Ставки по LOT (избран / без LOT / автоматски FIFO низ повеќе LOT-ови) со износи
+    const { resolved, subtotal } = await resolveItemLots(client, items);
+    if (sale_date && !isValidDateStr(String(sale_date).slice(0, 10))) throw bad('Невалиден датум на продажба');
+    if (payment_method && !METHODS.includes(payment_method)) throw bad('Невалиден начин на плаќање');
 
-    // 3. Totals
-    let subtotal = 0;
-    for (const item of items) {
-      subtotal += (parseFloat(item.quantity_kg) || 0) * (parseFloat(item.price_per_kg) || 0);
-    }
-    // Готово/гратис = без ДДВ
+    // 3. Totals — готово/гратис = без ДДВ
     const methodForVat = payment_method || existing.rows[0].payment_method;
     const noVat = ['готово', 'гратис'].includes(methodForVat);
     const vat_rate = noVat ? 0 : ([5, 10, 18].includes(parseFloat(requestVatRate)) ? parseFloat(requestVatRate) : parseFloat(existing.rows[0].vat_rate) || 5);
-    const vat_amount = Math.round(subtotal * vat_rate) / 100;
-    const total = subtotal + vat_amount;
+    const vat_amount = round2(subtotal * vat_rate / 100);
+    const total = round2(subtotal + vat_amount);
 
     // 4. Insert new items and deduct from LOTs
     for (const item of resolved) {
-      const qty = parseFloat(item.quantity_kg) || 0;
-      const price = parseFloat(item.price_per_kg) || 0;
-      if (qty <= 0) continue;
       await client.query(
         `INSERT INTO sale_items (sale_id, product_type_id, lot_number, quantity_kg, price_per_kg, amount)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [req.params.id, item.product_type_id, item.lot_number || null, qty, price, qty * price]
+        [req.params.id, item.product_type_id, item.lot_number || null, item.quantity_kg, item.price_per_kg, item.amount]
       );
-      if (item.lot_number) await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty });
+      if (item.lot_number) await inv.takeFromLot(client, { productTypeId: item.product_type_id, lotNumber: item.lot_number, qty: item.quantity_kg });
     }
 
-    // 5. Update sale header (готово/гратис → автоматски платено)
-    const newMethod = payment_method || existing.rows[0].payment_method;
+    // 5. Update sale header
+    const oldMethod = existing.rows[0].payment_method;
+    const newMethod = payment_method || oldMethod;
     const newSaleDate = sale_date || existing.rows[0].sale_date;
     let paymentStatus = existing.rows[0].payment_status || 'неплатено';
     let paidAt = existing.rows[0].paid_at;
-    if (['готово', 'гратис'].includes(newMethod) && paymentStatus !== 'платено') {
+    const cashNow = ['готово', 'гратис'].includes(newMethod);
+    const cashBefore = ['готово', 'гратис'].includes(oldMethod);
+    if (cashNow && paymentStatus !== 'платено') {
+      // готово/гратис → автоматски платено на денот
       paymentStatus = 'платено'; paidAt = newSaleDate;
+    } else if (!cashNow && cashBefore) {
+      // погрешно внесено „готово“ поправено во „фактура“ → повторно неплатено (плаќањето се означува рачно)
+      paymentStatus = 'неплатено'; paidAt = null;
     }
     // Ако се смени серијата (фактура ↔ готово ↔ гратис), продажбата добива нов број од новата серија
     let invoiceNumber = existing.rows[0].invoice_number;
@@ -298,7 +329,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       [
         buyer_id, newSaleDate, due_date || existing.rows[0].due_date,
         newMethod,
-        lot_number || resolved.find(i => i.lot_number)?.lot_number || null,
+        resolved.find(i => i.lot_number)?.lot_number || null,
         transport_vehicle || null, product_temp != null ? parseFloat(product_temp) : existing.rows[0].product_temp,
         subtotal, vat_rate, vat_amount, total, notes || null, req.params.id,
         paymentStatus, paidAt, invoiceNumber, packOf(packaging, existing.rows[0].packaging)
@@ -322,7 +353,7 @@ router.put('/:id/payment', authMiddleware, async (req, res) => {
   try {
     const { paid, paid_at } = req.body || {};
     const isPaid = Boolean(paid);
-    const paidDate = isPaid ? (paid_at || new Date().toISOString().slice(0, 10)) : null;
+    const paidDate = isPaid ? (paid_at || todayLocal()) : null;
     const result = await pool.query(
       `UPDATE sales SET payment_status = $1, paid_at = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
       [isPaid ? 'платено' : 'неплатено', paidDate, req.params.id]
@@ -341,6 +372,13 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // Заклучи ја продажбата — две истовремени бришења не смеат двапати да ја вратат залихата
+    const locked = await client.query('SELECT id FROM sales WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (locked.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Продажбата не е пронајдена' });
+    }
+
     // Rollback inventory
     const items = await client.query(
       'SELECT product_type_id, lot_number, quantity_kg FROM sale_items WHERE sale_id = $1',
@@ -358,6 +396,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     res.json({ message: 'Продажбата е избришана' });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Delete sale error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {

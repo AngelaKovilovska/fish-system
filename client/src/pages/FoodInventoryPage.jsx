@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { formatDateShortMK } from '../lib/utils';
+import { formatDateShortMK, todayStr } from '../lib/utils';
 import { ArrowLeft, Package, AlertTriangle, Timer, Settings } from 'lucide-react';
 
 export default function FoodInventoryPage() {
@@ -12,7 +12,7 @@ export default function FoodInventoryPage() {
   const [loading, setLoading] = useState(true);
   // Попис: преброена залиха по тип → ја поставува тековната (набавките се додаваат на остатокот)
   const [showCensus, setShowCensus] = useState(false);
-  const [censusDate, setCensusDate] = useState(new Date().toISOString().split('T')[0]);
+  const [censusDate, setCensusDate] = useState(todayStr());
   const [censusValues, setCensusValues] = useState({});
   const [censusSaving, setCensusSaving] = useState(false);
   const [message, setMessage] = useState('');

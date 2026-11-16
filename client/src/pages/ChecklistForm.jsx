@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { todayStr } from '../lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import WaterControlStep from '../components/checklist/WaterControlStep';
@@ -39,7 +40,7 @@ export default function ChecklistForm() {
   const feedingRef = useRef(null);
   const draftSaveTimer = useRef(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
 
   const makeEmptyForm = () => ({
     date: today,
@@ -111,7 +112,7 @@ export default function ChecklistForm() {
         const parsed = JSON.parse(saved);
         if (parsed.formData && parsed.savedAt) {
           const savedDay = new Date(parsed.savedAt).toISOString().split('T')[0];
-          const todayDay = new Date().toISOString().split('T')[0];
+          const todayDay = todayStr();
           if (savedDay === todayDay) {
             setDraftAvailable(parsed); // store full draft info for banner
           } else {

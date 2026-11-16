@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { todayStr } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -19,7 +20,7 @@ export default function EntryHub() {
   const goBack = useBack('/');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   const [checklistDone, setChecklistDone] = useState(false);
   const [mealStatus, setMealStatus] = useState({});
   const [loading, setLoading] = useState(true);

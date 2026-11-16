@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { fmtInt } from '../lib/utils';
+import { fmtInt, todayStr } from '../lib/utils';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
 import {
@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 /* ─── helpers ─── */
-const todayStr = () => new Date().toISOString().split('T')[0];
 
 const MK_MONTHS = ['јануари','февруари','март','април','мај','јуни','јули','август','септември','октомври','ноември','декември'];
 const MK_MONTHS_SHORT = ['јан','фев','мар','апр','мај','јун','јул','авг','сеп','окт','ное','дек'];

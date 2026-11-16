@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { PARAMETER_LABELS } from '../lib/constants';
-import { formatDateMK , productStockWarnings } from '../lib/utils';
+import { formatDateMK, productStockWarnings, todayStr } from '../lib/utils';
 import { AlertTriangle, CheckCircle, ClipboardList, ChevronDown, ChevronRight, UtensilsCrossed, Sunrise, Sun, Moon, Brain, Fish, Thermometer, ArrowRight, Timer, Archive, Package } from 'lucide-react';
 
 /* ── Alert label helpers (reused from before) ── */
@@ -47,7 +47,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Compute today's date once at mount time — stable for the entire effect
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr();
 
     Promise.all([
       api.getAlerts({ acknowledged: 'false' }).then(d => setAlerts(d.alerts)).catch(() => setAlerts([])),

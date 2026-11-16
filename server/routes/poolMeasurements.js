@@ -1,4 +1,5 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
@@ -106,7 +107,7 @@ router.get('/history/:poolNumber', authMiddleware, validatePoolNumber, async (re
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function normalizeDate(value) {
-  const d = value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const d = value ? String(value).slice(0, 10) : todayLocal();
   return DATE_RE.test(d) ? d : null;
 }
 

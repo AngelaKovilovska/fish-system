@@ -11,7 +11,7 @@ import {
   ChevronDown, ChevronUp, ChevronLeft, Search, Calendar, Filter,
   TrendingUp, Package, Download, Eye,
 } from 'lucide-react';
-import { formatDateShortMK, fmtInt } from '../lib/utils';
+import { formatDateShortMK, fmtInt, todayStr } from '../lib/utils';
 
 // Статус на плаќање → { label, cls }
 // Телефон/таблет: iframe не рендерира PDF → прикажуваме страници преку pdf.js
@@ -256,7 +256,7 @@ export default function SalesHistory() {
 
   // Означи платено/неплатено; датумот на плаќање може да се смени (стандардно денес)
   async function setPaid(sale, paid, date) {
-    const paidAt = paid ? (date || new Date().toISOString().slice(0, 10)) : null;
+    const paidAt = paid ? (date || todayStr()) : null;
     try {
       await api.setSalePayment(sale.id, paid, paidAt);
       setSales(prev => prev.map(s => s.id === sale.id

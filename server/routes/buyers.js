@@ -33,12 +33,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name, address, edb, contact_person, phone, email, is_individual } = req.body;
-    if (!name) return res.status(400).json({ error: 'Потребно е име на купувач' });
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'Потребно е име на купувач' });
+
+    // Ист купувач (исто име, без разлика на големи/мали букви) не се внесува двапати — се враќа постоечкиот
+    const existing = await pool.query(
+      'SELECT * FROM buyers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) ORDER BY id LIMIT 1', [name]
+    );
+    if (existing.rows.length > 0) return res.status(200).json(existing.rows[0]);
 
     const result = await pool.query(
       `INSERT INTO buyers (name, address, edb, contact_person, phone, email, is_individual)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, address || null, edb || null, contact_person || null, phone || null, email || null, !!is_individual]
+      [String(name).trim(), address || null, edb || null, contact_person || null, phone || null, email || null, !!is_individual]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

@@ -8,6 +8,7 @@
  */
 
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const { getPoolCounts, getPoolCount } = require('../lib/poolFish');
@@ -71,7 +72,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     `);
 
     // 4. Get today's actual feeding (partial if early in the day)
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     const todayMealsRes = await pool.query(`
       SELECT pool_number, SUM(food_quantity_gr) as total_food_gr
       FROM pool_meals
@@ -318,7 +319,7 @@ router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, 
       : latestTemperature;
 
     // NEW: Project current weight
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     const measuredDate = measRes.rows[0]?.measured_date
       ? new Date(measRes.rows[0].measured_date)
       : null;
@@ -613,7 +614,7 @@ router.get('/growth-history/:poolNumber', authMiddleware, validatePoolNumber, as
 
     // 2. Get daily feed data between first ACTIVE measurement and today
     const firstDate = activeMeasurements[0].date;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
 
     const feedRes = await pool.query(`
       SELECT date, SUM(food_quantity_gr) as total_food_gr

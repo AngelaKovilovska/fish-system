@@ -1,17 +1,61 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const inv = require('../lib/inventory');
 
 const router = express.Router();
 
-// Generate LOT number: YYMMDD-P (date + pool number)
+const { isValidDateStr } = require('../lib/dates');
+const bad = (msg) => { const e = new Error(msg); e.status = 400; return e; };
+const dateStr = (v) => (v instanceof Date
+  ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
+  : String(v || '').slice(0, 10));
+
+// LOT number: YYMMDD-P (date + pool number)
 function generateLotNumber(productionDate, sourcePool) {
-  const d = productionDate ? new Date(productionDate + 'T00:00:00') : new Date();
-  const yy = String(d.getFullYear()).slice(2);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yy}${mm}${dd}-${sourcePool || 0}`;
+  const [y, m, d] = dateStr(productionDate || todayLocal()).split('-');
+  return `${y.slice(2)}${m}${d}-${sourcePool || 0}`;
+}
+
+// Втора серија од ист базен на ист ден добива наставка: 261116-3, 261116-3-2, 261116-3-3 …
+async function uniqueLotNumber(client, productionDate, sourcePool, excludeBatchId = null) {
+  const base = generateLotNumber(productionDate, sourcePool);
+  for (let n = 1; n < 50; n++) {
+    const candidate = n === 1 ? base : `${base}-${n}`;
+    const r = await client.query(
+      'SELECT 1 FROM production_batches WHERE lot_number = $1 AND ($2::int IS NULL OR id <> $2)', [candidate, excludeBatchId]
+    );
+    if (r.rows.length === 0) return candidate;
+  }
+  throw bad('Премногу серии за ист базен и датум');
+}
+
+// Проверка на податоците за серија (POST и PUT). Враќа нормализирани вредности или фрла 400.
+function parseBatchInput(body, { requireDate = false } = {}) {
+  const { source_pool, fish_count, total_weight_kg, items, production_date } = body;
+  const poolNum = source_pool === '' || source_pool == null ? null : Number(source_pool);
+  if (poolNum != null && (!Number.isInteger(poolNum) || poolNum < 1 || poolNum > 8)) throw bad('Невалиден број на базен');
+  const fish = fish_count === '' || fish_count == null ? 0 : Number(fish_count);
+  if (!Number.isInteger(fish) || fish < 0) throw bad('Бројот на риби мора да биде цел број, 0 или повеќе');
+  const weight = total_weight_kg === '' || total_weight_kg == null ? 0 : Number(total_weight_kg);
+  if (!Number.isFinite(weight) || weight < 0) throw bad('Невалидна жива тежина');
+  let date = production_date ? String(production_date).slice(0, 10) : null;
+  if (date && !isValidDateStr(date)) throw bad('Невалиден датум на производство');
+  if (date && date > todayLocal()) throw bad('Датумот на производство не може да биде во иднина');
+  if (!date && requireDate) date = todayLocal();
+  let cleanItems = null;
+  if (Array.isArray(items)) {
+    cleanItems = [];
+    for (const it of items) {
+      const q = it.quantity_kg === '' || it.quantity_kg == null ? 0 : Number(it.quantity_kg);
+      if (!Number.isFinite(q) || q < 0) throw bad('Невалидна количина во производите');
+      if (q === 0) continue;
+      if (!parseInt(it.product_type_id)) throw bad('Изберете тип производ');
+      cleanItems.push({ product_type_id: parseInt(it.product_type_id), quantity_kg: Math.round(q * 1000) / 1000 });
+    }
+  }
+  return { poolNum, fish, weight, date, items: cleanItems };
 }
 
 // GET /api/production - list all batches
@@ -163,57 +207,42 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { source_pool, fish_count, total_weight_kg, notes, items, complete, production_date } = req.body;
-    const lot_number = generateLotNumber(production_date, source_pool);
+    const { notes, complete } = req.body;
+    const input = parseBatchInput(req.body, { requireDate: true });
+    const source_pool = input.poolNum;
 
     await client.query('BEGIN');
+    const lot_number = await uniqueLotNumber(client, input.date, source_pool);
 
     const status = complete ? 'завршено' : 'чиста_вода';
 
     const result = await client.query(
       `INSERT INTO production_batches (lot_number, source_pool, fish_count, total_weight_kg, notes, created_by, status, finished_at, production_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, ${complete ? 'NOW()' : 'NULL'}, $8) RETURNING *`,
-      [lot_number, source_pool || null, parseInt(fish_count) || 0, parseFloat(total_weight_kg) || 0, notes || null, req.user.id, status, production_date || new Date().toISOString().slice(0, 10)]
+      [lot_number, source_pool, input.fish, input.weight, notes || null, req.user.id, status, input.date]
     );
 
     const batchId = result.rows[0].id;
 
-    // Subtract fish from pool inventory
-    const fishCount = parseInt(fish_count) || 0;
-    if (source_pool && fishCount > 0) {
+    for (const item of input.items || []) {
       await client.query(
-        `UPDATE pool_fish_inventory
-         SET current_count = GREATEST(0, current_count - $1), updated_at = NOW()
-         WHERE pool_number = $2`,
-        [fishCount, source_pool]
+        'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
+        [batchId, item.product_type_id, item.quantity_kg]
       );
-    }
-
-    // Insert items if provided
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        const qty = parseFloat(item.quantity_kg);
-        if (qty > 0) {
-          await client.query(
-            'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
-            [batchId, item.product_type_id, qty]
-          );
-
-          // Add to LOT inventory if completing
-          if (complete) {
-            await inv.addToLot(client, {
-              productTypeId: item.product_type_id, lotNumber: lot_number, batchId,
-              productionDate: result.rows[0].production_date, qty,
-            });
-          }
-        }
+      // Add to LOT inventory if completing
+      if (complete) {
+        await inv.addToLot(client, {
+          productTypeId: item.product_type_id, lotNumber: lot_number, batchId,
+          productionDate: input.date, qty: item.quantity_kg,
+        });
       }
     }
 
     await client.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Create production batch error:', err);
     res.status(500).json({ error: 'Серверска грешка' });
   } finally {
@@ -225,63 +254,41 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { source_pool, fish_count, total_weight_kg, notes, items, production_date } = req.body;
-
-    const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);
-    if (batch.rows.length === 0) return res.status(404).json({ error: 'Серијата не е пронајдена' });
-
-    const isFinished = batch.rows[0].status === 'завршено';
-
-    const oldPool = batch.rows[0].source_pool;
-    const oldFishCount = parseInt(batch.rows[0].fish_count) || 0;
-    const newPool = source_pool || oldPool;
-    const newFishCount = parseInt(fish_count) || 0;
+    const { notes } = req.body;
+    const input = parseBatchInput(req.body);
 
     await client.query('BEGIN');
-
-    // Adjust pool fish inventory if pool or fish count changed
-    if (oldPool && oldFishCount > 0) {
-      // Return old fish to old pool
-      await client.query(
-        `UPDATE pool_fish_inventory
-         SET current_count = current_count + $1, updated_at = NOW()
-         WHERE pool_number = $2`,
-        [oldFishCount, oldPool]
-      );
+    const batch = await client.query('SELECT * FROM production_batches WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (batch.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Серијата не е пронајдена' });
     }
-    if (newPool && newFishCount > 0) {
-      // Subtract new fish from new pool
-      await client.query(
-        `UPDATE pool_fish_inventory
-         SET current_count = GREATEST(0, current_count - $1), updated_at = NOW()
-         WHERE pool_number = $2`,
-        [newFishCount, newPool]
-      );
-    }
+    const old = batch.rows[0];
+    const isFinished = old.status === 'завршено';
 
-    // Regenerate LOT number when date or pool changes
-    const newLot = generateLotNumber(production_date || batch.rows[0].production_date, source_pool || batch.rows[0].source_pool);
+    const newPool = input.poolNum ?? old.source_pool;
+    const newDate = input.date || dateStr(old.production_date);
+    const oldLot = old.lot_number;
 
-    // Update batch info
+    // LOT бројот се менува само ако се смени датумот или базенот (инаку останува ист, со наставката)
+    const changed = newPool !== old.source_pool || newDate !== dateStr(old.production_date);
+    const newLot = changed ? await uniqueLotNumber(client, newDate, newPool, parseInt(req.params.id)) : oldLot;
+
     await client.query(
       `UPDATE production_batches
        SET source_pool = $1, fish_count = $2, total_weight_kg = $3, notes = $4, production_date = $5, lot_number = $6, updated_at = NOW()
        WHERE id = $7`,
-      [source_pool || null, newFishCount, parseFloat(total_weight_kg) || 0, notes || null, production_date || null, newLot, req.params.id]
+      [newPool, input.fish, input.weight, notes || null, newDate, newLot, req.params.id]
     );
 
     // Update items if provided
-    const newProdDate = production_date || batch.rows[0].production_date;
-    if (items && Array.isArray(items)) {
+    if (input.items) {
       await client.query('DELETE FROM production_items WHERE batch_id = $1', [req.params.id]);
-      for (const item of items) {
-        const qty = parseFloat(item.quantity_kg);
-        if (qty > 0) {
-          await client.query(
-            'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
-            [req.params.id, item.product_type_id, qty]
-          );
-        }
+      for (const item of input.items) {
+        await client.query(
+          'INSERT INTO production_items (batch_id, product_type_id, quantity_kg) VALUES ($1, $2, $3)',
+          [req.params.id, item.product_type_id, item.quantity_kg]
+        );
       }
     }
 
@@ -291,11 +298,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
         'SELECT product_type_id, quantity_kg FROM production_items WHERE batch_id = $1', [req.params.id]
       );
       await inv.setBatchLots(client, {
-        batchId: parseInt(req.params.id), lotNumber: newLot, productionDate: newProdDate, items: currentItems.rows,
+        batchId: parseInt(req.params.id), lotNumber: newLot, oldLotNumber: oldLot, productionDate: newDate, items: currentItems.rows,
       });
-      if (newLot !== batch.rows[0].lot_number) {
-        await client.query('UPDATE sale_items SET lot_number = $1 WHERE lot_number = $2', [newLot, batch.rows[0].lot_number]);
-        await client.query('UPDATE sales SET lot_number = $1 WHERE lot_number = $2', [newLot, batch.rows[0].lot_number]);
+      if (newLot !== oldLot) {
+        await client.query('UPDATE sale_items SET lot_number = $1 WHERE lot_number = $2', [newLot, oldLot]);
+        await client.query('UPDATE sales SET lot_number = $1 WHERE lot_number = $2', [newLot, oldLot]);
       }
     }
 
@@ -312,7 +319,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     res.json(updated.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('Update production batch error:', err);
     res.status(500).json({ error: 'Серверска грешка' });

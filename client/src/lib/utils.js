@@ -1,6 +1,21 @@
 import { MK_MONTHS } from './constants';
 
 /**
+ * Денешен датум 'YYYY-MM-DD' по локално време (не UTC — по полноќ UTC го дава вчерашниот ден)
+ */
+export function todayStr(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Додава денови на 'YYYY-MM-DD' и враќа 'YYYY-MM-DD' (локално, без поместување од временска зона)
+ */
+export function addDaysStr(dateStr, days) {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  return todayStr(new Date(y, m - 1, d + days));
+}
+
+/**
  * Форматира датум од Date објект → "7 Септември 2026"
  */
 export function formatDateMK(date) {

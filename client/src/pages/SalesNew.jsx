@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { todayStr, addDaysStr } from '../lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -7,11 +8,7 @@ import {
   Check, AlertCircle, User, Package, Truck, History,
 } from 'lucide-react';
 
-function addDays(dateStr, days) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
+const addDays = addDaysStr;
 
 function fmtDate(s) {
   if (!s) return '';
@@ -45,7 +42,7 @@ export default function SalesNew() {
 
   /* sale */
   const [form, setForm] = useState({
-    sale_date: new Date().toISOString().split('T')[0],
+    sale_date: todayStr(),
     payment_method: 'фактура',
     lot_number: '',
     transport_vehicle: 'VE-8779-AF',
@@ -93,7 +90,7 @@ export default function SalesNew() {
         // Рок за плаќање од постоечката продажба (7 или 30 дена)
         if (sale.sale_date && sale.due_date) {
           const diff = Math.round((new Date(sale.due_date.slice(0, 10)) - new Date(sale.sale_date.slice(0, 10))) / 86400000);
-          setDueDays(diff >= 30 ? 30 : 7);
+          setDueDays(diff >= 20 ? 30 : 7); // ≥20: постарите фактури имаат 29 дена поради стара грешка
         }
         setForm({
           sale_date: (sale.sale_date || '').slice(0, 10),
@@ -120,7 +117,9 @@ export default function SalesNew() {
   /* buyer autocomplete */
   function handleBuyerNameChange(value) {
     setBuyer({ ...buyer, name: value });
-    setSelectedBuyerId(null);
+    // Ако името точно се совпаѓа со постоечки купувач → тој е избран (без нов дупликат)
+    const exact = buyers.find(b => (b.name || '').trim().toLowerCase() === value.trim().toLowerCase());
+    setSelectedBuyerId(exact ? exact.id : null);
     if (value.length >= 2) {
       // Совпаѓање по почеток на збор (пр. „Фа“ → „Фамаком“, не „Кафана“); прво имињата што почнуваат со текстот
       const q = value.trim().toLowerCase();
@@ -241,6 +240,9 @@ export default function SalesNew() {
       if (!buyerId) {
         const created = await api.createBuyer(buyer);
         buyerId = created.id;
+        // Запомни го новиот купувач — ако зачувувањето на продажбата падне, повторен обид не прави дупликат
+        setSelectedBuyerId(created.id);
+        setBuyers(list => (list.some(b => b.id === created.id) ? list : [...list, created]));
       } else {
         // Постоечки купувач — промените во податоците (пр. физичко лице, телефон) се зачувуваат во шифрарникот
         await api.updateBuyer(buyerId, buyer).catch(() => {});
@@ -262,9 +264,9 @@ export default function SalesNew() {
       if (isEdit) await api.updateSale(editId, payload);
       else await api.createSale(payload);
       setSuccess(isEdit ? 'Продажбата е ажурирана' : 'Продажбата е зачувана');
+      // Копчето останува оневозможено до пренасочувањето — втор клик не смее да направи втора продажба
       setTimeout(() => navigate('/production/sales/history'), 1500);
-    } catch (err) { setError(err.message); }
-    finally { setSaving(false); }
+    } catch (err) { setError(err.message); setSaving(false); }
   }
 
 

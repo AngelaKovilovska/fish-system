@@ -1,4 +1,5 @@
 const express = require('express');
+const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
@@ -70,7 +71,7 @@ router.post('/purchase', authMiddleware, adminOnly, async (req, res) => {
   const client = await pool.connect();
   try {
     const { supplier, document_number, purchase_date } = req.body;
-    const date = purchase_date || new Date().toISOString().split('T')[0];
+    const date = purchase_date || todayLocal();
 
     // Normalize to items array
     let items;
@@ -125,7 +126,7 @@ router.post('/census', authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
     const { census_date } = req.body;
-    const date = census_date || new Date().toISOString().split('T')[0];
+    const date = census_date || todayLocal();
     const items = (req.body.items || []).filter(it => it.food_type && it.quantity_kg !== '' && it.quantity_kg != null && parseFloat(it.quantity_kg) >= 0);
     if (items.length === 0) return res.status(400).json({ error: 'Внесете преброена количина за барем еден тип храна' });
 
