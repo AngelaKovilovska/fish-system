@@ -137,4 +137,98 @@ router.post('/change-password', loginLimiter, authMiddleware, async (req, res) =
   }
 });
 
+// ── Заборавена лозинка ──
+// 1) POST /forgot-password { email } → на е-поштата се праќа 6-цифрен код (важи 15 минути)
+// 2) POST /reset-password { email, code, newPassword } → ја поставува новата лозинка
+const crypto = require('crypto');
+const { sendReportEmail } = require('../services/emailService');
+
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Премногу барања. Обидете се повторно по 15 минути.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const RESET_MINUTES = 15;
+const GENERIC_FORGOT = 'Ако е-поштата постои во системот, испратен е код за нова лозинка. Проверете го сандачето (и „Spam“).';
+
+router.post('/forgot-password', forgotLimiter, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Внесете валидна е-пошта' });
+
+    const r = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+    const user = r.rows[0];
+    // Ист одговор без разлика дали сметката постои (за да не може да се проверува кој има сметка)
+    if (!user || user.is_active === false) return res.json({ message: GENERIC_FORGOT });
+
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    const codeHash = await bcrypt.hash(code, 10);
+    await pool.query(
+      `INSERT INTO password_resets (user_id, code_hash, expires_at, attempts, created_at)
+       VALUES ($1, $2, NOW() + ($3 || ' minutes')::interval, 0, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET code_hash = $2, expires_at = NOW() + ($3 || ' minutes')::interval, attempts = 0, created_at = NOW()`,
+      [user.id, codeHash, String(RESET_MINUTES)]
+    );
+
+    const sent = await sendReportEmail({
+      to: user.email,
+      subject: 'CLARIO — код за нова лозинка',
+      html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#1a1a2e">
+        <h2 style="color:#1d2d64;margin-bottom:8px">Нова лозинка</h2>
+        <p>Побарана е промена на лозинката за вашата сметка во CLARIO.</p>
+        <p style="font-size:30px;font-weight:bold;letter-spacing:6px;background:#f0f4ff;padding:14px;text-align:center;border-radius:8px;color:#1d2d64">${code}</p>
+        <p>Кодот важи ${RESET_MINUTES} минути. Внесете го во апликацијата заедно со новата лозинка.</p>
+        <p style="color:#888;font-size:12px">Ако не сте го побарале ова, игнорирајте ја пораката — лозинката останува иста.</p>
+      </div>`,
+    });
+    if (!sent.success) {
+      console.error('Password reset email failed:', sent.error);
+      return res.status(503).json({ error: 'Е-поштата не може да се испрати во моментов. Обидете се подоцна или побарајте од админ да постави нова лозинка.' });
+    }
+    res.json({ message: GENERIC_FORGOT });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
+router.post('/reset-password', loginLimiter, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    const code = String(req.body?.code || '').trim();
+    const newPassword = String(req.body?.newPassword || '');
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Внесете ја е-поштата и 6-цифрениот код' });
+    if (newPassword.length < 8) return res.status(400).json({ error: 'Новата лозинка мора да има минимум 8 знаци' });
+
+    const INVALID = 'Кодот е погрешен или истечен. Побарајте нов код.';
+    const r = await pool.query(
+      `SELECT u.id, u.is_active, pr.code_hash, pr.attempts, (pr.expires_at > NOW()) AS valid
+       FROM users u JOIN password_resets pr ON pr.user_id = u.id
+       WHERE LOWER(u.email) = LOWER($1)`, [email]
+    );
+    const row = r.rows[0];
+    if (!row || row.is_active === false || !row.valid || row.attempts >= 5) {
+      if (row) await pool.query('DELETE FROM password_resets WHERE user_id = $1 AND (expires_at <= NOW() OR attempts >= 5)', [row.id]);
+      return res.status(400).json({ error: INVALID });
+    }
+    const ok = await bcrypt.compare(code, row.code_hash);
+    if (!ok) {
+      await pool.query('UPDATE password_resets SET attempts = attempts + 1 WHERE user_id = $1', [row.id]);
+      return res.status(400).json({ error: INVALID });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $1, password_changed_at = NOW() WHERE id = $2', [newHash, row.id]);
+    await pool.query('DELETE FROM password_resets WHERE user_id = $1', [row.id]);
+    authMiddleware.invalidateUser(row.id);
+    res.json({ message: 'Лозинката е сменета. Најавете се со новата лозинка.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Серверска грешка' });
+  }
+});
+
 module.exports = router;
