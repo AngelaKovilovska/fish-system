@@ -630,14 +630,14 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
     } else {
       summary = 'Проверете термо пумпа, намалете хранење';
       feedStep = 'Намалете хранење на 1.5-2.5% телесна тежина дневно.';
-      detailStep = 'Оптимум е 28-30°C.';
+      detailStep = 'Оптимум е 26-28°C.';
     }
     recommendations.push({
       urgency: temp < 18 ? 'critical' : 'medium',
       title: `Водата е ладна (${temp}°C)`,
       summary,
       steps: [
-        'Проверете термо пумпа — целна температура 28-30°C.',
+        'Проверете термо пумпа — целна температура 26-28°C.',
         feedStep,
         detailStep,
       ],
@@ -654,7 +654,7 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
       steps: [
         'Аерација на максимум — топлата вода има помалку кислород.',
         'Намалете хранење на 1-2% телесна тежина.',
-        'Проверете термо пумпа — оптимум 28-30°C.',
+        'Проверете термо пумпа — оптимум 26-28°C.',
       ],
       source: 'Prokešová et al. (2015); Britz & Hecht (1987)',
     });
@@ -713,7 +713,7 @@ function generateRecommendations(current, trends, nh3Result, spikes, thresholdCr
 
   // Сортирај по итност
   const urgencyOrder = { critical: 0, high: 1, medium: 2, info: 3 };
-  recommendations.sort((a, b) => (urgencyOrder[a.urgency] || 9) - (urgencyOrder[b.urgency] || 9));
+  recommendations.sort((a, b) => (urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9));
 
   return recommendations;
 }
@@ -796,6 +796,20 @@ async function analyzeWaterPrediction(dbPool) {
       .map(h => parseFloat(h[param]))
       .filter(v => !isNaN(v) && v !== null);
 
+    // Надвор од нормата СЕГА — независно од трендот и од бројот на мерења
+    // (константна вредност над нормата нема тренд, но сепак е проблем)
+    const normNow = norms[param];
+    if (normNow && currentValue != null && !isNaN(currentValue)) {
+      const high = normNow.max != null && currentValue > parseFloat(normNow.max);
+      const low = normNow.min != null && currentValue < parseFloat(normNow.min);
+      if (high || low) {
+        allCrossings.push({
+          parameter: param, ...PARAM_META[param], daysUntil: 0, direction: high ? 'high' : 'low',
+          boundaryValue: high ? parseFloat(normNow.max) : parseFloat(normNow.min), alreadyExceeded: true, slope: 0, currentValue,
+        });
+      }
+    }
+
     // Z-Score
     const spike = detectSpike(currentValue, historicalValues);
     if (spike) {
@@ -817,7 +831,7 @@ async function analyzeWaterPrediction(dbPool) {
       // Предикција за пречекорување на нормата
       const norm = norms[param];
       const crossing = norm ? predictThresholdCrossing(currentValue, regression.slope, norm) : null;
-      if (crossing && crossing.daysUntil !== null) {
+      if (crossing && crossing.daysUntil !== null && !crossing.alreadyExceeded) {
         allCrossings.push({ parameter: param, ...PARAM_META[param], ...crossing, slope: regression.slope, currentValue });
       }
 
@@ -906,7 +920,7 @@ async function analyzeWaterPrediction(dbPool) {
   ];
   warnings.sort((a, b) => {
     const sev = { critical: 0, warning: 1 };
-    return (sev[a.severity] || 9) - (sev[b.severity] || 9) || a.daysUntil - b.daysUntil;
+    return (sev[a.severity] ?? 9) - (sev[b.severity] ?? 9) || a.daysUntil - b.daysUntil;
   });
 
   // Дали сè е стабилно?

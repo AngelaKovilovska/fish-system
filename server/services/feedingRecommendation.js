@@ -264,19 +264,14 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
   // Per meal breakdown
   const perMealKg = mealsPerDay > 0 ? adjustedDailyFoodKg / mealsPerDay : 0;
 
-  // Detect food type mismatch
+  // Име на препорачаната храна како во залихата и во листите за избор (пр. „SpecialPro EF (4.5mm)“)
+  const stockFoodType = mapToStockFoodType(feedProduct.name, feedProduct.sizeMm);
+
+  // Предупредување ако последно давана храна не е препорачаната (се споредува и големината на пелетот)
   const currentFoodType = options.currentFoodType || null;
   let foodTypeWarning = null;
-  if (currentFoodType) {
-    const recName = feedProduct.name;
-    // Normalize comparison (ignore size info in parentheses)
-    // „SpecialPro EF (3mm)“ и „Special Pro“ се ист производ — се споредува без празни места, „EF“ и големина
-    const norm = (t) => t.replace(/\s*\(.*\)/, '').toLowerCase().replace(/\bef\b/g, '').replace(/[\s-]/g, '');
-    const currentNorm = norm(currentFoodType);
-    const recNorm = norm(recName);
-    if (!currentNorm.includes(recNorm) && !recNorm.includes(currentNorm)) {
-      foodTypeWarning = `Моментално користите "${currentFoodType}", но препорачано е "${recName} (${feedProduct.sizeMm}mm)" за риби од ${avgWeight}g`;
-    }
+  if (currentFoodType && currentFoodType !== stockFoodType) {
+    foodTypeWarning = `Последно е давана „${currentFoodType}“, а за риби од ${Math.round(avgWeight)} g е препорачана „${stockFoodType}“`;
   }
 
   // Transition zone detection
@@ -310,6 +305,7 @@ function calculatePoolRecommendation(fishCount, avgWeight, temperature = null, o
     recommendation: {
       foodType: feedProduct.name,
       feedSizeMm: feedProduct.sizeMm,
+      stockFoodType,
       coppensTableSize: interpolated.feedSizeMm,
       feedRatePercent: Math.round(interpolated.feedRate * tempAdj.factor * 100) / 100,
       baseFeedRatePercent: interpolated.feedRate,
@@ -367,7 +363,7 @@ function calculateAllRecommendations(pools, temperature = null) {
       totalBiomassKg += rec.poolData.biomassKg;
 
       // Aggregate food type needs
-      const ft = `${rec.recommendation.foodType} (${rec.recommendation.feedSizeMm}mm)`;
+      const ft = rec.recommendation.stockFoodType;
       if (!foodTypeNeeds[ft]) foodTypeNeeds[ft] = 0;
       foodTypeNeeds[ft] += rec.recommendation.dailyFoodKg;
     }
@@ -393,11 +389,16 @@ function calculateAllRecommendations(pools, temperature = null) {
 /**
  * Compare recommendation vs actual feeding for a pool
  */
-function compareWithActual(recommendation, actualFoodGr) {
+// mealsEntered = колку оброци се внесени денес (1–3). Додека денот не е завршен, споредбата е со препораката
+// за дадените оброци (пр. по првиот оброк: 1/3 од дневната), а не со целата дневна количина.
+function compareWithActual(recommendation, actualFoodGr, mealsEntered = null) {
   if (!recommendation.hasData || !actualFoodGr) return null;
 
-  const recommendedGr = recommendation.recommendation.dailyFoodGr;
-  const diff = actualFoodGr - recommendedGr;
+  const mealsPerDay = recommendation.recommendation.mealsPerDay || 3;
+  const meals = mealsEntered ? Math.min(Math.max(parseInt(mealsEntered) || 0, 1), mealsPerDay) : mealsPerDay;
+  const partial = meals < mealsPerDay;
+  const recommendedGr = Math.round(recommendation.recommendation.dailyFoodGr * meals / mealsPerDay);
+  const diff = Math.round(actualFoodGr - recommendedGr);
   const diffPercent = recommendedGr > 0 ? Math.round((diff / recommendedGr) * 100) : 0;
 
   let status, message;
@@ -418,9 +419,13 @@ function compareWithActual(recommendation, actualFoodGr) {
     message = `Недоволно хранење (${diffPercent}%). Зголемете за ${Math.abs(diff)}g.`;
   }
 
+  if (partial) message = `Досега (${meals} од ${mealsPerDay} оброци): ${message}`;
+
   return {
     status,
     message,
+    mealsEntered: meals,
+    isPartialDay: partial,
     recommendedGr,
     actualGr: actualFoodGr,
     differenceGr: diff,

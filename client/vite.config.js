@@ -49,21 +49,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /\/api\/(documents|reports\/sales-export|reports\/sales-detail\/pdf)/i,
+            // Податоците секогаш се земаат од серверот (апликацијата не работи офлајн) — никогаш стар одговор од кеш,
+            // за по зачувување да не се прикаже стара листа и корисникот да внесе двапати.
+            urlPattern: /\/api\//i,
             handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: /^https?:\/\/.*\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-              networkTimeoutSeconds: 5,
-            },
           },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

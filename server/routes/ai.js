@@ -74,9 +74,9 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     // 4. Get today's actual feeding (partial if early in the day)
     const today = todayLocal();
     const todayMealsRes = await pool.query(`
-      SELECT pool_number, SUM(food_quantity_gr) as total_food_gr
+      SELECT pool_number, SUM(food_quantity_gr) as total_food_gr, COUNT(DISTINCT meal_type)::int AS meals
       FROM pool_meals
-      WHERE date = $1
+      WHERE date = $1 AND food_quantity_gr > 0
       GROUP BY pool_number
     `, [today]);
 
@@ -115,6 +115,16 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
       AND dr.date < CURRENT_DATE
     `);
 
+    // Последно давана храна по базен (последните 7 дена) — за предупредување „погрешен тип храна“
+    const lastFoodRes = await pool.query(`
+      SELECT DISTINCT ON (pool_number) pool_number, food_type
+      FROM pool_meals
+      WHERE date >= $1::date - 7 AND food_quantity_gr > 0 AND food_type IS NOT NULL AND food_type <> ''
+      ORDER BY pool_number, date DESC, id DESC
+    `, [today]);
+    const lastFoodByPool = {};
+    lastFoodRes.rows.forEach(r => { lastFoodByPool[r.pool_number] = r.food_type; });
+
     // ─── Build lookup maps ───
     const measurementMap = {};
     measurementsRes.rows.forEach(m => {
@@ -122,8 +132,10 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     });
 
     const todayFeedMap = {};
+    const todayMealsCount = {};
     todayMealsRes.rows.forEach(m => {
       todayFeedMap[m.pool_number] = parseFloat(m.total_food_gr) || 0;
+      todayMealsCount[m.pool_number] = m.meals || 0;
     });
 
     const feedSinceMap = {};
@@ -193,6 +205,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
         current_count: inv.current_count,
         avg_weight_gr: effectiveWeight,
         last_measured: meas?.measured_at || null,
+        food_type: lastFoodByPool[inv.pool_number] || null,
       };
     });
 
@@ -204,7 +217,7 @@ router.get('/recommendations', authMiddleware, async (req, res) => {
     for (const [pn, rec] of Object.entries(result.pools)) {
       const actualGr = todayFeedMap[pn] || 0;
       if (actualGr > 0 && rec.hasData) {
-        rec.comparison = compareWithActual(rec, actualGr);
+        rec.comparison = compareWithActual(rec, actualGr, todayMealsCount[pn]);
       } else {
         rec.comparison = null;
       }
@@ -343,7 +356,7 @@ router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, 
 
     // Get today's actual feeding
     const mealsRes = await pool.query(
-      'SELECT SUM(food_quantity_gr) as total FROM pool_meals WHERE date = $1 AND pool_number = $2',
+      'SELECT SUM(food_quantity_gr) as total, COUNT(DISTINCT meal_type)::int AS meals FROM pool_meals WHERE date = $1 AND pool_number = $2 AND food_quantity_gr > 0',
       [today, poolNumber]
     );
     const actualGr = parseFloat(mealsRes.rows[0]?.total) || 0;
@@ -364,7 +377,7 @@ router.get('/pool/:poolNumber', authMiddleware, validatePoolNumber, async (req, 
         warnings: projection.warnings || [],
       },
       ...recommendation,
-      comparison: actualGr > 0 && recommendation.hasData ? compareWithActual(recommendation, actualGr) : null,
+      comparison: actualGr > 0 && recommendation.hasData ? compareWithActual(recommendation, actualGr, mealsRes.rows[0]?.meals) : null,
       todayActualFoodGr: actualGr,
     });
   } catch (err) {

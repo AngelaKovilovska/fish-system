@@ -118,11 +118,25 @@ async function runMigrations() {
   const migrationsDir = path.join(__dirname, 'db', 'migrations');
   const files = fs.readdirSync(migrationsDir).sort();
 
+  // Секоја миграција се извршува еднаш (евиденција во schema_migrations). Порано сите се пуштаа при секое
+  // стартување, па стари миграции ги враќаа рачно сменетите податоци (пр. имиња на производи).
+  // Миграција што падне не се евидентира и се пробува пак при следното стартување.
+  let applied = new Set();
+  try {
+    await pool.query('CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT NOW())');
+    const done = await pool.query('SELECT filename FROM schema_migrations');
+    applied = new Set(done.rows.map(r => r.filename));
+  } catch (err) {
+    console.error('schema_migrations note:', err.message);
+  }
+
   for (const file of files) {
     if (file.endsWith('.sql')) {
+      if (applied.has(file)) continue;
       try {
         const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
         await pool.query(sql);
+        await pool.query('INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
         console.log(`Migration applied: ${file}`);
       } catch (err) {
         // Log but continue — migrations must be idempotent

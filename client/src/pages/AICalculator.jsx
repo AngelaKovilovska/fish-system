@@ -40,14 +40,15 @@ export default function AICalculator() {
   }, []);
 
   // Load water prediction + ML forecast when water tab is opened
+  const loadWaterPrediction = () => {
+    setPredictionLoading(true);
+    setPredictionError(null);
+    api.getWaterPrediction().then(d => setWaterPrediction(d))
+      .catch(err => setPredictionError(err.message || 'Грешка при вчитување'))
+      .finally(() => setPredictionLoading(false));
+  };
   useEffect(() => {
-    if (tab === 'water' && !waterPrediction && !predictionLoading) {
-      setPredictionLoading(true);
-      setPredictionError(null);
-      api.getWaterPrediction().then(d => setWaterPrediction(d))
-        .catch(err => setPredictionError(err.message || 'Грешка при вчитување'))
-        .finally(() => setPredictionLoading(false));
-    }
+    if (tab === 'water' && !waterPrediction && !predictionLoading) loadWaterPrediction();
   }, [tab]);
 
   // Load growth data when growth tab is opened or pool/date changes
@@ -96,8 +97,8 @@ export default function AICalculator() {
         temperature: calcInputs.temperature ? parseFloat(calcInputs.temperature) : null,
       });
       setCalcResult(result);
-    } catch {
-      setCalcResult(null);
+    } catch (err) {
+      setCalcResult({ hasData: false, message: err.message || 'Грешка при пресметка' });
     } finally {
       setCalcLoading(false);
     }
@@ -252,11 +253,7 @@ export default function AICalculator() {
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
                       style={{ background: 'rgba(139,92,246,0.18)', color: '#6d28d9' }}>
-                      {rec.foodType}
-                    </span>
-                    <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
-                      style={{ background: 'rgba(59,130,246,0.15)', color: '#1d4ed8' }}>
-                      {rec.feedSizeMm}mm пелет
+                      {rec.stockFoodType || `${rec.foodType} (${rec.feedSizeMm}mm)`}
                     </span>
                     <span className="text-[10px] px-2 py-1 rounded-full font-semibold"
                       style={{ background: 'rgba(34,197,94,0.15)', color: '#15803d' }}>
@@ -477,7 +474,7 @@ export default function AICalculator() {
               <AlertTriangle size={32} className="mx-auto text-(--danger) mb-2" />
               <p className="text-sm text-(--text-primary) mb-1">Грешка при анализа</p>
               <p className="text-[11px] text-(--text-muted) mb-3">{predictionError}</p>
-              <button onClick={() => { setWaterPrediction(null); setPredictionError(null); }}
+              <button onClick={loadWaterPrediction}
                 className="text-xs font-semibold text-(--primary) hover:underline">
                 Обиди се повторно
               </button>

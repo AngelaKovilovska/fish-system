@@ -100,11 +100,13 @@ router.get('/sales-analytics', authMiddleware, async (req, res) => {
       salesFull(iso(prevFrom), iso(prevTo)),
       pool.query(`SELECT b.id AS buyer_id, b.name, b.is_individual, MIN(s.sale_date) AS first_sale, MAX(s.sale_date) AS last_sale, COUNT(s.id)::int AS sales_all
                   FROM buyers b LEFT JOIN sales s ON s.buyer_id = b.id WHERE b.is_active = true GROUP BY b.id, b.name, b.is_individual ORDER BY b.name`),
-      pool.query(`SELECT TO_CHAR(s.sale_date, 'YYYY-MM') AS month, COUNT(DISTINCT s.id)::int AS count,
+      // Последни 12 цели календарски месеци (вклучително тековниот); месеци без продажба се со 0
+      pool.query(`SELECT TO_CHAR(m.month, 'YYYY-MM') AS month, COUNT(DISTINCT s.id)::int AS count,
                          COALESCE(SUM(si.quantity_kg), 0) AS kg, COALESCE(SUM(si.amount), 0) AS amount
-                  FROM sales s JOIN sale_items si ON si.sale_id = s.id
-                  WHERE s.sale_date >= (CURRENT_DATE - INTERVAL '12 months')
-                  GROUP BY 1 ORDER BY 1`),
+                  FROM generate_series(date_trunc('month', $1::date) - INTERVAL '11 months', date_trunc('month', $1::date), INTERVAL '1 month') AS m(month)
+                  LEFT JOIN sales s ON date_trunc('month', s.sale_date) = m.month
+                  LEFT JOIN sale_items si ON si.sale_id = s.id
+                  GROUP BY m.month ORDER BY m.month`, [todayLocal()]),
     ]);
     res.json({
       period: { from, to, days }, prevPeriod: { from: iso(prevFrom), to: iso(prevTo) },

@@ -12,16 +12,27 @@ async function request(url, options = {}) {
       ...options,
     });
 
-    const data = await res.json();
+    // Одговорот не мора да е JSON (пр. HTML страница за грешка додека серверот се рестартира)
+    const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Серверска грешка');
+    if (!res.ok || data == null) {
+      const err = new Error(data?.error || (res.status >= 500 || data == null
+        ? 'Серверот моментално не е достапен. Обидете се повторно за кратко.'
+        : 'Серверска грешка'));
+      err.status = res.status;
+      throw err;
     }
 
     return data;
   } catch (err) {
     if (err.name === 'AbortError') {
       throw new Error('Барањето истече — серверот не одговори. Обидете се повторно.');
+    }
+    if (err instanceof TypeError) {
+      // fetch не успеа воопшто (нема интернет / серверот не одговара)
+      const e = new Error('Нема врска со серверот. Проверете го интернетот и обидете се повторно.');
+      e.network = true;
+      throw e;
     }
     throw err;
   } finally {

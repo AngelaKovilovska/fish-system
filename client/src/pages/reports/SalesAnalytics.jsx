@@ -52,7 +52,11 @@ function StatCard({ label, value, sub, delta }) {
 }
 
 const sumKg = (sales) => sales.reduce((s, x) => s + (x.items || []).reduce((a, i) => a + parseFloat(i.quantity_kg || 0), 0), 0);
-const sumAmt = (sales) => sales.reduce((s, x) => s + parseFloat(x.total || 0), 0);
+// Износи: анализите (продажби, купувачи, производи, сезонски) се БЕЗ ДДВ (основица од ставките);
+// плаќањата (платено / неплатено / доспеано) се СО ДДВ — тоа е износот што се наплатува.
+const netOf = (x) => (x.items || []).reduce((a, i) => a + parseFloat(i.amount || 0), 0);
+const sumAmt = (sales) => sales.reduce((s, x) => s + netOf(x), 0);
+const sumGross = (sales) => sales.reduce((s, x) => s + parseFloat(x.total || 0), 0);
 
 // Групирање по купувач / производ со кг, ден, број продажби
 function groupBy(sales, keyFn, labelFn) {
@@ -104,6 +108,22 @@ export default function SalesAnalytics({ kind, from, to }) {
   const byProduct = useMemo(() => groupBy(cur, (s, it) => it.product_type_id, (s, it) => `${it.code}`).sort((a, b) => b[metric] - a[metric]), [cur, metric]);
   const prevByProduct = useMemo(() => Object.fromEntries(groupBy(prev, (s, it) => it.product_type_id, (s, it) => it.code).map(g => [g.key, g])), [prev]);
 
+  // По промена на период: ако избраниот купувач/производ нема продажби во новиот период, филтерот се ресетира
+  // (инаку паѓачкото мени покажува „Сите“, а табелата и PDF-от остануваат филтрирани)
+  useEffect(() => {
+    if (!data) return;
+    const buyerIds = new Set(cur.map(x => String(x.buyer_id)));
+    const productIds = new Set(cur.flatMap(x => (x.items || []).map(i => String(i.product_type_id))));
+    if (selBuyer && !buyerIds.has(String(selBuyer))) setSelBuyer('');
+    if (selProduct && !productIds.has(String(selProduct))) setSelProduct('');
+    setSf(f => {
+      const next = { ...f };
+      if (f.buyer_id && !buyerIds.has(String(f.buyer_id))) next.buyer_id = '';
+      if (f.product_type_id && !productIds.has(String(f.product_type_id))) next.product_type_id = '';
+      return next.buyer_id === f.buyer_id && next.product_type_id === f.product_type_id ? f : next;
+    });
+  }, [data]);
+
   // PDF на меморандум со тековните филтри
   const pdfParams = () => {
     const p = { from, to };
@@ -128,7 +148,7 @@ export default function SalesAnalytics({ kind, from, to }) {
   const renderSalesTable = ({ sales, showBuyer = true }) => (
     <div className="overflow-x-auto rounded-(--r-md) border border-(--border)">
       <table className="table-modern text-[11px]">
-        <thead><tr><th>Датум</th><th>Фактура</th>{showBuyer && <th>Купувач</th>}<th>Производи</th><th className="text-right">Кг</th><th className="text-right">Износ</th><th>Плаќање</th></tr></thead>
+        <thead><tr><th>Датум</th><th>Фактура</th>{showBuyer && <th>Купувач</th>}<th>Производи</th><th className="text-right">Кг</th><th className="text-right">Без ДДВ</th><th className="text-right">Со ДДВ</th><th>Плаќање</th></tr></thead>
         <tbody>
           {sales.map(s => (
             <tr key={s.id}>
@@ -137,14 +157,15 @@ export default function SalesAnalytics({ kind, from, to }) {
               {showBuyer && <td>{s.buyer_name}</td>}
               <td className="text-(--text-secondary)">{(s.items || []).map(i => `${i.code} ${parseFloat(i.quantity_kg).toFixed(2)}`).join(', ')}</td>
               <td className="text-right tabular-nums">{sumKg([s]).toFixed(2)}</td>
-              <td className="text-right tabular-nums font-semibold text-(--primary)">{fmtInt(s.total)}</td>
+              <td className="text-right tabular-nums">{fmtInt(netOf(s))}</td>
+              <td className="text-right tabular-nums font-semibold text-(--primary)">{s.partial ? '–' : fmtInt(s.total)}</td>
               <td className="whitespace-nowrap">
                 <span className="text-(--text-muted)">{s.payment_method}</span>{' '}
                 <span className={s.payment_status === 'платено' ? 'text-(--success)' : 'text-(--danger)'}>{s.payment_status === 'платено' ? 'платено' : 'неплатено'}</span>
               </td>
             </tr>
           ))}
-          {sales.length === 0 && <tr><td colSpan={7} className="text-center text-(--text-muted) py-4">Нема продажби.</td></tr>}
+          {sales.length === 0 && <tr><td colSpan={8} className="text-center text-(--text-muted) py-4">Нема продажби.</td></tr>}
         </tbody>
       </table>
     </div>
@@ -195,7 +216,7 @@ export default function SalesAnalytics({ kind, from, to }) {
       .map(s => {
         if (!sf.product_type_id) return s;
         const items = (s.items || []).filter(i => String(i.product_type_id) === String(sf.product_type_id));
-        return items.length ? { ...s, items, total: items.reduce((a, i) => a + parseFloat(i.amount || 0), 0) } : null;
+        return items.length ? { ...s, items, partial: true } : null; // partial: прикажани се само ставките за избраниот производ
       })
       .filter(Boolean);
     const fcur = applyF(cur), fprev = applyF(prev);
@@ -204,7 +225,7 @@ export default function SalesAnalytics({ kind, from, to }) {
     const productOpts = [...new Map(cur.flatMap(s => (s.items || []).map(i => [i.product_type_id, i.code])) ).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])));
     const hasF = Object.values(sf).some(Boolean);
     const byMonth = {};
-    for (const s of fcur) { const m = String(s.sale_date).slice(0, 7); byMonth[m] = byMonth[m] || { month: m, count: 0, kg: 0, amount: 0 }; byMonth[m].count++; byMonth[m].kg += sumKg([s]); byMonth[m].amount += parseFloat(s.total || 0); }
+    for (const s of fcur) { const m = String(s.sale_date).slice(0, 7); byMonth[m] = byMonth[m] || { month: m, count: 0, kg: 0, amount: 0 }; byMonth[m].count++; byMonth[m].kg += sumKg([s]); byMonth[m].amount += netOf(s); }
     const months = Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month));
     return (
       <div className="space-y-3 animate-in">
@@ -245,7 +266,7 @@ export default function SalesAnalytics({ kind, from, to }) {
         <div className="grid grid-cols-3 gap-2">
           <StatCard label="Продажби" value={fcur.length} delta={<Delta cur={fcur.length} prev={fprev.length} />} />
           <StatCard label="Количина" value={`${fKg.toFixed(1)} кг`} delta={<Delta cur={fKg} prev={fpKg} suffix=" кг" />} />
-          <StatCard label="Износ" value={`${fmtInt(fAmt)} ден`} delta={<Delta cur={fAmt} prev={fpAmt} suffix=" ден" />} />
+          <StatCard label="Износ (без ДДВ)" value={`${fmtInt(fAmt)} ден`} delta={<Delta cur={fAmt} prev={fpAmt} suffix=" ден" />} />
         </div>
         <div className="card space-y-4">
           {renderSalesTable({ sales: fcur })}
@@ -282,7 +303,7 @@ export default function SalesAnalytics({ kind, from, to }) {
         <div className="grid grid-cols-3 gap-2">
           <StatCard label="Купувачи" value={byBuyer.length} delta={<Delta cur={byBuyer.length} prev={Object.keys(prevByBuyer).length} />} />
           <StatCard label="Количина" value={`${curKg.toFixed(1)} кг`} delta={<Delta cur={curKg} prev={prevKg} />} />
-          <StatCard label="Износ" value={`${fmtInt(curAmt)} ден`} delta={<Delta cur={curAmt} prev={prevAmt} />} />
+          <StatCard label="Износ (без ДДВ)" value={`${fmtInt(curAmt)} ден`} delta={<Delta cur={curAmt} prev={prevAmt} />} />
         </div>
 
         {chartData.length > 0 && (
@@ -334,7 +355,7 @@ export default function SalesAnalytics({ kind, from, to }) {
               <div className="grid grid-cols-3 gap-2">
                 <StatCard label="Продажби" value={sel.count} delta={<Delta cur={sel.count} prev={selPrev?.count || 0} />} />
                 <StatCard label="Количина" value={`${sel.kg.toFixed(1)} кг`} delta={<Delta cur={sel.kg} prev={selPrev?.kg || 0} />} />
-                <StatCard label="Износ" value={`${fmtInt(sel.amount)} ден`} delta={<Delta cur={sel.amount} prev={selPrev?.amount || 0} />} />
+                <StatCard label="Износ (без ДДВ)" value={`${fmtInt(sel.amount)} ден`} delta={<Delta cur={sel.amount} prev={selPrev?.amount || 0} />} />
               </div>
               {renderProductBreakdown({ products: sel.products })}
               {renderSalesTable({ sales: selSales, showBuyer: false })}
@@ -407,7 +428,7 @@ export default function SalesAnalytics({ kind, from, to }) {
               <div className="grid grid-cols-3 gap-2">
                 <StatCard label="Продажби" value={sel.count} delta={<Delta cur={sel.count} prev={selPrev?.count || 0} />} />
                 <StatCard label="Количина" value={`${sel.kg.toFixed(1)} кг`} delta={<Delta cur={sel.kg} prev={selPrev?.kg || 0} />} />
-                <StatCard label="Износ" value={`${fmtInt(sel.amount)} ден`} sub={sel.kg > 0 ? `${fmtInt(sel.amount / sel.kg)} ден/кг` : ''} delta={<Delta cur={sel.amount} prev={selPrev?.amount || 0} />} />
+                <StatCard label="Износ (без ДДВ)" value={`${fmtInt(sel.amount)} ден`} sub={sel.kg > 0 ? `${fmtInt(sel.amount / sel.kg)} ден/кг` : ''} delta={<Delta cur={sel.amount} prev={selPrev?.amount || 0} />} />
               </div>
               {trend.length > 1 && (
                 <div>
@@ -449,16 +470,16 @@ export default function SalesAnalytics({ kind, from, to }) {
     const unpaidAll = cur.filter(s => s.payment_status !== 'платено');
     const overdue = unpaidAll.filter(s => s.due_date && String(s.due_date).slice(0, 10) < today)
       .map(s => ({ ...s, daysLate: daysBetween(String(s.due_date), today) })).sort((a, b) => b.daysLate - a.daysLate);
-    const overdueAmt = sumAmt(overdue);
+    const overdueAmt = sumGross(overdue);
     const debtors = Object.values(unpaidAll.reduce((m, s) => { const k = s.buyer_name || 'Непознат'; m[k] = m[k] || { name: k, amount: 0, count: 0 }; m[k].amount += parseFloat(s.total || 0); m[k].count++; return m; }, {})).sort((a, b) => b.amount - a.amount);
-    const share = ['фактура', 'готово', 'гратис'].map(m => { const ss = cur.filter(s => s.payment_method === m); return { m, count: ss.length, amount: sumAmt(ss) }; });
-    const paidAmt = sumAmt(cur.filter(s => s.payment_status === 'платено'));
-    const unpaidAmt = sumAmt(unpaidAll);
-    const prevUnpaid = sumAmt(prev.filter(s => s.payment_status !== 'платено'));
+    const share = ['фактура', 'готово', 'гратис'].map(m => { const ss = cur.filter(s => s.payment_method === m); return { m, count: ss.length, amount: sumGross(ss) }; });
+    const paidAmt = sumGross(cur.filter(s => s.payment_status === 'платено'));
+    const unpaidAmt = sumGross(unpaidAll);
+    const prevUnpaid = sumGross(prev.filter(s => s.payment_status !== 'платено'));
 
     return (
       <div className="space-y-3 animate-in">
-        <p className="text-xs text-(--text-muted)">Период: {periodLabel} · споредба со {prevLabel}</p>
+        <p className="text-xs text-(--text-muted)">Период: {periodLabel} · споредба со {prevLabel} · износите се со ДДВ</p>
         <div className="grid grid-cols-3 gap-2">
           <StatCard label="Платено" value={`${fmtInt(paidAmt)} ден`} sub={`${cur.length - unpaidAll.length} факт.`} />
           <StatCard label="Неплатено" value={<span className={unpaidAmt > 0 ? 'text-(--danger)' : ''}>{fmtInt(unpaidAmt)} ден</span>} sub={`${unpaidAll.length} факт.`} delta={<Delta cur={unpaidAmt} prev={prevUnpaid} />} />
@@ -484,7 +505,7 @@ export default function SalesAnalytics({ kind, from, to }) {
           <div className="card !py-3">
             <p className="text-[10px] font-semibold text-(--text-muted) uppercase mb-2">Удел по начин на плаќање</p>
             {share.map(x => {
-              const pct = curAmt > 0 ? (x.amount / curAmt) * 100 : 0;
+              const grossAll = sumGross(cur); const pct = grossAll > 0 ? (x.amount / grossAll) * 100 : 0;
               return (
                 <div key={x.m} className="mb-1.5">
                   <div className="flex justify-between text-xs"><span className="capitalize">{x.m} <span className="text-(--text-muted)">({x.count})</span></span><span className="font-semibold tabular-nums">{pct.toFixed(0)} % · {fmtInt(x.amount)}</span></div>
@@ -513,7 +534,7 @@ export default function SalesAnalytics({ kind, from, to }) {
           <div className="grid grid-cols-3 gap-2">
             <StatCard label="Фактури" value={filtered.length} />
             <StatCard label="Количина" value={`${sumKg(filtered).toFixed(1)} кг`} />
-            <StatCard label="Износ" value={`${fmtInt(sumAmt(filtered))} ден`} />
+            <StatCard label="Износ (со ДДВ)" value={`${fmtInt(sumGross(filtered))} ден`} />
           </div>
           {renderSalesTable({ sales: filtered })}
           {renderPdfButtons()}

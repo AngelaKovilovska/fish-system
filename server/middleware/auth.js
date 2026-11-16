@@ -13,10 +13,16 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'Не сте најавени' });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+    decoded = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ['HS256'],
     });
+  } catch (err) {
+    return res.status(401).json({ error: 'Невалиден токен' });
+  }
+
+  try {
 
     // Провери дали корисникот сè уште постои во базата
     // (заштита: ако админот го избрише корисникот, токенот веднаш е невалиден)
@@ -26,8 +32,8 @@ async function authMiddleware(req, res, next) {
 
     let role = cached?.role;
     if (!cached || (now - cached.checkedAt) > CACHE_TTL_MS) {
-      const result = await pool.query('SELECT id, role FROM users WHERE id = $1', [userId]);
-      if (result.rows.length === 0) {
+      const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+      if (result.rows.length === 0 || result.rows[0].is_active === false) {
         activeUserCache.delete(userId);
         res.clearCookie('token');
         return res.status(401).json({ error: 'Корисникот не постои' });
@@ -38,10 +44,12 @@ async function authMiddleware(req, res, next) {
 
     // Улогата се зема од базата, не од токенот — промена на улога важи веднаш, без повторна најава
     req.user = { ...decoded, role: role || decoded.role };
-    next();
   } catch (err) {
-    return res.status(401).json({ error: 'Невалиден токен' });
+    // Грешка во базата не е „невалидна најава“ — корисникот не смее да биде одјавен поради неа
+    console.error('Auth check error:', err.message);
+    return res.status(503).json({ error: 'Серверот моментално не е достапен. Обидете се повторно.' });
   }
+  next();
 }
 
 // По промена/бришење на корисник: заборави го кешираниот запис за промената да важи веднаш

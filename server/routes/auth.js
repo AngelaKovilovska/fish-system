@@ -33,7 +33,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
-    if (!user) {
+    if (!user || user.is_active === false) {
       return res.status(401).json({ error: 'Погрешен email или лозинка' });
     }
 

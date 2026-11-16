@@ -546,14 +546,15 @@ tbody tr:nth-child(even){background:#fafbff}
 ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
 ${tableHTML}
 <div class="footer">ФАМАКОМ АКВАКУЛТУРА — Автоматски генериран извештај</div>
-<script>window.onload=function(){window.print()}<\/script>
 </body></html>`;
 
     const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-    }
+    if (!printWindow) { alert('Прелистувачот го блокираше прозорецот за печатење. Дозволете скокачки прозорци за оваа страница.'); return; }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    // Печатењето се повикува од оваа страница (скрипта внатре во новиот прозорец ја блокира безбедносната политика)
+    printWindow.focus();
+    setTimeout(() => { try { printWindow.print(); } catch { /* прозорецот е затворен */ } }, 400);
   };
 
   /* ── Chart visualizations for each report type ── */

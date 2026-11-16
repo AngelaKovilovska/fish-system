@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/', authMiddleware, adminOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, full_name, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, full_name, role, created_at FROM users WHERE is_active IS NOT FALSE ORDER BY created_at DESC'
     );
     res.json({ users: result.rows });
   } catch (err) {
@@ -41,12 +41,22 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ error: 'Невалидна улога' });
     }
 
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const password_hash = await bcrypt.hash(password, 12);
+    const existing = await pool.query('SELECT id, is_active FROM users WHERE LOWER(email) = LOWER($1)', [email]);
     if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'Email адресата веќе постои' });
+      if (existing.rows[0].is_active !== false) {
+        return res.status(400).json({ error: 'Email адресата веќе постои' });
+      }
+      // Претходно деактивиран корисник со иста е-пошта → повторно се активира со новите податоци
+      const re = await pool.query(
+        `UPDATE users SET is_active = TRUE, full_name = $1, password_hash = $2, role = $3 WHERE id = $4
+         RETURNING id, email, full_name, role, created_at`,
+        [sanitizeString(full_name, 100), password_hash, role || 'operator', existing.rows[0].id]
+      );
+      authMiddleware.invalidateUser(existing.rows[0].id);
+      return res.status(201).json({ user: re.rows[0] });
     }
 
-    const password_hash = await bcrypt.hash(password, 12);
     const result = await pool.query(
       'INSERT INTO users (email, full_name, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role, created_at',
       [email, full_name, password_hash, role || 'operator']
@@ -63,7 +73,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
 router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, full_name, role } = req.body;
+    const { email, full_name, role, password } = req.body;
 
     // Админ не може самиот да си ја одземе админ улогата (за да не остане системот без админ)
     if (role && role !== 'admin' && parseInt(id) === req.user.id) {
@@ -82,6 +92,14 @@ router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
     }
     if (full_name) { fields.push(`full_name = $${idx++}`); values.push(sanitizeString(full_name, 100)); }
     if (role && ['admin', 'operator'].includes(role)) { fields.push(`role = $${idx++}`); values.push(role); }
+
+    // Ресетирање лозинка од админ
+    if (password != null && password !== '') {
+      if (String(password).length < 8) {
+        return res.status(400).json({ error: 'Лозинката мора да има минимум 8 карактери' });
+      }
+      fields.push(`password_hash = $${idx++}`); values.push(await bcrypt.hash(String(password), 12));
+    }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: 'Нема податоци за ажурирање' });
@@ -114,7 +132,16 @@ router.delete('/:id', authMiddleware, adminOnly, validateId, async (req, res) =>
       return res.status(400).json({ error: 'Не може да го избришете сопствениот акаунт' });
     }
 
-    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    try {
+      await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    } catch (delErr) {
+      if (delErr.code !== '23503') throw delErr;
+      // Корисникот има внесови (чеклисти, мерења, продажби…) — тие мора да останат со неговото име,
+      // па сметката се деактивира: не може да се најави и не се прикажува во листата.
+      await pool.query('UPDATE users SET is_active = FALSE WHERE id = $1', [id]);
+      authMiddleware.invalidateUser(id);
+      return res.json({ message: 'Корисникот има внесови, па е деактивиран (повеќе не може да се најави)', deactivated: true });
+    }
     authMiddleware.invalidateUser(id);
     res.json({ message: 'Корисникот е избришан' });
   } catch (err) {

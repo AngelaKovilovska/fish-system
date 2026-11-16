@@ -447,7 +447,7 @@ export default function Dashboard() {
                       {poolRec.poolData.fishCount} риби × {poolRec.poolData.avgWeight}g
                     </p>
                     <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
-                      {poolRec.recommendation.foodType} ({poolRec.recommendation.feedSizeMm}mm)
+                      {poolRec.recommendation.stockFoodType || `${poolRec.recommendation.foodType} (${poolRec.recommendation.feedSizeMm}mm)`}
                     </p>
                     <p className="text-[10px] text-(--text-muted)">
                       {poolRec.recommendation.feedRatePercent}% BW · {poolRec.recommendation.mealsPerDay}×{poolRec.recommendation.perMealGr}g

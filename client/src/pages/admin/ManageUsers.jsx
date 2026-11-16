@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { Trash2, Plus, X, ChevronLeft } from 'lucide-react';
+import { Trash2, Plus, X, ChevronLeft, KeyRound } from 'lucide-react';
 
 export default function ManageUsers() {
   const navigate = useNavigate();
@@ -64,7 +64,20 @@ export default function ManageUsers() {
 
   const handleDelete = async (id, name) => {
     if (!confirm(`Дали сте сигурни дека сакате да го избришете ${name}?`)) return;
-    try { await api.deleteUser(id); loadUsers(); }
+    try {
+      const r = await api.deleteUser(id);
+      if (r?.deactivated) alert(r.message);
+      loadUsers();
+    }
+    catch (err) { alert('Грешка: ' + err.message); }
+  };
+
+  // Нова лозинка за корисник (ако ја заборавил) — ја поставува админ
+  const handleResetPassword = async (u) => {
+    const pw = prompt(`Нова лозинка за ${u.full_name} (минимум 8 знаци):`);
+    if (pw == null) return;
+    if (pw.length < 8) { alert('Лозинката мора да има минимум 8 знаци.'); return; }
+    try { await api.updateUser(u.id, { password: pw }); alert('Лозинката е сменета.'); }
     catch (err) { alert('Грешка: ' + err.message); }
   };
 
@@ -166,7 +179,11 @@ export default function ManageUsers() {
                 <td className="text-center">
                   {renderRole(u)}
                 </td>
-                <td className="text-right">
+                <td className="text-right whitespace-nowrap">
+                  <button onClick={() => handleResetPassword(u)} className="btn-ghost p-2" title="Нова лозинка"
+                    aria-label={`Нова лозинка за ${u.full_name}`}>
+                    <KeyRound size={15} />
+                  </button>
                   {u.id !== currentUser.id && (
                     <button onClick={() => handleDelete(u.id, u.full_name)}
                       className="btn-ghost text-(--danger) hover:bg-red-50 p-2"
@@ -201,6 +218,10 @@ export default function ManageUsers() {
                 <p className="text-xs text-(--text-muted) truncate">{u.email}</p>
               </div>
               {renderRole(u)}
+              <button onClick={() => handleResetPassword(u)} className="btn-ghost p-2" title="Нова лозинка"
+                aria-label={`Нова лозинка за ${u.full_name}`}>
+                <KeyRound size={16} />
+              </button>
               {u.id !== currentUser.id && (
                 <button onClick={() => handleDelete(u.id, u.full_name)}
                   className="btn-ghost text-(--danger) p-2"

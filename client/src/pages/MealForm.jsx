@@ -399,7 +399,7 @@ export default function MealForm() {
                       background: 'rgba(139,92,246,0.18)',
                       color: '#6d28d9',
                     }}>
-                    {rec.foodType} {rec.feedSizeMm}mm
+                    {rec.stockFoodType || `${rec.foodType} ${rec.feedSizeMm}mm`}
                   </span>
                 </div>
                 {poolAi.warnings?.transitionNote && (

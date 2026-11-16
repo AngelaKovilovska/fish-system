@@ -52,10 +52,19 @@ function ProtectedRoute({ children, adminOnly = false }) {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, connError, retry } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-(--text-muted)">Се вчитува...</div>;
+  }
+
+  if (connError && !user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-(--text-secondary)">{connError}</p>
+        <button type="button" onClick={retry} className="btn-primary px-5 py-2.5">Обиди се повторно</button>
+      </div>
+    );
   }
 
   return (

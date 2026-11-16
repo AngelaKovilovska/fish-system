@@ -635,7 +635,7 @@ console.log('\n  --- Сортирање по итност ---');
     const urgencyOrder = { critical: 0, high: 1, medium: 2, info: 3 };
     let sorted = true;
     for (let i = 1; i < recs.length; i++) {
-      if ((urgencyOrder[recs[i].urgency] || 9) < (urgencyOrder[recs[i - 1].urgency] || 9)) {
+      if ((urgencyOrder[recs[i].urgency] ?? 9) < (urgencyOrder[recs[i - 1].urgency] ?? 9)) {
         sorted = false;
         break;
       }

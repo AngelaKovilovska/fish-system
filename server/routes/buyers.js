@@ -39,7 +39,14 @@ router.post('/', authMiddleware, async (req, res) => {
     const existing = await pool.query(
       'SELECT * FROM buyers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) ORDER BY id LIMIT 1', [name]
     );
-    if (existing.rows.length > 0) return res.status(200).json(existing.rows[0]);
+    if (existing.rows.length > 0) {
+      // претходно избришан (деактивиран) купувач со исто име → повторно се активира
+      if (existing.rows[0].is_active === false) {
+        const re = await pool.query('UPDATE buyers SET is_active = true, updated_at = NOW() WHERE id = $1 RETURNING *', [existing.rows[0].id]);
+        return res.status(200).json(re.rows[0]);
+      }
+      return res.status(200).json(existing.rows[0]);
+    }
 
     const result = await pool.query(
       `INSERT INTO buyers (name, address, edb, contact_person, phone, email, is_individual)
