@@ -220,12 +220,15 @@ export default function SalesNew() {
   }
 
   /* totals */
-  const subtotal = items.reduce((s, i) => s + (parseFloat(i.quantity_kg) || 0) * (parseFloat(i.price_per_kg) || 0), 0);
+  // Исто заокружување како на серверот: количина на 3 децимали, износ на ред на 2 децимали
+  const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const r3 = (n) => Math.round((n + Number.EPSILON) * 1000) / 1000;
+  const subtotal = r2(items.reduce((s, i) => s + r2(r3(parseFloat(i.quantity_kg) || 0) * (parseFloat(i.price_per_kg) || 0)), 0));
   // Готово/гратис → без ДДВ
   const noVat = ['готово', 'гратис'].includes(form.payment_method);
   const effectiveVatRate = noVat ? 0 : vatRate;
-  const vatAmount = Math.round(subtotal * effectiveVatRate) / 100;
-  const total = subtotal + vatAmount;
+  const vatAmount = r2(subtotal * effectiveVatRate / 100);
+  const total = r2(subtotal + vatAmount);
   const dueDate = addDays(form.sale_date, dueDays);
 
   /* submit */
