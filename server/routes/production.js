@@ -127,6 +127,11 @@ router.get('/inventory', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT pi.*, pt.code, pt.name, pt.price_per_unit, pt.unit, pt.min_stock_kg,
+              -- „се продава“ = има барем една продажба во последните 90 дена (за предупредувањата за ниска залиха)
+              EXISTS (
+                SELECT 1 FROM sale_items si JOIN sales s ON s.id = si.sale_id
+                WHERE si.product_type_id = pi.product_type_id AND s.sale_date >= CURRENT_DATE - 90
+              ) AS sold_recently,
               COALESCE((
                 SELECT json_agg(json_build_object(
                   'lot_number', pl.lot_number, 'quantity_kg', pl.quantity_kg, 'initial_kg', pl.initial_kg,

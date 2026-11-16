@@ -56,7 +56,9 @@ export function productStockWarnings(inventory, expiringDays = 14) {
   for (const item of inventory || []) {
     const qty = parseFloat(item.quantity_kg) || 0;
     const min = item.min_stock_kg != null ? parseFloat(item.min_stock_kg) : 5;
-    if (min > 0 && qty < min) {
+    // Ниска залиха се јавува само за производи што се продаваат (продажба во последните 90 дена);
+    // производ што не се продава нормално е на нула и не е причина за предупредување.
+    if (min > 0 && qty < min && item.sold_recently !== false) {
       out.push({
         type: 'low', level: qty <= 0 ? 'danger' : 'warning', code: item.code,
         text: qty <= 0 ? `${item.code} — нема залиха (праг ${min.toFixed(1)} кг)`
