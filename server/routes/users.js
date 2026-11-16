@@ -97,6 +97,7 @@ router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
       return res.status(404).json({ error: 'Корисникот не е пронајден' });
     }
 
+    authMiddleware.invalidateUser(id);
     res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Update user error:', err);
@@ -114,6 +115,7 @@ router.delete('/:id', authMiddleware, adminOnly, validateId, async (req, res) =>
     }
 
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    authMiddleware.invalidateUser(id);
     res.json({ message: 'Корисникот е избришан' });
   } catch (err) {
     console.error('Delete user error:', err);
