@@ -2,6 +2,7 @@ const express = require('express');
 const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const adminOnly = require('../middleware/adminOnly');
 const inv = require('../lib/inventory');
 
 const router = express.Router();
@@ -447,7 +448,7 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
 });
 
 // DELETE /api/production/:id - delete batch (rollback inventory if finished)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   const client = await pool.connect();
   try {
     const batch = await client.query('SELECT * FROM production_batches WHERE id = $1', [req.params.id]);

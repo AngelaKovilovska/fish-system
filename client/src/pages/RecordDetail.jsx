@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -31,6 +32,7 @@ const ALERT_LABELS = {
 };
 
 export default function RecordDetail() {
+  const isAdmin = useAuth().user?.role === 'admin'; // бришење е само за админ
   const { id } = useParams();
   const navigate = useNavigate();
   const goBack = useBack('/history');
@@ -274,10 +276,12 @@ ${html}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-(--primary) text-white active:scale-95 transition-transform">
             <Pencil size={12} /> Едитирај
           </Link>
-          <button onClick={handleDelete}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-(--danger) border border-(--border) active:scale-95 transition-transform" style={{ background: 'rgba(239,68,68,0.08)' }}>
-            <Trash2 size={12} /> Избриши
-          </button>
+          {isAdmin && (
+            <button onClick={handleDelete}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-(--danger) border border-(--border) active:scale-95 transition-transform" style={{ background: 'rgba(239,68,68,0.08)' }}>
+              <Trash2 size={12} /> Избриши
+            </button>
+          )}
           <button onClick={handleSendReport} disabled={sending}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-(--bg-secondary) text-(--text-secondary) border border-(--border) active:scale-95 transition-transform">
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}

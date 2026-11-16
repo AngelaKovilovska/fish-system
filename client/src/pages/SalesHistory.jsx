@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
 import PdfPages from '../components/PdfPages';
 import DateRangePicker, { dateRangeLabel } from '../components/DateRangePicker';
@@ -29,6 +30,7 @@ function paymentBadge(sale) {
 }
 
 export default function SalesHistory() {
+  const isAdmin = useAuth().user?.role === 'admin'; // бришење е само за админ
   const navigate = useNavigate();
   const goBack = useBack('/production');
   const [sales, setSales] = useState([]);
@@ -622,10 +624,12 @@ export default function SalesHistory() {
                             className="btn-ghost text-[11px] text-(--primary) flex items-center gap-1">
                             <Pencil size={12} /> Уреди
                           </button>
-                          <button onClick={() => handleDeleteSale(sale.id)}
-                            className="btn-ghost text-[11px] text-(--danger) hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
-                            <Trash2 size={12} /> Избриши
-                          </button>
+                          {isAdmin && (
+                            <button onClick={() => handleDeleteSale(sale.id)}
+                              className="btn-ghost text-[11px] text-(--danger) hover:bg-[rgba(239,68,68,0.08)] flex items-center gap-1">
+                              <Trash2 size={12} /> Избриши
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

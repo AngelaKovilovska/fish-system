@@ -108,12 +108,27 @@ router.post('/change-password', loginLimiter, authMiddleware, async (req, res) =
 
     const validPassword = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Тековната лозинка е погрешна' });
+      return res.status(400).json({ error: 'Тековната лозинка е погрешна' });
     }
 
     // Hash and update
     const newHash = await bcrypt.hash(newPassword, 12);
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
+    await pool.query('UPDATE users SET password_hash = $1, password_changed_at = NOW() WHERE id = $2', [newHash, req.user.id]);
+    authMiddleware.invalidateUser(req.user.id);
+
+    // Другите уреди се одјавуваат; оваа сесија добива нов токен за да остане најавена
+    const u = await pool.query('SELECT id, email, role, full_name FROM users WHERE id = $1', [req.user.id]);
+    const token = jwt.sign(
+      { id: u.rows[0].id, email: u.rows[0].email, role: u.rows[0].role, full_name: u.rows[0].full_name, iat: Math.floor(Date.now() / 1000) + 1 },
+      process.env.JWT_SECRET,
+      { algorithm: 'HS256', expiresIn: '7d' }
+    );
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.json({ message: 'Лозинката е успешно променета' });
   } catch (err) {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { fmtInt, todayStr } from '../lib/utils';
 import { api } from '../lib/api';
 import { useBack } from '../lib/useBack';
@@ -47,6 +48,7 @@ const PRODUCT_COLORS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function ProductionNew() {
+  const isAdmin = useAuth().user?.role === 'admin'; // бришење е само за админ
   const goBackPage = useBack('/production');
 
   /* data */
@@ -875,7 +877,7 @@ export default function ProductionNew() {
                                 )}
                                 <div className="flex gap-2">
                                   <button onClick={() => startEdit(batch)} className="btn-ghost text-xs flex items-center gap-1"><Pencil size={13} /> Измени</button>
-                                  <button onClick={() => handleDelete(batch.id)} className="btn-ghost text-xs text-(--danger) ml-auto flex items-center gap-1"><Trash2 size={13} /> Избриши</button>
+                                  {isAdmin && <button onClick={() => handleDelete(batch.id)} className="btn-ghost text-xs text-(--danger) ml-auto flex items-center gap-1"><Trash2 size={13} /> Избриши</button>}
                                 </div>
                               </div>
                             )}

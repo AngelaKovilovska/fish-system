@@ -2,6 +2,7 @@ const express = require('express');
 const { todayLocal } = require('../lib/dates');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const adminOnly = require('../middleware/adminOnly');
 const inv = require('../lib/inventory');
 const docNum = require('../lib/documentNumbers');
 
@@ -371,7 +372,7 @@ router.put('/:id/payment', authMiddleware, async (req, res) => {
 });
 
 // DELETE /api/sales/:id - delete sale (rollback inventory)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

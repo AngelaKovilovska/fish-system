@@ -31,6 +31,7 @@ async function authMiddleware(req, res, next) {
     const cached = activeUserCache.get(userId);
 
     let role = cached?.role;
+    let pwChangedAt = cached?.pwChangedAt || 0;
     if (!cached || (now - cached.checkedAt) > CACHE_TTL_MS) {
       const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
       if (result.rows.length === 0 || result.rows[0].is_active === false) {
@@ -39,7 +40,14 @@ async function authMiddleware(req, res, next) {
         return res.status(401).json({ error: 'Корисникот не постои' });
       }
       role = result.rows[0].role;
-      activeUserCache.set(userId, { checkedAt: now, role });
+      pwChangedAt = result.rows[0].password_changed_at ? new Date(result.rows[0].password_changed_at).getTime() : 0;
+      activeUserCache.set(userId, { checkedAt: now, role, pwChangedAt });
+    }
+
+    // Најава направена пред последната промена на лозинка повеќе не важи (5 s толеранција за заокружување)
+    if (pwChangedAt && decoded.iat && decoded.iat * 1000 < pwChangedAt - 5000) {
+      res.clearCookie('token');
+      return res.status(401).json({ error: 'Лозинката е променета. Најавете се повторно.' });
     }
 
     // Улогата се зема од базата, не од токенот — промена на улога важи веднаш, без повторна најава

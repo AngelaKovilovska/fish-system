@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal, ShoppingCart } from 'lucide-react';
+import { LogOut, Home, PenSquare, FileBarChart, Settings, Users, X, Moon, Sun, BarChart3, Shield, Scale, Package, Factory, MoreHorizontal, ShoppingCart, KeyRound } from 'lucide-react';
 import FishBackground from './FishBackground';
+import ChangePasswordModal from './ChangePasswordModal';
 
 // ─── Main sections ───
 const sidebarSections = [
@@ -46,6 +47,7 @@ const mobilePrimaryTabs = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showProfile, setShowProfile] = useState(false);
@@ -166,6 +168,10 @@ export default function Layout() {
               <p className="text-[10px] text-white/40">{isAdmin ? 'Админ' : 'Оператор'}</p>
             </div>
           </div>
+          <button onClick={() => setShowPassword(true)} className="sidebar-link w-full">
+            <KeyRound size={16} />
+            Смени лозинка
+          </button>
           <button onClick={logout}
             className="sidebar-link w-full hover:!text-red-400 hover:!bg-red-500/10">
             <LogOut size={16} />
@@ -232,6 +238,12 @@ export default function Layout() {
                   </span>
                 </div>
                 <div className="h-px bg-(--border) my-2" />
+                <button onClick={() => setShowPassword(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-(--r-sm) text-(--text-primary) text-sm font-medium transition-all hover:bg-(--bg)"
+                  style={{ fontFamily: 'Sora, sans-serif' }}>
+                  <KeyRound size={16} />
+                  Смени лозинка
+                </button>
                 <button onClick={logout}
                   className="w-full flex items-center gap-2 px-3 py-2.5 rounded-(--r-sm) text-(--danger) text-sm font-medium transition-all hover:bg-[rgba(239,68,68,0.08)]"
                   style={{ fontFamily: 'Sora, sans-serif' }}>
@@ -246,6 +258,8 @@ export default function Layout() {
 
       {/* ═══════ FISH BACKGROUND (all pages) ═══════ */}
       <FishBackground variant="light" />
+
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
 
       {/* ═══════ MAIN CONTENT ═══════ */}
       <main className="relative z-1 pb-24 lg:pb-8 lg:ml-[240px]">

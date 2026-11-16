@@ -69,6 +69,7 @@ export const api = {
   // Users
   getUsers: () => request('/users'),
   createUser: (data) => request('/users', { method: 'POST', body: JSON.stringify(data) }),
+  changePassword: (currentPassword, newPassword) => request('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
   updateUser: (id, data) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 

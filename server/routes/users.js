@@ -99,6 +99,8 @@ router.put('/:id', authMiddleware, adminOnly, validateId, async (req, res) => {
         return res.status(400).json({ error: 'Лозинката мора да има минимум 8 карактери' });
       }
       fields.push(`password_hash = $${idx++}`); values.push(await bcrypt.hash(String(password), 12));
+      // старите најави на тој корисник престануваат да важат (освен ако админот си ја менува својата)
+      if (parseInt(id) !== req.user.id) fields.push('password_changed_at = NOW()');
     }
 
     if (fields.length === 0) {
