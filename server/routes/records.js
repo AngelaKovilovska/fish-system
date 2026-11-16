@@ -292,7 +292,7 @@ router.post('/', authMiddleware, validateRecordBody, async (req, res) => {
             [changeKg, pf.food_type]
           );
           await client.query(
-            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by) VALUES ($1, $2, 'consumption', $3, $4)`,
+            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by, reference_type) VALUES ($1, $2, 'consumption', $3, $4, 'record')`,
             [pf.food_type, -changeKg, recordId, req.user.id]
           );
         }
@@ -389,7 +389,7 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
     }
     // Remove old consumption logs for this record
     await client.query(
-      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id = $1`, [id]
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_type = 'record' AND reference_id = $1`, [id]
     );
 
     // Delete old sections and re-insert
@@ -475,7 +475,7 @@ router.put('/:id', authMiddleware, validateId, validateRecordBody, async (req, r
             [changeKg, pf.food_type]
           );
           await client.query(
-            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by) VALUES ($1, $2, 'consumption', $3, $4)`,
+            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by, reference_type) VALUES ($1, $2, 'consumption', $3, $4, 'record')`,
             [pf.food_type, -changeKg, parseInt(id), req.user.id]
           );
         }
@@ -547,7 +547,7 @@ router.delete('/:id', authMiddleware, validateId, async (req, res) => {
 
     // Remove consumption logs for this record
     await client.query(
-      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id = $1`, [id]
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_type = 'record' AND reference_id = $1`, [id]
     );
 
     const result = await client.query('DELETE FROM daily_records WHERE id = $1 RETURNING *', [id]);

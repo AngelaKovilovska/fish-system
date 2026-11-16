@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authMiddleware = require('../middleware/auth');
+const { todayLocal, isValidDateStr } = require('../lib/dates');
 
 const router = express.Router();
 
@@ -188,6 +189,18 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!VALID_MEAL_TYPES.includes(meal_type)) {
       return res.status(400).json({ error: 'Невалиден тип на оброк' });
     }
+    if (!isValidDateStr(String(date).slice(0, 10))) return res.status(400).json({ error: 'Невалиден датум' });
+    if (String(date).slice(0, 10) > todayLocal()) return res.status(400).json({ error: 'Датумот не може да биде во иднина' });
+    for (const p of pools) {
+      const pn = Number(p.pool_number);
+      if (!Number.isInteger(pn) || pn < 1 || pn > 8) return res.status(400).json({ error: 'Невалиден број на базен' });
+      const foods = Array.isArray(p.foods) && p.foods.length > 0 ? p.foods : [{ food_type: p.food_type, food_quantity_gr: p.food_quantity_gr }];
+      for (const f of foods) {
+        const q = f.food_quantity_gr === '' || f.food_quantity_gr == null ? 0 : Number(f.food_quantity_gr);
+        if (!Number.isFinite(q) || q < 0) return res.status(400).json({ error: `Базен ${pn}: невалидна количина храна` });
+        if (q > 0 && !f.food_type) return res.status(400).json({ error: `Базен ${pn}: изберете тип храна` });
+      }
+    }
 
     await client.query('BEGIN');
 
@@ -208,7 +221,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Delete old consumption logs for this meal
     await client.query(
-      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id IN (
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND (reference_type = 'meal' OR reference_type IS NULL) AND reference_id IN (
         SELECT id FROM pool_meals WHERE date = $1 AND meal_type = $2
       )`,
       [date, meal_type]
@@ -254,8 +267,8 @@ router.post('/', authMiddleware, async (req, res) => {
             [changeKg, foodType]
           );
           await client.query(
-            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by)
-             VALUES ($1, $2, 'consumption', $3, $4)`,
+            `INSERT INTO food_inventory_log (food_type, change_kg, reason, reference_id, created_by, reference_type)
+             VALUES ($1, $2, 'consumption', $3, $4, 'meal')`,
             [foodType, -changeKg, mealId, req.user.id]
           );
         }
@@ -329,7 +342,7 @@ router.delete('/', authMiddleware, async (req, res) => {
 
     // Delete consumption logs
     await client.query(
-      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND reference_id IN (
+      `DELETE FROM food_inventory_log WHERE reason = 'consumption' AND (reference_type = 'meal' OR reference_type IS NULL) AND reference_id IN (
         SELECT id FROM pool_meals WHERE date = $1 AND meal_type = $2
       )`,
       [date, meal_type]

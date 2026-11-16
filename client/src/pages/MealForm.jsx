@@ -444,6 +444,8 @@ export default function MealForm() {
                       className={`input-base ${!hasType && hasQty ? 'border-(--danger)' : ''}`}
                     >
                       <option value="">-- Избери тип на храна --</option>
+                      {/* стар тип (веќе не е во листата) мора да остане видлив кај постоечки оброк */}
+                      {food.food_type && !FOOD_TYPES.includes(food.food_type) && <option value={food.food_type}>{food.food_type} (стар тип)</option>}
                       {FOOD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
                     </select>
                   </div>

@@ -35,6 +35,9 @@ async function resolveItemLots(client, items) {
     rows.push({ ptId, qty, price, noLot: !!item.no_lot, explicit, amount: round2(qty * price), parts: null });
   }
   if (rows.length === 0) throw bad('Додадете барем една ставка со количина');
+  // Фактурата има место за ограничен број редови (производ + цена); вишокот не би се испечатил
+  const invoiceLines = new Set(rows.map(r => `${r.ptId}|${r.price}`)).size;
+  if (invoiceLines > MAX_INVOICE_LINES) throw bad(`Фактурата собира најмногу ${MAX_INVOICE_LINES} различни ставки (производ + цена). Поделете ја продажбата на две.`);
 
   // Прво ставките со избран LOT (ја резервираат количината), па автоматските — за два реда од ист производ
   // да не планираат од истата залиха.
@@ -67,6 +70,7 @@ async function resolveItemLots(client, items) {
 
 const { isValidDateStr } = require('../lib/dates');
 const METHODS = ['фактура', 'готово', 'гратис'];
+const MAX_INVOICE_LINES = 8;
 
 
 // GET /api/sales - list all sales

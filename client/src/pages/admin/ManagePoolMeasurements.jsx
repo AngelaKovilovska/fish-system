@@ -245,7 +245,7 @@ export default function ManagePoolMeasurements() {
             </div>
             <p className="text-[10px] text-(--text-muted) mt-2 text-center">
               {new Date(currentMeasurement.measured_at).toLocaleDateString('mk-MK', {
-                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                year: 'numeric', month: 'long', day: 'numeric'
               })}
             </p>
           </div>
@@ -368,7 +368,7 @@ export default function ManagePoolMeasurements() {
                         <span className="font-bold">{m.fish_count}</span> риби / <span className="font-bold">{m.avg_weight_gr}</span> gr
                       </p>
                       <p className="text-[10px] text-(--text-muted) mt-0.5">
-                        {new Date(m.measured_at).toLocaleDateString('mk-MK', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(m.measured_at).toLocaleDateString('mk-MK', { year: 'numeric', month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                     <button type="button" onClick={() => handleDelete(m.id)} disabled={deleting === m.id}

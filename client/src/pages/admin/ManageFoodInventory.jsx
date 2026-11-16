@@ -522,6 +522,7 @@ export default function ManageFoodInventory() {
                 <select value={item.food_type}
                   onChange={(e) => updateItem(idx, 'food_type', e.target.value)}
                   className="input-base w-full">
+                  {item.food_type && !FOOD_TYPES.includes(item.food_type) && <option value={item.food_type}>{item.food_type} (стар тип)</option>}
                   {FOOD_TYPES.map(ft => (
                     <option key={ft} value={ft}>{ft}</option>
                   ))}
@@ -712,6 +713,7 @@ export default function ManageFoodInventory() {
                       <div className="grid grid-cols-2 gap-2">
                         <select value={editFoodType} onChange={(e) => setEditFoodType(e.target.value)}
                           className="input-base text-xs !py-1.5">
+                          {editFoodType && !FOOD_TYPES.includes(editFoodType) && <option value={editFoodType}>{editFoodType} (стар тип)</option>}
                           {FOOD_TYPES.map(ft => (
                             <option key={ft} value={ft}>{ft}</option>
                           ))}

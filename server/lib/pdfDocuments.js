@@ -260,7 +260,6 @@ async function buildOrigin(sale) {
   const [tplPage] = tpl.getPages();
   const embedded = await doc.embedPage(tplPage);
   const W = tplPage.getWidth(), H = tplPage.getHeight();
-  const page = doc.addPage([W, H]);
 
   // Една линија по производ (ставките поделени по LOT се спојуваат)
   const merged = [];
@@ -271,6 +270,13 @@ async function buildOrigin(sale) {
     else merged.push({ key, code: it.code, price_per_kg: it.price_per_kg, quantity_kg: parseFloat(it.quantity_kg) || 0, amount: parseFloat(it.amount) || 0 });
   }
 
+  // Образецот има 3 реда за производи — повеќе од 3 производи продолжуваат на следен лист (ништо не се изостава)
+  const BASES = [307.6, 324.6, 341.5];
+  const chunks = [];
+  for (let i = 0; i < Math.max(merged.length, 1); i += BASES.length) chunks.push(merged.slice(i, i + BASES.length));
+
+  for (const chunk of chunks) {
+  const page = doc.addPage([W, H]);
   for (const copy of [0, 1]) {
     const dy = ORIGIN_SHIFT + copy * ORIGIN_HALF; // поместување во top-координати
     page.drawPage(embedded, { x: 0, y: -dy });
@@ -291,8 +297,7 @@ async function buildOrigin(sale) {
     whiteBox(ctx, { x0: 36, x1: 231, top: T(298), bottom: T(312) });
     whiteBox(ctx, { x0: 301, x1: 364, top: T(298), bottom: T(312) });
     whiteBox(ctx, { x0: 367, x1: 431, top: T(298), bottom: T(312) });
-    const BASES = [307.6, 324.6, 341.5];
-    merged.slice(0, BASES.length).forEach((it, i) => {
+    chunk.forEach((it, i) => {
       const base = T(BASES[i]);
       draw(ctx, `Африкански сом (Clarias gariepinus) - ${it.code || ''}`, { x: 40, top: base, size: SZ, color: BLACK, maxWidth: 190 });
       draw(ctx, qty(it.quantity_kg), { x: 294, top: base, size: SZ, color: BLACK, align: 'right' });
@@ -305,6 +310,7 @@ async function buildOrigin(sale) {
 
   // Линија за сечење на средина
   page.drawLine({ start: { x: 20, y: H - ORIGIN_HALF }, end: { x: W - 20, y: H - ORIGIN_HALF }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6), dashArray: [4, 4] });
+  }
 
   return doc.save();
 }

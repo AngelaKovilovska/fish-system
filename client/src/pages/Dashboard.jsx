@@ -236,7 +236,7 @@ export default function Dashboard() {
         const totalFoodKg = foodInv.reduce((s, i) => s + parseFloat(i.quantity_kg || 0), 0);
         // Ниска залиха само за типови што се трошат (не се користат → не треба набавка)
         const usedTypes = new Set(foodProj.filter(p => (p.avgDailyConsumptionKg || 0) > 0).map(p => p.food_type));
-        const lowFoodItems = foodInv.filter(i => usedTypes.has(i.food_type) && parseFloat(i.quantity_kg || 0) < 50);
+        const lowFoodItems = foodInv.filter(i => usedTypes.has(i.food_type) && parseFloat(i.quantity_kg || 0) <= 15); // ист праг како на страницата за храна (≤15 kg предупредување, ≤5 kg критично)
         const productWarnings = productStockWarnings(productInv);
         const productDanger = productWarnings.some(w => w.level === 'danger');
         return (
